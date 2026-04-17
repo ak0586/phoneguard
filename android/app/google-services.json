@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425497703312",
+    "project_id": "phoneguard-c3bf4",
+    "storage_bucket": "phoneguard-c3bf4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425497703312:android:2dd09e8a0874d0c74a3915",
+        "android_client_info": {
+          "package_name": "com.kyvronix.phoneguard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdTPoE_dIKjBw2tZXnvhW06izsvSo7Fno"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

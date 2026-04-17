@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PhoneGuard</string>
+    <string name="accessibility_service_description">PhoneGuard uses accessibility to intercept the power-off menu and show a fake shutdown screen to protect your device from thieves.</string>
+</resources>

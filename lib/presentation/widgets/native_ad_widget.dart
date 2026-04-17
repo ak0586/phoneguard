@@ -1,0 +1,71 @@
+import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
+import '../../data/datasources/ad_service.dart';
+
+class NativeAdWidget extends StatefulWidget {
+  final TemplateType templateType;
+
+  const NativeAdWidget({
+    super.key,
+    this.templateType = TemplateType.small,
+  });
+
+  @override
+  State<NativeAdWidget> createState() => _NativeAdWidgetState();
+}
+
+class _NativeAdWidgetState extends State<NativeAdWidget> {
+  NativeAd? _nativeAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadAd();
+  }
+
+  void _loadAd() {
+    final adService = Provider.of<AdService>(context, listen: false);
+    
+    _nativeAd = adService.loadNativeAd(
+      templateType: widget.templateType,
+      onAdLoaded: (ad) {
+        if (!mounted) {
+          ad.dispose();
+          return;
+        }
+        setState(() {
+          _isAdLoaded = true;
+        });
+      },
+      onAdFailedToLoad: (ad, error) {
+        ad.dispose();
+      },
+    );
+
+    _nativeAd?.load();
+  }
+
+  @override
+  void dispose() {
+    _nativeAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isAdLoaded || _nativeAd == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      constraints: BoxConstraints(
+        minHeight: widget.templateType == TemplateType.small ? 90 : 320,
+        maxHeight: widget.templateType == TemplateType.small ? 120 : 400,
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: AdWidget(ad: _nativeAd!),
+    );
+  }
+}

@@ -1,0 +1,6 @@
+﻿Analyzing lost_phone_finder...                                  
+
+   info - Unnecessary use of string interpolation - lib\presentation\screens\command_guide_screen.dart:125:28 - unnecessary_string_interpolations
+   info - Unnecessary use of multiple underscores - lib\presentation\screens\default_actions_screen.dart:20:32 - unnecessary_underscores
+warning - A value for optional parameter 'isWarning' isn't ever given - lib\presentation\screens\setup_screen.dart:293:45 - unused_element_parameter
+
