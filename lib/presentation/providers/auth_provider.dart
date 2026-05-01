@@ -52,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (authUser != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('flutter.user_uid', authUser.uid);
+        await prefs.setString('user_uid', authUser.uid);
         
         await _authService.ensureUserProfileExists(authUser);
         await _syncDeviceMetadata(authUser.uid);
@@ -94,7 +94,7 @@ class AuthProvider extends ChangeNotifier {
         _profile = null;
         _mobileNumber = null;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('flutter.user_uid');
+        await prefs.remove('user_uid');
         NativeService().stopFirestoreCommandService();
       }
       _isInitializing = false;
@@ -109,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
       final credential = await _authService.signInWithEmailAndPassword(email: email, password: password);
       if (credential.user != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('flutter.user_uid', credential.user!.uid);
+        await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
       }
     } on FirebaseAuthException catch (e) {
@@ -130,7 +130,7 @@ class AuthProvider extends ChangeNotifier {
       if (credential.user != null) {
         await _authService.ensureUserProfileExists(credential.user!, name: credential.user!.displayName);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('flutter.user_uid', credential.user!.uid);
+        await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
       }
     } on FirebaseAuthException catch (e) {
@@ -162,7 +162,7 @@ class AuthProvider extends ChangeNotifier {
           createdAt: DateTime.now(),
         );
         await _authService.setUserProfile(profile);
-        await prefs.setString('flutter.user_uid', credential.user!.uid);
+        await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
         if (!credential.user!.emailVerified) {
           await credential.user!.sendEmailVerification();
@@ -181,7 +181,7 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('flutter.user_uid');
+      await prefs.remove('user_uid');
       NativeService().stopFirestoreCommandService();
       await _authService.signOut();
     } catch (e) {

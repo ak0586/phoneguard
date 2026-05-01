@@ -156,24 +156,41 @@ class IntrusionCameraService : LifecycleService() {
                 val contentValues = android.content.ContentValues().apply {
                     put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename)
                     put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/PhoneGuard")
+                    // Try DCIM as it's often more accessible for camera apps
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DCIM + "/PhoneGuard")
                 }
+                
                 val imageUri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                fos = imageUri?.let { contentResolver.openOutputStream(it) }
+                if (imageUri != null) {
+                    fos = contentResolver.openOutputStream(imageUri)
+                    Log.d(TAG, "Opened MediaStore output stream at: $imageUri")
+                } else {
+                    Log.e(TAG, "Failed to insert entry into MediaStore")
+                }
             } else {
-                val imagesDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).toString() + "/PhoneGuard"
+                val imagesDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DCIM).toString() + "/PhoneGuard"
                 val file = java.io.File(imagesDir)
-                if (!file.exists()) file.mkdir()
-                val image = java.io.File(file, filename)
-                fos = java.io.FileOutputStream(image)
+                if (!file.exists()) {
+                    val created = file.mkdirs()
+                    Log.d(TAG, "Gallery directory created: $created at $imagesDir")
+                }
+                val imageFile = java.io.File(file, filename)
+                fos = java.io.FileOutputStream(imageFile)
+                Log.d(TAG, "Opened FileOutputStream at: ${imageFile.absolutePath}")
             }
 
             fos?.use {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
-                Log.d(TAG, "Photo saved to gallery")
+                val success = bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)
+                Log.d(TAG, "Photo compress & save success: $success")
+                if (success) {
+                    logActivityLocally("Security Camera", "Selfie saved to Gallery (PhoneGuard folder)", true)
+                }
+            } ?: run {
+                Log.e(TAG, "Output stream was null, could not save to gallery")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save photo to gallery: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -199,7 +216,7 @@ class IntrusionCameraService : LifecycleService() {
         val db = FirebaseFirestore.getInstance()
         val photoEntry = hashMapOf(
             "url" to photoUrl,
-            "timestamp" to FieldValue.serverTimestamp(),
+            "timestamp" to com.google.firebase.Timestamp.now(),
             "latitude" to lat,
             "longitude" to lng
         )
