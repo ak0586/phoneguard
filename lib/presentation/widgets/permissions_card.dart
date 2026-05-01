@@ -39,6 +39,8 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
       Permission.sms,
       Permission.location,
       Permission.phone,
+      Permission.camera,
+      Permission.contacts,
     ];
     
     final Map<Permission, PermissionStatus> newStatuses = {};
@@ -60,6 +62,8 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
       Permission.sms,
       Permission.location,
       Permission.phone,
+      Permission.camera,
+      Permission.contacts,
       Permission.notification,
     ];
 
@@ -175,6 +179,18 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
             Icons.phone_android_rounded,
             'Phone State',
             'SIM change detection',
+          ),
+          _permRow(
+            Permission.camera,
+            Icons.camera_alt_rounded,
+            'Camera',
+            'Capture intruder selfies',
+          ),
+          _permRow(
+            Permission.contacts,
+            Icons.contacts_rounded,
+            'Contacts',
+            'Select trusted recovery contacts',
           ),
           const SizedBox(height: 16),
           Consumer<AppProvider>(

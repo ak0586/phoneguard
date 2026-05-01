@@ -126,6 +126,22 @@ class NativeService {
     }
   }
 
+  Future<void> openAppInfo() async {
+    try {
+      await _channel.invokeMethod<void>(AppConstants.methodOpenAppInfo);
+    } on PlatformException catch (e) {
+      throw Exception('Failed to open app info: ${e.message}');
+    }
+  }
+
+  Future<void> openBatteryOptimizationSettings() async {
+    try {
+      await _channel.invokeMethod<void>(AppConstants.methodOpenBatteryOptimizationSettings);
+    } on PlatformException catch (e) {
+      throw Exception('Failed to open battery optimization settings: ${e.message}');
+    }
+  }
+
   Future<void> captureIntruderPhoto() async {
     try {
       await _channel.invokeMethod<void>('captureIntruderPhoto');

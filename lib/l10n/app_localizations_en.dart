@@ -83,9 +83,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyCommitmentDesc =>
-      'PhoneGuard does NOT collect, upload, or sell any personal data. All data stays on your device. We have NO servers, NO analytics, and NO third-party data sharing.';
+      'PhoneGuard only collects the data necessary to recover your device (location, model, and security photos). This data is stored securely on your private Cloud Dashboard (Firebase) and is NEVER shared with third parties. You have full control over your data.';
 
   @override
   String get privacyIntro =>
       'PhoneGuard is designed to help you recover your lost or stolen device. We are committed to protecting your privacy and being transparent about how the app works.';
+
+  @override
+  String get faqSearchHint => 'Search questions...';
+
+  @override
+  String get faqNoResults => 'No results found';
+
+  @override
+  String get faqBasics => 'Basics';
+
+  @override
+  String get faqGeneral => 'General';
+
+  @override
+  String get faqSecurity => 'Security';
+
+  @override
+  String get faqTechnical => 'Technical';
+
+  @override
+  String get faqAccount => 'Account';
+
+  @override
+  String get supportGuideDesc => 'Check guides on dashboard';
 }

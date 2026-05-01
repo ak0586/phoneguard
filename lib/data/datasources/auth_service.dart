@@ -244,4 +244,24 @@ class AuthService {
       'intrusionPhotos': FieldValue.delete(),
     });
   }
+
+  /// Delete account with password re-authentication
+  Future<void> deleteAccount(String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    // Re-authenticate
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    
+    await user.reauthenticateWithCredential(credential);
+
+    // Delete Firestore data
+    await _usersCollection.doc(user.uid).delete();
+
+    // Delete Auth account
+    await user.delete();
+  }
 }

@@ -245,7 +245,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyCommitmentDesc.
   ///
   /// In en, this message translates to:
-  /// **'PhoneGuard does NOT collect, upload, or sell any personal data. All data stays on your device. We have NO servers, NO analytics, and NO third-party data sharing.'**
+  /// **'PhoneGuard only collects the data necessary to recover your device (location, model, and security photos). This data is stored securely on your private Cloud Dashboard (Firebase) and is NEVER shared with third parties. You have full control over your data.'**
   String get privacyCommitmentDesc;
 
   /// No description provided for @privacyIntro.
@@ -253,6 +253,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PhoneGuard is designed to help you recover your lost or stolen device. We are committed to protecting your privacy and being transparent about how the app works.'**
   String get privacyIntro;
+
+  /// No description provided for @faqSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search questions...'**
+  String get faqSearchHint;
+
+  /// No description provided for @faqNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get faqNoResults;
+
+  /// No description provided for @faqBasics.
+  ///
+  /// In en, this message translates to:
+  /// **'Basics'**
+  String get faqBasics;
+
+  /// No description provided for @faqGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get faqGeneral;
+
+  /// No description provided for @faqSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get faqSecurity;
+
+  /// No description provided for @faqTechnical.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical'**
+  String get faqTechnical;
+
+  /// No description provided for @faqAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get faqAccount;
+
+  /// No description provided for @supportGuideDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Check guides on dashboard'**
+  String get supportGuideDesc;
 }
 
 class _AppLocalizationsDelegate

@@ -61,9 +61,15 @@ class AppSettings {
   final bool onboardingDone;
   final bool isDarkMode;
   final String languageCode;
+  
+  // New Settings
+  final bool intrusionSelfieEnabled;
+  final int intrusionThreshold;
+  final bool silentBypassEnabled;
+  final bool simChangeAlertEnabled;
 
   const AppSettings({
-    this.triggerKeyword = 'miss you phone', // Assuming AppConstants.defaultTriggerKeyword is 'miss you phone'
+    this.triggerKeyword = 'miss you phone',
     this.pin = '',
     this.isPinEnabled = false,
     this.defaultActions = const DefaultActions(),
@@ -72,14 +78,11 @@ class AppSettings {
     this.onboardingDone = false,
     this.isDarkMode = true,
     this.languageCode = 'en',
+    this.intrusionSelfieEnabled = true,
+    this.intrusionThreshold = 2,
+    this.silentBypassEnabled = true,
+    this.simChangeAlertEnabled = true,
   });
-
-  // Assuming AppSettings does not extend Equatable, so adding props getter as is.
-  List<Object?> get props => [
-        isInitialized,
-        trustedNumbers,
-        triggerKeyword,
-      ];
 
   AppSettings copyWith({
     bool? isInitialized,
@@ -91,6 +94,10 @@ class AppSettings {
     bool? onboardingDone,
     bool? isDarkMode,
     String? languageCode,
+    bool? intrusionSelfieEnabled,
+    int? intrusionThreshold,
+    bool? silentBypassEnabled,
+    bool? simChangeAlertEnabled,
   }) {
     return AppSettings(
       isInitialized: isInitialized ?? this.isInitialized,
@@ -102,37 +109,49 @@ class AppSettings {
       onboardingDone: onboardingDone ?? this.onboardingDone,
       isDarkMode: isDarkMode ?? this.isDarkMode,
       languageCode: languageCode ?? this.languageCode,
+      intrusionSelfieEnabled: intrusionSelfieEnabled ?? this.intrusionSelfieEnabled,
+      intrusionThreshold: intrusionThreshold ?? this.intrusionThreshold,
+      silentBypassEnabled: silentBypassEnabled ?? this.silentBypassEnabled,
+      simChangeAlertEnabled: simChangeAlertEnabled ?? this.simChangeAlertEnabled,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'triggerKeyword': triggerKeyword, // Assuming AppConstants.keyTriggerKeyword is 'triggerKeyword'
-      'pin': pin, // Assuming AppConstants.keyPin is 'pin'
-      'isPinEnabled': isPinEnabled, // Assuming AppConstants.keyPinEnabled is 'isPinEnabled'
-      'trustedNumbers': trustedNumbers.map((n) => n.toMap()).toList(), // Assuming AppConstants.keyTrustedNumbers is 'trustedNumbers'
-      'defaultActions': defaultActions.toMap(), // Assuming AppConstants.keyDefaultActions is 'defaultActions'
-      'onboardingDone': onboardingDone, // Assuming AppConstants.keyOnboardingDone is 'onboardingDone'
+      'triggerKeyword': triggerKeyword,
+      'pin': pin,
+      'isPinEnabled': isPinEnabled,
+      'trustedNumbers': trustedNumbers.map((n) => n.toMap()).toList(),
+      'defaultActions': defaultActions.toMap(),
+      'onboardingDone': onboardingDone,
       'is_dark_mode': isDarkMode,
       'language_code': languageCode,
+      'intrusionSelfieEnabled': intrusionSelfieEnabled,
+      'intrusionThreshold': intrusionThreshold,
+      'silentBypassEnabled': silentBypassEnabled,
+      'simChangeAlertEnabled': simChangeAlertEnabled,
     };
   }
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
     return AppSettings(
-      triggerKeyword: map['triggerKeyword'] as String? ?? 'miss you phone', // Assuming AppConstants.keyTriggerKeyword and default
-      pin: map['pin'] as String? ?? '', // Assuming AppConstants.keyPin
-      isPinEnabled: map['isPinEnabled'] as bool? ?? false, // Assuming AppConstants.keyPinEnabled
-      trustedNumbers: (map['trustedNumbers'] as List?) // Assuming AppConstants.keyTrustedNumbers
+      triggerKeyword: map['triggerKeyword'] as String? ?? 'miss you phone',
+      pin: map['pin'] as String? ?? '',
+      isPinEnabled: map['isPinEnabled'] as bool? ?? false,
+      trustedNumbers: (map['trustedNumbers'] as List?)
           ?.map((e) => TrustedNumber.fromMap(e as Map<String, dynamic>))
           .toList() ?? [],
-      defaultActions: map['defaultActions'] != null // Assuming AppConstants.keyDefaultActions
+      defaultActions: map['defaultActions'] != null
           ? DefaultActions.fromMap(map['defaultActions'] as Map<String, dynamic>)
           : const DefaultActions(),
       isInitialized: true,
-      onboardingDone: map['onboardingDone'] as bool? ?? false, // Assuming AppConstants.keyOnboardingDone
+      onboardingDone: map['onboardingDone'] as bool? ?? false,
       isDarkMode: map['is_dark_mode'] as bool? ?? true,
       languageCode: map['language_code'] as String? ?? 'en',
+      intrusionSelfieEnabled: map['intrusionSelfieEnabled'] as bool? ?? true,
+      intrusionThreshold: map['intrusionThreshold'] as int? ?? 2,
+      silentBypassEnabled: map['silentBypassEnabled'] as bool? ?? true,
+      simChangeAlertEnabled: map['simChangeAlertEnabled'] as bool? ?? true,
     );
   }
 

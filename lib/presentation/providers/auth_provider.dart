@@ -339,6 +339,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> deleteAccount(String password) async {
+    _setLoading(true);
+    _clearError();
+    try {
+      await _authService.deleteAccount(password);
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = (e.code == 'wrong-password') ? 'Incorrect password.' : e.message;
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
+    }
+  }
+
   @override
   void notifyListeners() {
     if (!_disposed) super.notifyListeners();

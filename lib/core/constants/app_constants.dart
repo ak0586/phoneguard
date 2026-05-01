@@ -35,6 +35,8 @@ class AppConstants {
   static const String methodSendSms = 'sendSms';
   static const String methodLockDevice = 'lockDevice';
   static const String methodOpenAccessibilitySettings = 'openAccessibilitySettings';
+  static const String methodOpenAppInfo = 'openAppInfo';
+  static const String methodOpenBatteryOptimizationSettings = 'openBatteryOptimizationSettings';
 
   // Commands
   static const String cmdLocation = 'location';

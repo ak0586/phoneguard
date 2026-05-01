@@ -8,6 +8,8 @@ import '../../domain/models/activity_log.dart';
 import '../../domain/repositories/app_repository.dart';
 import '../../data/datasources/native_service.dart';
 import '../../core/utils/phone_utils.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum AppState { idle, loading, error }
 
@@ -25,6 +27,9 @@ class AppProvider extends ChangeNotifier {
   bool _isAlarmActive = false;
   bool _isTrackingActive = false;
   bool _isDeviceAdminActive = false;
+  String _minRequiredVersion = '1.0.0';
+  bool _isUpdateRequired = false;
+  String _playStoreUrl = 'https://play.google.com/store/apps/details?id=com.kyvronix.phoneguard';
   Timer? _pollingTimer;
   void Function(List<TrustedNumber>)? onTrustedNumbersChanged;
   void Function(String)? onTriggerKeywordChanged;
@@ -42,6 +47,8 @@ class AppProvider extends ChangeNotifier {
   bool get isAlarmActive => _isAlarmActive;
   bool get isTrackingActive => _isTrackingActive;
   bool get isDeviceAdminActive => _isDeviceAdminActive;
+  bool get isUpdateRequired => _isUpdateRequired;
+  String get playStoreUrl => _playStoreUrl;
   bool get isProtectionActive => trustedNumbers.isNotEmpty;
   DefaultActions get defaultActions => _settings.defaultActions;
 
@@ -55,6 +62,7 @@ class AppProvider extends ChangeNotifier {
       _logs = await _repository.getLogs();
       await refreshActiveActions();
       await _checkNativeEvents(); // New: Check for SIM change/Shutdown
+      await _checkVersionUpdate(); // New: Force update check
       _startPolling();
       _state = AppState.idle;
     } catch (e) {
@@ -275,6 +283,24 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> openAppInfo() async {
+    try {
+      await _nativeService.openAppInfo();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> openBatteryOptimizationSettings() async {
+    try {
+      await _nativeService.openBatteryOptimizationSettings();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
   // ─── Tracking Control ────────────────────────────────────────────────────
 
   Future<void> startTracking(String targetNumber) async {
@@ -395,5 +421,42 @@ class AppProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> _checkVersionUpdate() async {
+    try {
+      // 1. Fetch from Firestore (system_config/app_version)
+      final doc = await FirebaseFirestore.instance.collection('system_config').doc('app_version').get();
+      if (doc.exists) {
+        _minRequiredVersion = doc.data()?['min_required_version'] ?? '1.0.0';
+        _playStoreUrl = doc.data()?['play_store_url'] ?? _playStoreUrl;
+      }
+
+      // 2. Get local version
+      final info = await PackageInfo.fromPlatform();
+      final currentVersion = info.version;
+
+      // 3. Compare
+      _isUpdateRequired = _isVersionLower(currentVersion, _minRequiredVersion);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error checking version: $e');
+    }
+  }
+
+  bool _isVersionLower(String current, String required) {
+    try {
+      List<int> currentParts = current.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+      List<int> requiredParts = required.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+      
+      for (int i = 0; i < requiredParts.length; i++) {
+        if (i >= currentParts.length) return true;
+        if (currentParts[i] < requiredParts[i]) return true;
+        if (currentParts[i] > requiredParts[i]) return false;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 }

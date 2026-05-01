@@ -6,6 +6,41 @@ import '../../core/theme/app_theme.dart';
 class DeviceAdminStatusCard extends StatelessWidget {
   const DeviceAdminStatusCard({super.key});
 
+  void _confirmDeactivation(BuildContext context, AppProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Deactivate Protection?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Warning: Disabling Device Admin will allow anyone to uninstall the app and stop remote protection.',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text('Are you sure you want to proceed?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              provider.deactivateDeviceAdmin();
+              Navigator.pop(context);
+            },
+            child: const Text('DEACTIVATE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
@@ -17,7 +52,7 @@ class DeviceAdminStatusCard extends StatelessWidget {
             if (!isActive) {
               provider.requestDeviceAdmin();
             } else {
-              provider.deactivateDeviceAdmin();
+              _confirmDeactivation(context, provider);
             }
           },
           child: Container(

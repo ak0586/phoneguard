@@ -58,7 +58,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '${l10n.lastUpdated}: March 2026',
+          '${l10n.lastUpdated}: May 2026',
           style: const TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 12),
@@ -112,137 +112,99 @@ class PrivacyPolicyScreen extends StatelessWidget {
     if (isHi) {
       return [
         const _PolicySectionData(
+          title: 'Google अकाउंट और ऑथेंटिकेशन',
+          icon: Icons.account_circle_rounded,
+          color: Color(0xFF4285F4),
+          content: 'हम आपकी पहचान को सुरक्षित रखने के लिए Google साइन-इन का उपयोग करते हैं।\n\n'
+              '• हम केवल आपकी ईमेल आईडी और बुनियादी प्रोफ़ाइल जानकारी एक्सेस करते हैं।\n'
+              '• यह सुनिश्चित करता है कि केवल आप ही अपने व्यक्तिगत वेब डैशबोर्ड तक पहुँच सकें।\n'
+              '• आपका पासवर्ड कभी भी हमारे द्वारा एक्सेस या स्टोर नहीं किया जाता है।',
+        ),
+        const _PolicySectionData(
+          title: 'क्लाउड सिंक्रोनाइज़ेशन (Firebase)',
+          icon: Icons.cloud_done_rounded,
+          color: Color(0xFFFFCA28),
+          content: 'रिमोट रिकवरी सक्षम करने के लिए, कुछ डेटा Google Firebase पर सुरक्षित रूप से स्टोर किया जाता है।\n\n'
+              '• लोकेशन डेटा: मांग पर प्राप्त लोकेशन आपके वेब डैशबोर्ड पर दिखाई देती है।\n'
+              '• घुसपैठिए की फोटो: गलत पिन डालने पर ली गई फोटो आपके निजी क्लाउड स्टोरेज पर अपलोड की जाती हैं।\n'
+              '• डिवाइस की जानकारी: मॉडल और OS वर्जन को डिवाइस की पहचान के लिए स्टोर किया जाता है।\n'
+              '• यह डेटा केवल आपको आपके Google अकाउंट के माध्यम से दिखाई देता है।',
+        ),
+        const _PolicySectionData(
           title: 'SMS एक्सेस',
           icon: Icons.sms_rounded,
           color: Color(0xFF2196F3),
           content: 'PhoneGuard आपके विश्वसनीय नंबरों से भेजे गए रिकवरी कमांड का पता लगाने के लिए आने वाले SMS संदेशों को सुनता है।\n\n'
-              '• SMS केवल आपके डिवाइस पर स्थानीय रूप से प्रोसेस किए जाते हैं\n'
-              '• कोई भी SMS डेटा स्थायी रूप से स्टोर या कहीं अपलोड नहीं किया जाता है\n'
-              '• केवल आपके विश्वसनीय नंबरों से आपके ट्रिगर कीवर्ड से मेल खाने वाले संदेश ही किसी कार्रवाई को ट्रिगर करते हैं\n'
-              '• अन्य सभी संदेश तुरंत हटा दिए जाते हैं\n'
-              '• ऐप कभी भी आपके व्यक्तिगत SMS नहीं पढ़ता है',
+              '• SMS केवल आपके डिवाइस पर स्थानीय रूप से प्रोसेस किए जाते हैं।\n'
+              '• हम आपके व्यक्तिगत SMS कभी नहीं पढ़ते हैं।\n'
+              '• केवल आपके विश्वसनीय नंबरों से भेजे गए ट्रिगर कमांड ही प्रोसेस किए जाते हैं।',
         ),
         const _PolicySectionData(
-          title: 'लोकेशन एक्सेस',
-          icon: Icons.location_on_rounded,
-          color: Color(0xFF43A047),
-          content: 'लोकेशन केवल तभी एक्सेस की जाती है जब रिकवरी कमांड (location या track) प्राप्त होता है।\n\n'
-              '• लोकेशन कमांड के लिए GPS कोऑर्डिनेट मांग पर प्राप्त किए जाते हैं\n'
-              '• लोकेशन डेटा SMS के माध्यम से उस विश्वसनीय नंबर को भेजा जाता है जिसने कमांड ट्रिगर किया था\n'
-              '• लोकेशन कभी भी किसी सर्वर पर अपलोड नहीं की जाती है\n'
-              '• बैकग्राउंड लोकेशन का उपयोग केवल सक्रिय ट्रैकिंग मोड के दौरान किया जाता है, जिसे आप कभी भी रोक सकते हैं',
-        ),
-        const _PolicySectionData(
-          title: 'कैमरा एक्सेस',
+          title: 'कैमरा और लोकेशन',
           icon: Icons.camera_alt_rounded,
-          color: Color(0xFF9C27B0),
-          content: 'कैमरा केवल तभी एक्सेस किया जाता है जब किसी विश्वसनीय नंबर से "camera" कमांड प्राप्त होता है।\n\n'
-              '• फ्रंट कैमरे का उपयोग करके चुपचाप फोटो ली जाती हैं\n'
-              '• ली गई फोटो केवल ऐप की प्राइवेट डायरेक्टरी में स्टोर की जाती हैं\n'
-              '• फोटो किसी भी सर्वर या क्लाउड स्टोरेज पर अपलोड नहीं की जाती हैं\n'
-              '• फोटो कैप्चर केवल आपके अपने विश्वसनीय नंबरों द्वारा ट्रिगर किया जाता है\n'
-              '• फोटो को डिवाइस फाइल मैनेजर में देखा जा सकता है',
+          color: Color(0xFFE91E63),
+          content: 'इनका उपयोग केवल सुरक्षा उद्देश्यों के लिए किया जाता है:\n\n'
+              '• कैमरा: घुसपैठिए की पहचान के लिए "गलत पिन" या "रिमोट कमांड" पर उपयोग किया जाता है।\n'
+              '• लोकेशन: आपके खोए हुए फोन को मैप पर दिखाने के लिए उपयोग किया जाता है।\n'
+              '• डेटा ट्रांसफर: यह जानकारी सुरक्षित रूप से आपके निजी डैशबोर्ड पर भेजी जाती है।',
         ),
         const _PolicySectionData(
-          title: 'फोन स्टेट एक्सेस',
-          icon: Icons.phone_android_rounded,
-          color: Color(0xFFFFA726),
-          content: 'SIM कार्ड परिवर्तन का पता लगाने के लिए READ_PHONE_STATE अनुमति का उपयोग किया जाता है।\n\n'
-              '• यदि आपका SIM बदला जाता है, तो ऐप आपके विश्वसनीय नंबरों पर अलर्ट भेजता है\n'
-              '• फोन नंबर की जानकारी केवल SMS के माध्यम से भेजी जाती है, कभी सर्वर पर नहीं\n'
-              '• कभी भी कॉल लॉग या कॉन्टैक्ट डेटा एक्सेस नहीं किया जाता है',
-        ),
-        const _PolicySectionData(
-          title: 'डेटा स्टोरेज',
-          icon: Icons.storage_rounded,
-          color: Color(0xFF607D8B),
-          content: 'सभी ऐप सेटिंग्स और लॉग एंड्रॉइड SharedPreferences का उपयोग करके आपके डिवाइस पर स्थानीय रूप से स्टोर किए जाते हैं।\n\n'
-              '• विश्वसनीय नंबर, ट्रिगर कीवर्ड, पिन और सेटिंग्स केवल स्थानीय रूप से स्टोर किए जाते हैं\n'
-              '• गतिविधि लॉग स्थानीय रूप से स्टोर होते हैं और 200 प्रविष्टियों तक सीमित होते हैं\n'
-              '• कोई भी डेटा बाहरी सर्वर पर बैकअप नहीं लिया जाता है\n'
-              '• आप ऐप को अनइंस्टॉल करके सभी डेटा साफ़ कर सकते हैं',
-        ),
-        const _PolicySectionData(
-          title: 'अनुमति औचित्य',
-          icon: Icons.security_rounded,
-          color: Color(0xFFE53935),
-          content: 'सभी अनुमतियां केवल आवश्यकता पड़ने पर मांगी जाती हैं और रिकवरी के लिए उपयोग की जाती हैं:\n\n'
-              '• RECEIVE_SMS / READ_SMS — रिकवरी कमांड का पता लगाएं\n'
-              '• SEND_SMS — विश्वसनीय नंबरों को जवाब भेजें\n'
-              '• ACCESS_FINE_LOCATION — लोकेशन कमांड के लिए GPS\n'
-              '• CAMERA — कैमरा कमांड के लिए फोटो कैप्चर करें\n'
-              '• FOREGROUND_SERVICE — रिकवरी सेवा चालू रखें\n'
-              '• WAKE_LOCK — स्क्रीन बंद होने पर कमांड प्रोसेस करें\n'
-              '• RECEIVE_BOOT_COMPLETED — रीबूट के बाद सेवा शुरू करें\n'
-              '• READ_PHONE_STATE — SIM कार्ड परिवर्तन का पता लगाएं',
+          title: 'डेटा सुरक्षा और नियंत्रण',
+          icon: Icons.lock_rounded,
+          color: Color(0xFF43A047),
+          content: 'आपका डेटा आपका है और हम इसे कभी बेचते नहीं हैं।\n\n'
+              '• कोई तीसरा पक्ष शेयरिंग नहीं: आपका डेटा किसी विज्ञापनदाता या बाहरी कंपनी के साथ साझा नहीं किया जाता है।\n'
+              '• डेटा हटाना: आप ऐप के भीतर से अपनी सभी क्लाउड जानकारी साफ़ कर सकते हैं।\n'
+              '• एन्क्रिप्शन: सर्वर और ऐप के बीच सभी संचार सुरक्षित रूप से एन्क्रिप्टेड हैं।',
         ),
       ];
     } else {
       return const [
         _PolicySectionData(
-          title: 'SMS Access',
+          title: 'Google Account & Auth',
+          icon: Icons.account_circle_rounded,
+          color: Color(0xFF4285F4),
+          content: 'We use Google Sign-In to ensure your device security is linked to your identity.\n\n'
+              '• We only access your email and basic profile information.\n'
+              '• This allows you to securely access your device from any browser via the Web Dashboard.\n'
+              '• Your password is never seen or stored by us.',
+        ),
+        _PolicySectionData(
+          title: 'Cloud Synchronization (Firebase)',
+          icon: Icons.cloud_done_rounded,
+          color: Color(0xFFFFCA28),
+          content: 'To enable remote recovery from the web, certain data is stored securely on Google Firebase.\n\n'
+              '• Location Data: Current coordinates are uploaded only when requested via dashboard or SMS.\n'
+              '• Intrusion Photos: Captured photos of unauthorized users are stored in your private cloud storage.\n'
+              '• Device Metadata: Model and OS version are stored to identify your protected devices.\n'
+              '• This data is encrypted and accessible only by you.',
+        ),
+        _PolicySectionData(
+          title: 'SMS & Background Processing',
           icon: Icons.sms_rounded,
           color: Color(0xFF2196F3),
-          content: 'PhoneGuard listens for incoming SMS messages to detect recovery commands sent from your trusted numbers.\n\n'
-              '• SMS messages are processed locally on your device only\n'
-              '• No SMS content is stored permanently or uploaded anywhere\n'
-              '• Only messages matching your trigger keyword from trusted numbers trigger any action\n'
-              '• All other messages are immediately discarded\n'
-              '• The app NEVER reads personal SMS conversations',
+          content: 'PhoneGuard listens for recovery commands sent from your trusted numbers.\n\n'
+              '• SMS messages are processed locally on your device.\n'
+              '• We NEVER read your personal conversations.\n'
+              '• Background services are used to ensure recovery commands work even when the app is closed.',
         ),
         _PolicySectionData(
-          title: 'Location Access',
-          icon: Icons.location_on_rounded,
-          color: Color(0xFF43A047),
-          content: 'Location is accessed ONLY when a recovery command (location or track) is received.\n\n'
-              '• GPS coordinates are obtained on-demand for the location command\n'
-              '• Location data is sent via SMS to the trusted number that triggered the command\n'
-              '• Location is never uploaded to any server\n'
-              '• Background location is used only during active tracking mode, which you can stop at any time',
-        ),
-        _PolicySectionData(
-          title: 'Camera Access',
+          title: 'Camera & Location Usage',
           icon: Icons.camera_alt_rounded,
-          color: Color(0xFF9C27B0),
-          content: 'Camera is accessed ONLY when the "camera" command is received from a trusted number.\n\n'
-              '• Photos are captured silently using the front camera\n'
-              '• Captured photos are stored in the app private directory only\n'
-              '• Photos are NOT uploaded to any server or cloud storage\n'
-              '• The photo capture is only triggered by your own trusted numbers\n'
-              '• Photos can be reviewed in the device file manager',
+          color: Color(0xFFE91E63),
+          content: 'Used strictly for security features:\n\n'
+              '• Camera: Captures photos during intrusion attempts or via remote command.\n'
+              '• Location: Provides GPS coordinates to help you find your lost device.\n'
+              '• All captured media and coordinates are sent directly to your private secure dashboard.',
         ),
         _PolicySectionData(
-          title: 'Phone State Access',
-          icon: Icons.phone_android_rounded,
-          color: Color(0xFFFFA726),
-          content: 'READ_PHONE_STATE permission is used to detect SIM card changes.\n\n'
-              '• If your SIM is replaced, the app sends an alert to your configured trusted numbers\n'
-              '• Phone number information is only sent via SMS, never to a server\n'
-              '• No call logs or contact data are ever accessed',
-        ),
-        _PolicySectionData(
-          title: 'Data Storage',
-          icon: Icons.storage_rounded,
-          color: Color(0xFF607D8B),
-          content: 'All app settings and logs are stored locally on your device using Android SharedPreferences.\n\n'
-              '• Trusted numbers, trigger keyword, PIN, and settings are stored locally only\n'
-              '• Activity logs are stored locally and capped at 200 entries\n'
-              '• No data is backed up to external servers\n'
-              '• You can clear all data by uninstalling the app',
-        ),
-        _PolicySectionData(
-          title: 'Permissions Justification',
-          icon: Icons.security_rounded,
-          color: Color(0xFFE53935),
-          content: 'All permissions are requested only when needed and used strictly for recovery purposes:\n\n'
-              '• RECEIVE_SMS / READ_SMS — detect recovery commands\n'
-              '• SEND_SMS — send location/status replies to trusted numbers\n'
-              '• ACCESS_FINE_LOCATION — GPS for location command\n'
-              '• CAMERA — capture photo for camera command\n'
-              '• FOREGROUND_SERVICE — keep recovery service running\n'
-              '• WAKE_LOCK — process commands when screen is off\n'
-              '• RECEIVE_BOOT_COMPLETED — restart service after device reboot\n'
-              '• READ_PHONE_STATE — detect SIM card changes',
+          title: 'Data Control & Privacy',
+          icon: Icons.lock_rounded,
+          color: Color(0xFF43A047),
+          content: 'Your data is private and we have a zero-monetization policy.\n\n'
+              '• No Third-Party Sharing: We never sell or share your data with advertisers or third parties.\n'
+              '• User Control: You can clear your cloud data and logs at any time from within the app.\n'
+              '• Security: All data transfers are encrypted using industry-standard SSL/TLS protocols.',
         ),
       ];
     }

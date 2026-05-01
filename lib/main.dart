@@ -31,6 +31,7 @@ import 'presentation/screens/edit_profile_screen.dart';
 import 'presentation/screens/setup_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/trusted_numbers_screen.dart';
+import 'presentation/screens/settings_screen.dart';
 import 'presentation/widgets/app_lock_wrapper.dart';
 import 'data/datasources/ad_service.dart';
 
@@ -142,6 +143,7 @@ class LostPhoneApp extends StatelessWidget {
             '/activity-logs': (context) => const ActivityLogsScreen(),
             '/privacy-policy': (context) => const PrivacyPolicyScreen(),
             '/faq': (context) => const FaqScreen(),
+            '/settings': (context) => const SettingsScreen(),
           },
           debugShowCheckedModeBanner: false,
         );

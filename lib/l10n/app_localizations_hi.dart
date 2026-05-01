@@ -84,9 +84,33 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get privacyCommitmentDesc =>
-      'PhoneGuard कोई भी व्यक्तिगत डेटा एकत्र, अपलोड या बेचता नहीं है। सारा डेटा आपके डिवाइस पर ही रहता है। हमारे पास कोई सर्वर, कोई एनालिटिक्स और कोई तीसरा पक्ष डेटा शेयरिंग नहीं है।';
+      'PhoneGuard केवल आपके डिवाइस को रिकवर करने के लिए आवश्यक डेटा (लोकेशन, मॉडल और सुरक्षा फोटो) एकत्र करता है। यह डेटा आपके निजी क्लाउड डैशबोर्ड (Firebase) पर सुरक्षित रूप से स्टोर किया जाता है और इसे कभी भी तीसरे पक्ष के साथ साझा नहीं किया जाता है। आपका अपने डेटा पर पूरा नियंत्रण है।';
 
   @override
   String get privacyIntro =>
       'PhoneGuard आपके खोए हुए या चोरी हुए डिवाइस को वापस पाने में आपकी मदद करने के लिए बनाया गया है। हम आपकी गोपनीयता की रक्षा करने और ऐप कैसे काम करता है इसके बारे में पारदर्शी होने के लिए प्रतिबद्ध हैं।';
+
+  @override
+  String get faqSearchHint => 'प्रश्न खोजें...';
+
+  @override
+  String get faqNoResults => 'कोई परिणाम नहीं मिला';
+
+  @override
+  String get faqBasics => 'शुरुआत';
+
+  @override
+  String get faqGeneral => 'सामान्य';
+
+  @override
+  String get faqSecurity => 'सुरक्षा';
+
+  @override
+  String get faqTechnical => 'तकनीकी';
+
+  @override
+  String get faqAccount => 'खाता';
+
+  @override
+  String get supportGuideDesc => 'डैशबोर्ड पर गाइड देखें';
 }

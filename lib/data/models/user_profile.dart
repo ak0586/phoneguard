@@ -16,6 +16,7 @@ class UserProfile {
   final List<TrustedNumber> trustedNumbers;
   final String? triggerKeyword;
   final String? currentDeviceId;
+  final String? photoUrl;
   
   // Extra metadata
   final String? deviceModel;
@@ -39,6 +40,7 @@ class UserProfile {
     this.trustedNumbers = const [],
     this.triggerKeyword,
     this.currentDeviceId,
+    this.photoUrl,
     this.deviceModel,
     this.osVersion,
     this.lastIp,
@@ -66,6 +68,7 @@ class UserProfile {
           [],
       triggerKeyword: data['triggerKeyword'] as String?,
       currentDeviceId: data['currentDeviceId'] as String?,
+      photoUrl: data['photoUrl'] as String?,
       deviceModel: data['deviceModel'] as String?,
       osVersion: data['osVersion'] as String?,
       lastIp: data['lastIp'] as String?,
@@ -89,6 +92,7 @@ class UserProfile {
       'trustedNumbers': trustedNumbers.map((n) => n.toMap()).toList(),
       'triggerKeyword': triggerKeyword,
       'currentDeviceId': currentDeviceId,
+      'photoUrl': photoUrl,
       'deviceModel': deviceModel,
       'osVersion': osVersion,
       'lastIp': lastIp,
@@ -109,6 +113,7 @@ class UserProfile {
     List<TrustedNumber>? trustedNumbers,
     String? triggerKeyword,
     String? currentDeviceId,
+    String? photoUrl,
     String? deviceModel,
     String? osVersion,
     String? lastIp,
@@ -130,6 +135,7 @@ class UserProfile {
       trustedNumbers: trustedNumbers ?? this.trustedNumbers,
       triggerKeyword: triggerKeyword ?? this.triggerKeyword,
       currentDeviceId: currentDeviceId ?? this.currentDeviceId,
+      photoUrl: photoUrl ?? this.photoUrl,
       deviceModel: deviceModel ?? this.deviceModel,
       osVersion: osVersion ?? this.osVersion,
       lastIp: lastIp ?? this.lastIp,

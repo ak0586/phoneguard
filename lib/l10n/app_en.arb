@@ -24,6 +24,14 @@
   "chat": "CHAT",
   "lastUpdated": "Last updated",
   "privacyCommitmentTitle": "Our Commitment",
-  "privacyCommitmentDesc": "PhoneGuard does NOT collect, upload, or sell any personal data. All data stays on your device. We have NO servers, NO analytics, and NO third-party data sharing.",
-  "privacyIntro": "PhoneGuard is designed to help you recover your lost or stolen device. We are committed to protecting your privacy and being transparent about how the app works."
+  "privacyCommitmentDesc": "PhoneGuard only collects the data necessary to recover your device (location, model, and security photos). This data is stored securely on your private Cloud Dashboard (Firebase) and is NEVER shared with third parties. You have full control over your data.",
+  "privacyIntro": "PhoneGuard is designed to help you recover your lost or stolen device. We are committed to protecting your privacy and being transparent about how the app works.",
+  "faqSearchHint": "Search questions...",
+  "faqNoResults": "No results found",
+  "faqBasics": "Basics",
+  "faqGeneral": "General",
+  "faqSecurity": "Security",
+  "faqTechnical": "Technical",
+  "faqAccount": "Account",
+  "supportGuideDesc": "Check guides on dashboard"
 }
