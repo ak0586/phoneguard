@@ -149,6 +149,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '• डेटा ट्रांसफर: यह जानकारी सुरक्षित रूप से आपके निजी डैशबोर्ड पर भेजी जाती है।',
         ),
         const _PolicySectionData(
+          title: 'संपर्क और डिवाइस एडमिन',
+          icon: Icons.contacts_rounded,
+          color: Color(0xFF9C27B0),
+          content: 'हम निम्नलिखित डिवाइस एक्सेस का उपयोग करते हैं:\n\n'
+              '• संपर्क: केवल आपके फोनबुक से "विश्वसनीय नंबर" चुनने के लिए उपयोग किया जाता है। हम आपके संपर्कों को स्टोर या साझा नहीं करते हैं।\n'
+              '• डिवाइस एडमिनिस्ट्रेटर: रिमोटली स्क्रीन लॉक करने की अनुमति देने के लिए आवश्यक है।\n'
+              '• फोन स्थिति: सिम कार्ड बदलने का पता लगाने के लिए उपयोग किया जाता है।',
+        ),
+        const _PolicySectionData(
           title: 'डेटा सुरक्षा और नियंत्रण',
           icon: Icons.lock_rounded,
           color: Color(0xFF43A047),
@@ -196,6 +205,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '• Camera: Captures photos during intrusion attempts or via remote command.\n'
               '• Location: Provides GPS coordinates to help you find your lost device.\n'
               '• All captured media and coordinates are sent directly to your private secure dashboard.',
+        ),
+        _PolicySectionData(
+          title: 'Contacts & Hardware Access',
+          icon: Icons.contacts_rounded,
+          color: Color(0xFF9C27B0),
+          content: 'We utilize specific device hardware access:\n\n'
+              '• Contacts: Used only to let you pick "Trusted Numbers" from your phonebook. We do not store or share your contact list.\n'
+              '• Device Admin: Required to allow remote screen locking functionality.\n'
+              '• Phone State: Used to detect SIM card changes and notify your trusted numbers.',
         ),
         _PolicySectionData(
           title: 'Data Control & Privacy',
