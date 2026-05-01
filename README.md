@@ -23,6 +23,7 @@
 
 | Feature | Description |
 |---------|-------------|
+| 📸 Intrusion Detection | Captures silent front-camera selfie on wrong PIN/Pattern entry |
 | 📩 SMS Remote Control | Trigger recovery actions from any phone via secret keyword |
 | 📍 3-Tier GPS Fallback | Location works even with GPS turned off |
 | 🔔 Remote Alarm | Bypass-silent loud alarm triggered via SMS |
@@ -33,7 +34,27 @@
 | 🌐 Dashboard | Real-time cloud dashboard showing device status |
 | 👥 Trusted Contacts | Whitelist contacts from phonebook or manual entry |
 | 🎯 SIM Change Alert | Instant SMS alert when SIM card is swapped |
-| 📊 Activity Logs | Full log of all remote commands received |
+| 📄 Legal Reports | Automated security incident reports for legal action |
+
+---
+
+## 📸 Intrusion Detection System (IDS)
+
+PhoneGuard doesn't just find your phone; it identifies the thief.
+
+### Silent Selfie Capture
+- **Trigger**: Automatically activates front-facing camera after a user-defined number of failed unlock attempts (default: 3).
+- **Silent & Stealthy**: No camera animation or shutter sound on the device.
+- **Offline-First Sync**: Even without internet, the app saves the intruder's photo locally. As soon as the device connects to any network, the photo is automatically uploaded to your dashboard.
+
+### Evidence & Gallery
+- **Large Gallery View**: View intruder selfies in high definition on both the mobile app (with pinch-to-zoom) and the web dashboard.
+- **Location Metadata**: Every photo is tagged with the exact GPS coordinates and network IP at the time of the capture.
+- **Direct Download**: Save high-res intruder photos directly to your computer or phone.
+
+### 📄 Legal Action Readiness
+- **Automated Incident Reports**: Generate professional-grade security reports (PDF-ready) on the web dashboard.
+- **Evidence Package**: Reports include date/time stamps, GPS location, device owner info, and the visual evidence — perfect for filing police reports or legal claims.
 
 ---
 
@@ -146,8 +167,13 @@ All critical security operations run **natively in Kotlin**, completely independ
 - Pushes final location, IP, and `isOnline=false` to Firestore before power-off
 
 ### SIM Change Detection (`SimChangeReceiver`)
-- Detects when the SIM card is removed or replaced
-- Sends an SMS alert to all trusted numbers with the new SIM information
+- Detects when the SIM card is removed or replaced.
+- **Settings Controlled**: Gatekeeper logic respects the user's "SIM Alert" toggle in app settings.
+- Sends an SMS alert to all trusted numbers with the new SIM information (IMEI, Serial, Carrier).
+
+### Silent Mode Bypass
+- Overrides system "Silent" or "Do Not Disturb" (DND) modes when the alarm is triggered.
+- Dynamically adjusts system stream volume to 100% to ensure maximum audibility.
 
 ---
 
@@ -205,23 +231,26 @@ lib/
 └── core/            # Theme, utilities
 
 android/app/src/main/kotlin/com/kyvronix/phoneguard/
-├── MainApplication.kt       # Firebase init before Flutter engine
+├── MainApplication.kt       # Firebase init + Offline Persistence enabled
 ├── sms/
 │   ├── SmsReceiver.kt       # Priority-1000 broadcast receiver
-│   ├── CommandParser.kt     # Full command parsing, number matching, action execution
+│   ├── CommandParser.kt     # Full command parsing logic
 │   └── SmsSender.kt         # Dual-SIM SMS sending
 ├── location/
 │   └── LocationManager.kt   # 3-tier GPS fallback
 ├── services/
-│   ├── RecoveryService.kt   # Boot sync + ContentObserver SMS bypass
+│   ├── RecoveryService.kt   # Boot sync + ContentObserver bypass
 │   ├── TrackingService.kt   # Live location tracking
-│   └── AlarmService.kt      # Loud alarm
+│   └── AlarmService.kt      # Loud bypass-silent alarm
 ├── receivers/
 │   ├── BootReceiver.kt      # Boot detection
 │   ├── ShutdownReceiver.kt  # Shutdown snapshot
-│   └── SimChangeReceiver.kt # SIM swap detection
-└── security/
-    └── DeviceAdminReceiver.kt  # Remote lock
+│   └── SimChangeReceiver.kt # SIM swap detection (respects app settings)
+├── security/
+│   ├── DeviceAdminReceiver.kt # Pin failed detection & Remote lock
+│   └── IntrusionCameraService.kt # Silent selfie capture + local/cloud sync
+└── utils/
+    └── StateSyncManager.kt  # Cross-process UID & state mapping
 ```
 
 **State Management:** Provider pattern  
@@ -248,12 +277,14 @@ flutter run
 ```
 
 ### Required Permissions (Granted at Runtime)
+- `CAMERA` (for Intrusion Detection)
+- `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` (for Gallery saving)
 - `RECEIVE_SMS` / `READ_SMS` / `SEND_SMS`
 - `ACCESS_FINE_LOCATION` / `ACCESS_BACKGROUND_LOCATION`
 - `READ_CONTACTS`
 - `READ_PHONE_STATE`
 - `FOREGROUND_SERVICE`
-- Device Administrator (for remote lock)
+- Device Administrator (for remote lock & intrusion detection)
 
 ---
 
