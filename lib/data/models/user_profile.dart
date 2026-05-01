@@ -22,6 +22,7 @@ class UserProfile {
   final String? osVersion;
   final String? lastIp;
   final DateTime? lastActive;
+  final String role; // user, admin
 
   UserProfile({
     required this.uid,
@@ -42,9 +43,10 @@ class UserProfile {
     this.osVersion,
     this.lastIp,
     this.lastActive,
+    this.role = 'user',
   });
 
-  factory UserProfile.fromFirestore(DocumentSnapshot doc) {
+  factory UserProfile.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() as Map<String, dynamic>;
     return UserProfile(
       uid: doc.id,
@@ -68,6 +70,7 @@ class UserProfile {
       osVersion: data['osVersion'] as String?,
       lastIp: data['lastIp'] as String?,
       lastActive: (data['lastActive'] as Timestamp?)?.toDate(),
+      role: data['role'] ?? 'user',
     );
   }
 
@@ -90,6 +93,7 @@ class UserProfile {
       'osVersion': osVersion,
       'lastIp': lastIp,
       'lastActive': lastActive != null ? Timestamp.fromDate(lastActive!) : FieldValue.serverTimestamp(),
+      'role': role,
     };
   }
 
@@ -109,6 +113,7 @@ class UserProfile {
     String? osVersion,
     String? lastIp,
     DateTime? lastActive,
+    String? role,
   }) {
     return UserProfile(
       uid: uid,
@@ -129,6 +134,7 @@ class UserProfile {
       osVersion: osVersion ?? this.osVersion,
       lastIp: lastIp ?? this.lastIp,
       lastActive: lastActive ?? this.lastActive,
+      role: role ?? this.role,
     );
   }
 }

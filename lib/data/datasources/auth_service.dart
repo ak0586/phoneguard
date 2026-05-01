@@ -1,10 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_profile.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  AuthService() {
+    _googleSignIn.initialize();
+  }
 
   /// Stream of user auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -13,11 +19,11 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   /// Get reference to users collection
-  CollectionReference get _usersCollection => _firestore.collection('users');
+  CollectionReference<Map<String, dynamic>> get _usersCollection => _firestore.collection('users');
 
   /// Stream of user profile data
   Stream<UserProfile?> userProfileStream(String uid) {
-    return _usersCollection.doc(uid).snapshots().map((doc) {
+    return _usersCollection.doc(uid).snapshots().map((DocumentSnapshot<Map<String, dynamic>> doc) {
       if (doc.exists) {
         return UserProfile.fromFirestore(doc);
       }
@@ -27,7 +33,7 @@ class AuthService {
 
   /// Get user profile once
   Future<UserProfile?> getUserProfile(String uid) async {
-    final doc = await _usersCollection.doc(uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _usersCollection.doc(uid).get();
     if (doc.exists) {
       return UserProfile.fromFirestore(doc);
     }
@@ -101,6 +107,34 @@ class AuthService {
     );
   }
 
+  /// Sign in with Google
+  Future<UserCredential> signInWithGoogle() async {
+    // Ensure initialized
+    await _googleSignIn.initialize();
+    
+    final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+    
+    if (googleUser == null) {
+      throw FirebaseAuthException(
+        code: 'ERROR_ABORTED_BY_USER',
+        message: 'Sign in aborted by user',
+      );
+    }
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    
+    // Explicitly authorize scopes to get the access token in 7.x
+    final String? idToken = googleAuth.idToken;
+    final String? accessToken = (await googleUser.authorizationClient.authorizeScopes(['email'])).accessToken;
+
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: accessToken,
+      idToken: idToken,
+    );
+
+    return await _auth.signInWithCredential(credential);
+  }
+
   /// Update Profile (both Auth and Firestore)
   Future<void> updateFullProfile(String uid, {required String name, required String mobile}) async {
     // 1. Update Firebase Auth (if current user matches)
@@ -130,7 +164,7 @@ class AuthService {
 
   /// Extend protection by X hours
   Future<void> extendProtection(String uid, int hours) async {
-    final doc = await _usersCollection.doc(uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _usersCollection.doc(uid).get();
     if (doc.exists) {
       final profile = UserProfile.fromFirestore(doc);
       DateTime currentExpiry = profile.protectionExpiry ?? DateTime.now();
@@ -166,5 +200,48 @@ class AuthService {
     if (currentUser != null) {
       await currentUser!.reload();
     }
+  }
+
+  /// Send a remote command to a device via Firestore
+  Future<void> sendRemoteCommand(String uid, String action) async {
+    await _usersCollection.doc(uid).set({
+      'pendingCommand': {
+        'action': action,
+        'issuedAt': FieldValue.serverTimestamp(),
+      }
+    }, SetOptions(merge: true));
+  }
+
+  /// Watch for the result of the last remote command
+  Stream<Map<String, dynamic>?> watchCommandResult(String uid) {
+    return _usersCollection.doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('commandResult')) {
+          return data['commandResult'] as Map<String, dynamic>;
+        }
+      }
+      return null;
+    });
+  }
+
+  /// Stream intrusion photos
+  Stream<List<Map<String, dynamic>>> intrusionPhotosStream(String uid) {
+    return _usersCollection.doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('intrusionPhotos')) {
+          return List<Map<String, dynamic>>.from(data['intrusionPhotos'] as List);
+        }
+      }
+      return [];
+    });
+  }
+
+  /// Clear intrusion photos
+  Future<void> clearIntrusionPhotos(String uid) async {
+    await _usersCollection.doc(uid).update({
+      'intrusionPhotos': FieldValue.delete(),
+    });
   }
 }

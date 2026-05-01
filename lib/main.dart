@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'dart:ui';
 
 import 'core/theme/app_theme.dart';
 import 'data/datasources/auth_service.dart';
@@ -28,19 +31,27 @@ import 'presentation/screens/edit_profile_screen.dart';
 import 'presentation/screens/setup_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/trusted_numbers_screen.dart';
+import 'presentation/widgets/app_lock_wrapper.dart';
 import 'data/datasources/ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
+  // Pass all uncaught "fatal" errors from the framework to Crashlytics
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
   // Initialize SharedPreferences first
   final prefs = await SharedPreferences.getInstance();
 
   // Initialize Hive with prefs for background sync
   final hiveDataSource = await HiveDataSource.init(prefs);
-
-  // Handle migration from SharedPreferences to Hive if needed
   await hiveDataSource.migrateIfNeeded();
 
   final appRepository = AppRepositoryImpl(hiveDataSource);
@@ -49,61 +60,40 @@ void main() async {
   final authService = AuthService();
   final adService = AdService();
 
-  // Initialize Ads in background to prevent hanging during launch
   adService.init().catchError((e) => debugPrint('AdService init error: $e'));
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (context) {
-            final authProvider = AuthProvider(authService);
-            return authProvider;
-          },
+          create: (_) => AuthProvider(authService),
         ),
-        ChangeNotifierProvider(
-          create: (context) {
-            final appProvider = AppProvider(appRepository, nativeService);
-
-            // Link App -> Auth
-            appProvider.onTrustedNumbersChanged = (numbers) {
-              final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
-              );
-              if (authProvider.isAuthenticated) {
-                authProvider.updateTrustedNumbers(numbers);
-              }
+        ChangeNotifierProxyProvider<AuthProvider, AppProvider>(
+          create: (_) => AppProvider(appRepository, nativeService)..init(),
+          update: (_, auth, app) {
+            if (app == null) return AppProvider(appRepository, nativeService);
+            
+            // Sync App -> Auth
+            app.onTrustedNumbersChanged = (numbers) {
+              if (auth.isAuthenticated) auth.updateTrustedNumbers(numbers);
+            };
+            app.onTriggerKeywordChanged = (keyword) {
+              if (auth.isAuthenticated) auth.updateTriggerKeyword(keyword);
             };
 
-            appProvider.onTriggerKeywordChanged = (keyword) {
-              final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
-              );
-              if (authProvider.isAuthenticated) {
-                authProvider.updateTriggerKeyword(keyword);
-              }
-            };
-
-            // Link Auth -> App
-            final authProvider = Provider.of<AuthProvider>(
-              context,
-              listen: false,
-            );
-            authProvider.onProfileChanged = (profile) {
+            // Sync Auth -> App
+            auth.onProfileChanged = (profile) {
               if (profile != null) {
                 if (profile.trustedNumbers.isNotEmpty) {
-                  appProvider.syncTrustedNumbers(profile.trustedNumbers);
+                  app.syncTrustedNumbers(profile.trustedNumbers);
                 }
-                if (profile.triggerKeyword != null &&
-                    profile.triggerKeyword!.isNotEmpty) {
-                  appProvider.syncTriggerKeyword(profile.triggerKeyword!);
+                if (profile.triggerKeyword != null && profile.triggerKeyword!.isNotEmpty) {
+                  app.syncTriggerKeyword(profile.triggerKeyword!);
                 }
               }
             };
-
-            return appProvider..init();
+            
+            return app;
           },
         ),
         Provider.value(value: permissionService),
@@ -125,9 +115,7 @@ class LostPhoneApp extends StatelessWidget {
           title: 'PhoneGuard: Lost Phone Recovery',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: provider.settings.isDarkMode
-              ? ThemeMode.dark
-              : ThemeMode.light,
+          themeMode: provider.settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           themeAnimationDuration: Duration.zero,
           locale: Locale(provider.settings.languageCode),
           localizationsDelegates: const [
@@ -170,17 +158,11 @@ class AuthWrapper extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         if (auth.isInitializing) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        if (!auth.isAuthenticated) {
-          return const LoginScreen();
-        }
-        if (!auth.isEmailVerified) {
-          return const EmailVerificationScreen();
-        }
-        return const DashboardScreen();
+        if (!auth.isAuthenticated) return const LoginScreen();
+        if (!auth.isEmailVerified) return const EmailVerificationScreen();
+        return const AppLockWrapper(child: DashboardScreen());
       },
     );
   }

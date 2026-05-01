@@ -125,13 +125,13 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.6),
+          color: Theme.of(context).dividerColor.withOpacity(0.6),
           width: 1.5,
         ),
         boxShadow: isLight
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
+                  color: Colors.black.withOpacity(0.03),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
                 ),
@@ -231,7 +231,7 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (isGranted ? Colors.green : Colors.red).withValues(alpha: 0.1),
+              color: (isGranted ? Colors.green : Colors.red).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

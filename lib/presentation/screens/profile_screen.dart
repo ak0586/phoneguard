@@ -118,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     gradient: AppTheme.primaryGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.4),
+                        color: AppTheme.primary.withOpacity(0.4),
                         blurRadius: 15,
                         spreadRadius: 5,
                       ),
@@ -155,7 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16, 
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 8),
@@ -184,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14, 
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 16),
@@ -206,9 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.success.withValues(alpha: 0.2),
+                          color: AppTheme.success.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppTheme.success.withValues(alpha: 0.5)),
+                          border: Border.all(color: AppTheme.success.withOpacity(0.5)),
                         ),
                         child: const Text(
                           'PRO',
@@ -321,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Theme.of(context).dividerColor),
                   ),
@@ -357,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         lastSeenStr,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), 
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), 
                           fontSize: 12,
                         ),
                       ),
@@ -390,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       content: Text(
                         'Are you sure you want to logout?',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                       ),
                       actions: [
                         TextButton(
@@ -419,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: const Icon(Icons.logout),
                 label: const Text('LOGOUT'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent.withValues(alpha: 0.9),
+                  backgroundColor: Colors.redAccent.withOpacity(0.9),
                   foregroundColor: Colors.white,
                 ),
               ),

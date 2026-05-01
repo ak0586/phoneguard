@@ -85,7 +85,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return primary.withValues(alpha: 0.4);
+            return primary.withOpacity(0.4);
           }
           return Colors.grey.shade800;
         }),
@@ -273,7 +273,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: lightSurface,
         elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
+        shadowColor: Colors.black.withOpacity(0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: lightDivider, width: 1),
@@ -310,7 +310,7 @@ class AppTheme {
           backgroundColor: primary,
           foregroundColor: Colors.white,
           elevation: 4,
-          shadowColor: primary.withValues(alpha: 0.3),
+          shadowColor: primary.withOpacity(0.3),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

@@ -28,6 +28,7 @@ class AppProvider extends ChangeNotifier {
   Timer? _pollingTimer;
   void Function(List<TrustedNumber>)? onTrustedNumbersChanged;
   void Function(String)? onTriggerKeywordChanged;
+  bool _disposed = false;
 
   AppProvider(this._repository, this._nativeService);
 
@@ -72,7 +73,13 @@ class AppProvider extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     _pollingTimer?.cancel();
     super.dispose();
   }

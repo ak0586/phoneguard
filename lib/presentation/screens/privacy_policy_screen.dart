@@ -65,7 +65,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         Text(
           l10n.privacyIntro,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
             height: 1.5,
           ),
@@ -78,9 +78,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.success.withValues(alpha: 0.08),
+        color: AppTheme.success.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.success.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,7 +282,7 @@ class _PolicySection extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: section.color.withValues(alpha: 0.15),
+            color: section.color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(section.icon, color: section.color, size: 20),

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../data/datasources/auth_service.dart';
-import '../../data/models/user_profile.dart';
-import '../../domain/models/trusted_number.dart';
-import '../../core/utils/phone_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
+import '../../data/datasources/auth_service.dart';
+import '../../data/models/user_profile.dart';
+import '../../domain/models/trusted_number.dart';
+import '../../core/utils/phone_utils.dart';
+import '../../data/datasources/native_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
@@ -24,6 +27,7 @@ class AuthProvider extends ChangeNotifier {
   String? _mobileNumber;
   String? _localDeviceId;
   bool _deviceConflict = false;
+  bool _disposed = false;
   void Function(UserProfile?)? onProfileChanged;
 
   AuthProvider(this._authService) {
@@ -44,37 +48,25 @@ class AuthProvider extends ChangeNotifier {
     _authService.authStateChanges.listen((User? authUser) async {
       _user = authUser;
       
-      // Cancel previous profile subscription
       await _profileSubscription?.cancel();
 
       if (authUser != null) {
-        // Cache UID for native access
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('flutter.user_uid', authUser.uid);
         
-        // 1. Check if we already fetched today
-        final lastFetchTime = prefs.getInt('last_profile_fetch_${authUser.uid}') ?? 0;
-        final now = DateTime.now().millisecondsSinceEpoch;
-        final bool isFirstTimeToday = (now - lastFetchTime) > 86400000; // 24 hours
+        await _authService.ensureUserProfileExists(authUser);
+        await _syncDeviceMetadata(authUser.uid);
 
-        // 2. Ensure Profile Exists & Sync Metadata
-        if (isFirstTimeToday) {
-          await _authService.ensureUserProfileExists(authUser);
-          await _syncDeviceMetadata(authUser.uid);
-          await prefs.setInt('last_profile_fetch_${authUser.uid}', now);
-        }
-
-        // 3. Start listening to Firestore profile
-        // Even if we are "fetching once", we keep the stream open for the session 
-        // to handle real-time changes while the app is active.
         _profileSubscription = _authService.userProfileStream(authUser.uid).listen(
           (profile) async {
+            if (_disposed) return;
             _profile = profile;
             if (profile != null) {
               _localDeviceId ??= await _getOrCreateDeviceId();
               
-              // Device conflict check
-              if (profile.currentDeviceId != null && profile.currentDeviceId != _localDeviceId) {
+              if (profile.currentDeviceId == null) {
+                await setAsPrimaryDevice();
+              } else if (profile.currentDeviceId != _localDeviceId) {
                 _deviceConflict = true;
               } else {
                 _deviceConflict = false;
@@ -91,16 +83,19 @@ class AuthProvider extends ChangeNotifier {
             notifyListeners();
           },
           onError: (error) {
+            if (_disposed) return;
             debugPrint('Profile Stream Error: $error');
             _errorMessage = 'Failed to sync profile: Insufficient Permissions.';
             notifyListeners();
           },
         );
+        NativeService().startFirestoreCommandService();
       } else {
         _profile = null;
         _mobileNumber = null;
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('flutter.user_uid');
+        NativeService().stopFirestoreCommandService();
       }
       _isInitializing = false;
       notifyListeners();
@@ -111,17 +106,36 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
     try {
-      await _authService.signInWithEmailAndPassword(email: email, password: password);
+      final credential = await _authService.signInWithEmailAndPassword(email: email, password: password);
+      if (credential.user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('flutter.user_uid', credential.user!.uid);
+        await NativeService().startFirestoreCommandService();
+      }
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _errorMessage = 'This email is not registered. Please register first.';
-      } else if (e.code == 'wrong-password') {
-        _errorMessage = 'Incorrect password.';
-      } else if (e.code == 'invalid-credential') {
-        // Modern Firebase merges not-found and wrong-password into invalid-credential by default
-        _errorMessage = 'Incorrect password or this email is not registered. Please register first.';
-      } else {
-        _errorMessage = e.message ?? 'An error occurred during sign in.';
+      _errorMessage = (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential')
+          ? 'Incorrect password or this email is not registered.'
+          : e.message ?? 'An error occurred during sign in.';
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _setLoading(false);
+  }
+
+  Future<void> signInWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+    try {
+      final credential = await _authService.signInWithGoogle();
+      if (credential.user != null) {
+        await _authService.ensureUserProfileExists(credential.user!, name: credential.user!.displayName);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('flutter.user_uid', credential.user!.uid);
+        await NativeService().startFirestoreCommandService();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code != 'ERROR_ABORTED_BY_USER') {
+        _errorMessage = e.message ?? 'An error occurred during Google Sign-In.';
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -138,12 +152,8 @@ class AuthProvider extends ChangeNotifier {
       final formattedMobile = PhoneUtils.formatWithCountryCode(mobile.trim(), isoCode);
 
       final credential = await _authService.registerWithEmailAndPassword(email: email, password: password);
-      
       if (credential.user != null) {
-        // Update Firebase Profile Name
         await _authService.updateProfile(displayName: name);
-        
-        // Create Firestore User Document
         final profile = UserProfile(
           uid: credential.user!.uid,
           name: name,
@@ -152,12 +162,8 @@ class AuthProvider extends ChangeNotifier {
           createdAt: DateTime.now(),
         );
         await _authService.setUserProfile(profile);
-
-        // Cache UID for native access
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('flutter.user_uid', credential.user!.uid);
-        
-        // Automatically send verification email on registration
+        await NativeService().startFirestoreCommandService();
         if (!credential.user!.emailVerified) {
           await credential.user!.sendEmailVerification();
         }
@@ -174,6 +180,9 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('flutter.user_uid');
+      NativeService().stopFirestoreCommandService();
       await _authService.signOut();
     } catch (e) {
       _errorMessage = e.toString();
@@ -184,26 +193,21 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> sendPasswordReset(String email) async {
     _setLoading(true);
     _clearError();
-    bool success = false;
     try {
       await _authService.sendPasswordResetEmail(email);
-      success = true;
-    } on FirebaseAuthException catch (e) {
-      _errorMessage = e.message ?? 'Failed to send password reset email.';
+      _setLoading(false);
+      return true;
     } catch (e) {
       _errorMessage = e.toString();
+      _setLoading(false);
+      return false;
     }
-    _setLoading(false);
-    return success;
   }
 
   Future<void> resendVerificationEmail() async {
     _setLoading(true);
-    _clearError();
     try {
       await _authService.sendEmailVerification();
-    } on FirebaseAuthException catch (e) {
-      _errorMessage = e.message ?? 'Failed to resend verification email.';
     } catch (e) {
       _errorMessage = e.toString();
     }
@@ -211,46 +215,22 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> reloadUser() async {
-    _clearError();
     try {
       await _authService.reloadUser();
-      _user = _authService.currentUser; // Update the pointer with the latest instance
+      _user = _authService.currentUser;
       notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Failed to refresh user status.';
-      notifyListeners();
-    }
-  }
-
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _errorMessage = null;
-    notifyListeners();
+    } catch (_) {}
   }
 
   Future<void> updateAdditionalInfo(String name, String mobile) async {
-    if (_user == null) {
-      _errorMessage = "You must be signed in to update profile.";
-      notifyListeners();
-      return;
-    }
-
+    if (_user == null) return;
     _setLoading(true);
-    _clearError();
     try {
       final prefs = await SharedPreferences.getInstance();
       final isoCode = prefs.getString('cached_iso_country_code');
       final formattedMobile = PhoneUtils.formatWithCountryCode(mobile.trim(), isoCode);
-
-      // Single call to handle both Auth and Firestore
       await _authService.updateFullProfile(_user!.uid, name: name, mobile: formattedMobile);
-      
-      // Refresh Auth User state without blocking too long
-      await reloadUser().timeout(const Duration(seconds: 5), onTimeout: () {});
+      await reloadUser();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -261,40 +241,22 @@ class AuthProvider extends ChangeNotifier {
   Future<void> updateTrustedNumbers(List<TrustedNumber> numbers) async {
     if (_user == null) return;
     try {
-      await _authService.updateUserProfile(_user!.uid, {
-        'trustedNumbers': numbers.map((n) => n.toMap()).toList(),
-      });
-      if (_profile != null) {
-        _profile = _profile!.copyWith(trustedNumbers: numbers);
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error syncing trusted numbers: $e');
-    }
+      await _authService.updateUserProfile(_user!.uid, {'trustedNumbers': numbers.map((n) => n.toMap()).toList()});
+    } catch (_) {}
   }
 
   Future<void> updateTriggerKeyword(String keyword) async {
     if (_user == null) return;
     try {
-      await _authService.updateUserProfile(_user!.uid, {
-        'triggerKeyword': keyword,
-      });
-      if (_profile != null) {
-        _profile = _profile!.copyWith(triggerKeyword: keyword);
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error syncing trigger keyword: $e');
-    }
+      await _authService.updateUserProfile(_user!.uid, {'triggerKeyword': keyword});
+    } catch (_) {}
   }
 
   Future<void> setAsPrimaryDevice() async {
     if (_user == null || _localDeviceId == null) return;
     _setLoading(true);
     try {
-      await _authService.updateUserProfile(_user!.uid, {
-        'currentDeviceId': _localDeviceId,
-      });
+      await _authService.updateUserProfile(_user!.uid, {'currentDeviceId': _localDeviceId});
       _deviceConflict = false;
       notifyListeners();
     } catch (e) {
@@ -320,25 +282,32 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authService.extendProtection(_user!.uid, hours);
-
-      // Immediately write the new expiry to SharedPreferences so the native
-      // Kotlin CommandParser can read it without waiting for the Firestore stream.
+      
       final currentExpiry = _profile?.protectionExpiry;
-      final base = (currentExpiry != null && currentExpiry.isAfter(DateTime.now()))
-          ? currentExpiry
-          : DateTime.now();
+      final base = (currentExpiry != null && currentExpiry.isAfter(DateTime.now())) ? currentExpiry : DateTime.now();
       final newExpiry = base.add(Duration(hours: hours));
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('flutter.protection_expiry', newExpiry.toIso8601String());
-      debugPrint('extendProtection: wrote new expiry=$newExpiry to SharedPreferences');
 
-      // Profile stream will automatically update _profile from Firestore
+      await FirebaseAnalytics.instance.logEvent(
+        name: 'extend_protection',
+        parameters: {'hours': hours, 'uid': _user?.uid ?? 'unknown'},
+      );
+
+      if (hours >= 24) {
+        await FirebaseAnalytics.instance.logPurchase(
+          value: hours.toDouble(),
+          currency: 'HRS',
+          items: [
+            AnalyticsEventItem(itemName: 'Protection Extension', itemCategory: 'Security', quantity: hours),
+          ],
+        );
+      }
     } catch (e) {
       _errorMessage = e.toString();
     }
     _setLoading(false);
   }
-
 
   Future<void> _syncDeviceMetadata(String uid) async {
     try {
@@ -357,17 +326,28 @@ class AuthProvider extends ChangeNotifier {
         'osVersion': os,
         'lastActive': FieldValue.serverTimestamp(),
       });
-    } catch (e) {
-      debugPrint('Metadata sync failed: $e');
-    }
+    } catch (_) {}
   }
 
-  Future<void> updateLocation(double lat, double lon) async {
-    if (_user == null) return;
-    try {
-      await _authService.updateLocation(_user!.uid, latitude: lat, longitude: lon);
-    } catch (e) {
-      debugPrint('Location sync failed: $e');
-    }
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _profileSubscription?.cancel();
+    super.dispose();
   }
 }

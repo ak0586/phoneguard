@@ -130,7 +130,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: isDarkMode
-                    ? statusColor.withValues(alpha: 0.1)
+                    ? statusColor.withOpacity(0.1)
                     : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
@@ -172,11 +172,11 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.success.withValues(alpha: 0.2),
+                                  color: AppTheme.success.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                       color: AppTheme.success
-                                          .withValues(alpha: 0.5)),
+                                          .withOpacity(0.5)),
                                 ),
                                 child: const Text(
                                   'PRO',
@@ -201,7 +201,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.7),
+                                  .withOpacity(0.7),
                               fontSize: isLiveCountdown ? 14 : 13,
                               fontWeight: isLiveCountdown
                                   ? FontWeight.w700

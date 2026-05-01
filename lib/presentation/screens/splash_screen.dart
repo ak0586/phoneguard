@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen>
             colors: [
               const Color(
                 0xFF2A0845,
-              ).withValues(alpha: 0.6), // Deep cyber purple
+              ).withOpacity(0.6), // Deep cyber purple
               const Color(0xFF121212),
             ],
             stops: const [0.0, 1.0],
@@ -126,14 +126,14 @@ class _SplashScreenState extends State<SplashScreen>
                     BoxShadow(
                       color: const Color(
                         0xFF00E5FF,
-                      ).withValues(alpha: 0.3), // Electric cyan glow
+                      ).withOpacity(0.3), // Electric cyan glow
                       blurRadius: 40,
                       spreadRadius: 5,
                     ),
                     BoxShadow(
                       color: const Color(
                         0xFFD500F9,
-                      ).withValues(alpha: 0.2), // Neon violet glow
+                      ).withOpacity(0.2), // Neon violet glow
                       blurRadius: 60,
                       spreadRadius: 10,
                     ),
@@ -175,10 +175,10 @@ class _SplashScreenState extends State<SplashScreen>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withOpacity(0.1),
                       width: 1,
                     ),
                   ),
@@ -204,7 +204,7 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 30,
                   height: 30,
                   child: CircularProgressIndicator(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
+                    color: const Color(0xFF00E5FF).withOpacity(0.8),
                     strokeWidth: 2.5,
                   ),
                 ),

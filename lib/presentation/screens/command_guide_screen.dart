@@ -73,7 +73,7 @@ class CommandGuideScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.3),
+            color: AppTheme.primary.withOpacity(0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -141,9 +141,9 @@ class CommandGuideScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.warning.withValues(alpha: 0.08),
+        color: AppTheme.warning.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +329,7 @@ class _CommandCard extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: cmd.color.withValues(alpha: 0.15),
+            color: cmd.color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(cmd.icon, color: cmd.color, size: 20),

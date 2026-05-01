@@ -28,7 +28,7 @@ class FaqScreen extends StatelessWidget {
                 child: Text(
                   'PhoneGuard v1.0.0',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -190,14 +190,14 @@ class FaqScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withValues(alpha: 0.8)],
+          colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -221,7 +221,7 @@ class FaqScreen extends StatelessWidget {
                 ),
                 Text(
                   l10n.support247,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
                 ),
               ],
             ),
@@ -275,7 +275,7 @@ class FaqScreen extends StatelessWidget {
         Text(
           answer,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             height: 1.5,
           ),
         ),

@@ -91,12 +91,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                            color: const Color(0xFF00E5FF).withOpacity(0.3),
                             blurRadius: 30,
                             spreadRadius: 2,
                           ),
                           BoxShadow(
-                            color: const Color(0xFFD500F9).withValues(alpha: 0.2),
+                            color: const Color(0xFFD500F9).withOpacity(0.2),
                             blurRadius: 40,
                             spreadRadius: 5,
                           ),
@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.person, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -156,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.phone, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -173,7 +173,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.email, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -206,7 +206,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                       ),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -239,7 +239,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                       ),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      fillColor: Colors.white.withOpacity(0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -282,6 +282,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   letterSpacing: 1.2,
                                 ),
                               ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Consumer<AuthProvider>(
+                    builder: (context, auth, _) {
+                      return OutlinedButton(
+                        onPressed: auth.isLoading ? null : () async {
+                          await auth.signInWithGoogle();
+                          if (!context.mounted) return;
+                          if (auth.errorMessage != null) {
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  auth.errorMessage!,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                backgroundColor: Colors.redAccent,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } else {
+                            Navigator.pop(context);
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: Colors.grey, width: 0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/google_logo.png',
+                              height: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Sign up with Google',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),

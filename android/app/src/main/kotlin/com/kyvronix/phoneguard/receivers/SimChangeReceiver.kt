@@ -35,6 +35,7 @@ class SimChangeReceiver : BroadcastReceiver() {
             for (number in trustedNumbers) {
                 SmsSender.sendSms(context, number, "ALERT: SIM card changed. New number is $currentNumber")
             }
+            com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SIM_CHANGE")
         }
     }
 }

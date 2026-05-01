@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
 
 /// Service that bridges Flutter to native Android via MethodChannel
@@ -125,4 +126,27 @@ class NativeService {
     }
   }
 
+  Future<void> captureIntruderPhoto() async {
+    try {
+      await _channel.invokeMethod<void>('captureIntruderPhoto');
+    } on PlatformException catch (e) {
+      throw Exception('Failed to capture photo: ${e.message}');
+    }
+  }
+
+  Future<void> startFirestoreCommandService() async {
+    try {
+      await _channel.invokeMethod<void>('startFirestoreCommandService');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to start command service: ${e.message}');
+    }
+  }
+
+  Future<void> stopFirestoreCommandService() async {
+    try {
+      await _channel.invokeMethod<void>('stopFirestoreCommandService');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to stop command service: ${e.message}');
+    }
+  }
 }

@@ -18,7 +18,7 @@ class ActiveActionsCard extends StatelessWidget {
           
           return Column(
             children: [
-              Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
+              Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey.withOpacity(0.5)),
               const SizedBox(height: 12),
               const Text(
                 'No actions are currently running',
@@ -31,9 +31,9 @@ class ActiveActionsCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.1),
+            color: Colors.orange.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

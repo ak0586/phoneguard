@@ -164,8 +164,8 @@ class _LogTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: log.success
-              ? color.withValues(alpha: 0.3)
-              : Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+              ? color.withOpacity(0.3)
+              : Theme.of(context).colorScheme.error.withOpacity(0.3),
         ),
       ),
       child: ExpansionTile(
@@ -174,7 +174,7 @@ class _LogTile extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
+            color: color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(_commandIcon, color: color, size: 20),

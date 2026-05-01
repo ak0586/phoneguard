@@ -4,6 +4,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/protection_status_card.dart';
+import '../widgets/intrusion_alerts_card.dart';
+import '../widgets/device_admin_status_card.dart';
 import '../widgets/permissions_card.dart';
 import '../widgets/active_actions_card.dart';
 import '../widgets/native_ad_widget.dart';
@@ -107,7 +109,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   children: [
                 _buildHeader(context),
                 const SizedBox(height: 24),
+                const IntrusionAlertsCard(),
                 const ProtectionStatusCard(),
+                const SizedBox(height: 12),
+                const DeviceAdminStatusCard(),
+                const SizedBox(height: 12),
                 const NativeAdWidget(templateType: TemplateType.small),
                 const SizedBox(height: 28),
                 _buildSectionTitle(l10n.quickActions),
@@ -147,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.redAccent.withValues(alpha: 0.1),
+              color: Colors.redAccent.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -169,7 +175,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           Text(
             'Your account is currently active on another device.\n\nFor security, PhoneGuard only allows one primary device at a time to prevent remote command conflicts.',
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               fontSize: 16,
               height: 1.5,
             ),
@@ -238,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.4),
+                  color: AppTheme.primary.withOpacity(0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -539,7 +545,7 @@ class _ActionButton extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: isDarkMode ? color.withValues(alpha: 0.1) : Colors.white,
+              color: isDarkMode ? color.withOpacity(0.1) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: color.withValues(alpha: isDarkMode ? 0.3 : 0.15),
@@ -549,7 +555,7 @@ class _ActionButton extends StatelessWidget {
                   ? null
                   : [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.08),
+                        color: color.withOpacity(0.08),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -623,13 +629,13 @@ class _FeatureCard extends StatelessWidget {
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+            color: Theme.of(context).dividerColor.withOpacity(0.5),
             width: 1.5,
           ),
           boxShadow: Theme.of(context).brightness == Brightness.light
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withOpacity(0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -722,7 +728,7 @@ class _OptionTile extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+            color: Theme.of(context).dividerColor.withOpacity(0.5),
             width: 1.5,
           ),
         ),

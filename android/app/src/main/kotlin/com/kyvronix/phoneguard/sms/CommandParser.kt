@@ -54,65 +54,66 @@ class CommandParser(private val context: Context) {
             val isPinEnabled = settings.optBoolean("isPinEnabled", false)
             val pin = settings.optString("pin", "")
 
-            val messageLower = message.trim().lowercase()
-            val triggerLower = triggerKeyword.trim().lowercase()
-
-            Log.d(TAG, "Keyword check: messageLower='$messageLower' triggerLower='$triggerLower'")
-            if (!messageLower.startsWith(triggerLower)) {
-                Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
-                return
-            }
-            Log.d(TAG, "  ✅ Keyword matched")
-
-            val senderNorm = normalizeNumber(sender)
-            Log.d(TAG, "Number matching: senderRaw='$sender' senderNorm='$senderNorm'")
-            if (senderNorm.isEmpty()) return
-
-            val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
-            var matchedTrustedNumber: String? = null
-
-            for (i in 0 until trustedNumbersArray.length()) {
-                val trustedObj = trustedNumbersArray.optJSONObject(i) ?: continue
-                val storedNumber = trustedObj.optString("phoneNumber", "")
-                val storedNorm = normalizeNumber(storedNumber)
-                val matched = numbersMatch(senderNorm, storedNorm)
-                Log.d(TAG, "  Comparing stored='$storedNumber' norm='$storedNorm' → matched=$matched")
-                if (matched) {
-                    matchedTrustedNumber = storedNumber
-                    Log.d(TAG, "  ✅ Trusted match found: '$storedNumber'")
-                    break
-                }
-            }
-
-            if (matchedTrustedNumber == null) return
-
-            // Check Protection Eligibility
-            if (!isProtectionActive()) {
-                SmsSender.sendSmsWithSim(context, sender, "⚠️ PhoneGuard: Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands.", subscriptionId)
-                logActivity(sender, "denied", "Protection expired", false)
-                return
-            }
-
-            // IMPORTANT: use lowercase lengths so casing differences don't mis-slice
-            val remainder = messageLower.substring(triggerLower.length).trim()
-            val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
-            Log.d(TAG, "Action parsing: remainder='$remainder' parts=$parts isPinEnabled=$isPinEnabled")
-
+            val isRemoteCommand = sender == "WEB_DASHBOARD"
             var action = "default"
-            var receivedPin = ""
-
-            if (isPinEnabled) {
-                receivedPin = parts.getOrNull(0) ?: ""
-                action = parts.getOrNull(1)?.lowercase() ?: "default"
+            
+            if (isRemoteCommand) {
+                // message is formatted as "REMOTE_ACTION <action>"
+                action = message.removePrefix("REMOTE_ACTION ").trim().lowercase()
+                Log.d(TAG, "  ✅ Authenticated remote command authorized: action='$action'")
             } else {
-                action = parts.getOrNull(0)?.lowercase() ?: "default"
-                receivedPin = ""
-            }
+                val messageLower = message.trim().lowercase()
+                val triggerLower = triggerKeyword.trim().lowercase()
 
-            if (isPinEnabled && action != "default" && action != "stop") {
-                if (receivedPin != pin) {
-                    SmsSender.sendSmsWithSim(context, sender, "❌ Invalid PIN", subscriptionId)
+                Log.d(TAG, "Keyword check: messageLower='$messageLower' triggerLower='$triggerLower'")
+                if (!messageLower.startsWith(triggerLower)) {
+                    Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
                     return
+                }
+                Log.d(TAG, "  ✅ Keyword matched")
+
+                val senderNorm = normalizeNumber(sender)
+                Log.d(TAG, "Number matching: senderRaw='$sender' senderNorm='$senderNorm'")
+                if (senderNorm.isEmpty()) return
+
+                val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
+                var matchedTrustedNumber: String? = null
+
+                for (i in 0 until trustedNumbersArray.length()) {
+                    val trustedObj = trustedNumbersArray.optJSONObject(i) ?: continue
+                    val storedNumber = trustedObj.optString("phoneNumber", "")
+                    val storedNorm = normalizeNumber(storedNumber)
+                    val matched = numbersMatch(senderNorm, storedNorm)
+                    Log.d(TAG, "  Comparing stored='$storedNumber' norm='$storedNorm' → matched=$matched")
+                    if (matched) {
+                        matchedTrustedNumber = storedNumber
+                        Log.d(TAG, "  ✅ Trusted match found: '$storedNumber'")
+                        break
+                    }
+                }
+
+                if (matchedTrustedNumber == null) return
+                
+                // IMPORTANT: use lowercase lengths so casing differences don't mis-slice
+                val remainder = messageLower.substring(triggerLower.length).trim()
+                val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
+                Log.d(TAG, "Action parsing: remainder='$remainder' parts=$parts isPinEnabled=$isPinEnabled")
+
+                var receivedPin = ""
+
+                if (isPinEnabled) {
+                    receivedPin = parts.getOrNull(0) ?: ""
+                    action = parts.getOrNull(1)?.lowercase() ?: "default"
+                } else {
+                    action = parts.getOrNull(0)?.lowercase() ?: "default"
+                    receivedPin = ""
+                }
+
+                if (isPinEnabled && action != "default" && action != "stop") {
+                    if (receivedPin != pin) {
+                        SmsSender.sendSmsWithSim(context, sender, "❌ Invalid PIN", subscriptionId)
+                        return
+                    }
                 }
             }
 
@@ -134,31 +135,35 @@ class CommandParser(private val context: Context) {
                             val result = LocationManager(context).getCurrentLocation()
                             if (result != null) {
                                 val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
-                                SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
+                                if (!isRemoteCommand) {
+                                    SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
+                                }
                                 logActivity(sender, action, "Sent location link (approx=${result.isApproximate})", true)
-                                updateFirestoreState(result)
+                                com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                             } else {
-                                SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
+                                if (!isRemoteCommand) {
+                                    SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
+                                }
                                 logActivity(sender, action, "Location failed", false)
                             }
                         }
                         "alarm" -> {
                             startForegroundServiceCompat(Intent(context, AlarmService::class.java))
-                            SmsSender.sendSmsWithSim(context, sender, "🔔 Alarm started", subscriptionId)
+                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🔔 Alarm started", subscriptionId)
                             logActivity(sender, action, "Alarm started", true)
-                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
+                            com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
                         "stop" -> {
                             context.stopService(Intent(context, AlarmService::class.java))
                             context.stopService(Intent(context, TrackingService::class.java))
-                            SmsSender.sendSmsWithSim(context, sender, "⏹️ Alarm & Tracking stopped", subscriptionId)
+                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "⏹️ Alarm & Tracking stopped", subscriptionId)
                             logActivity(sender, action, "Stopped successfully", true)
                         }
                         "lock" -> {
                             lockDeviceNow()
-                            SmsSender.sendSmsWithSim(context, sender, "🔒 Device locked", subscriptionId)
+                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🔒 Device locked", subscriptionId)
                             logActivity(sender, action, "Locked", true)
-                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
+                            com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
                         "tracking" -> {
                             val trackingIntent = Intent(context, TrackingService::class.java).apply {
@@ -166,9 +171,9 @@ class CommandParser(private val context: Context) {
                                 putExtra("subscriptionId", subscriptionId)
                             }
                             startForegroundServiceCompat(trackingIntent)
-                            SmsSender.sendSmsWithSim(context, sender, "🛰️ Position tracking started", subscriptionId)
+                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🛰️ Position tracking started", subscriptionId)
                             logActivity(sender, action, "Tracking started", true)
-                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
+                            com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
                         else -> {
                             Log.d(TAG, "Executing DEFAULT actions: stopAlarmOnTrigger=$stopAlarmOnTrigger startAlarm=$startAlarm sendLocation=$sendLocation enableTracking=$enableTracking lockDevice=$lockDevice")
@@ -193,7 +198,7 @@ class CommandParser(private val context: Context) {
                                     Log.w(TAG, "  Location was null — all tiers exhausted")
                                 }
                             }
-                            result?.let { updateFirestoreState(it) }
+                            com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_DEFAULT")
                             
                             if (enableTracking) {
                                 Log.d(TAG, "  Starting tracking service")
@@ -369,47 +374,4 @@ class CommandParser(private val context: Context) {
         }
     }
 
-    private fun updateFirestoreState(result: LocationResult) {
-        try {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val uid = prefs.getString("flutter.flutter.user_uid", null) ?: return
-            
-            val db = FirebaseFirestore.getInstance()
-            val updates = mutableMapOf<String, Any>(
-                "lastLatitude" to result.latitude,
-                "lastLongitude" to result.longitude,
-                "locationUpdatedAt" to Date(),
-                "lastActive" to FieldValue.serverTimestamp(),
-                "isOnline" to true,
-                "deviceModel" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
-                "osVersion" to "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})"
-            )
-
-            getIpAddress()?.let { updates["lastIp"] = it }
-            
-            db.collection("users").document(uid)
-                .set(updates, SetOptions.merge())
-                .addOnSuccessListener { Log.d(TAG, "Full state updated in Firestore") }
-                .addOnFailureListener { e -> Log.e(TAG, "Firestore update failed", e) }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update Firestore state", e)
-        }
-    }
-
-    private fun getIpAddress(): String? {
-        try {
-            val interfaces = java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())
-            for (intf in interfaces) {
-                val addrs = java.util.Collections.list(intf.inetAddresses)
-                for (addr in addrs) {
-                    if (!addr.isLoopbackAddress) {
-                        val sAddr = addr.hostAddress
-                        val isIPv4 = sAddr.indexOf(':') < 0
-                        if (isIPv4) return sAddr
-                    }
-                }
-            }
-        } catch (e: Exception) {}
-        return null
-    }
 }

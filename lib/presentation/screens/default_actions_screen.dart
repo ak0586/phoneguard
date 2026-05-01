@@ -120,7 +120,7 @@ class DefaultActionsScreen extends StatelessWidget {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.4,
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.75),
       ),
     );
   }
@@ -129,10 +129,10 @@ class DefaultActionsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
         ),
       ),
       child: Row(
@@ -224,7 +224,7 @@ class DefaultActionsScreen extends StatelessWidget {
                       label: Text(c),
                       backgroundColor: Theme.of(
                         context,
-                      ).colorScheme.primary.withValues(alpha: 0.15),
+                      ).colorScheme.primary.withOpacity(0.15),
                       labelStyle: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -233,7 +233,7 @@ class DefaultActionsScreen extends StatelessWidget {
                       side: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withValues(alpha: 0.4),
+                        ).colorScheme.primary.withOpacity(0.4),
                       ),
                       visualDensity: VisualDensity.compact,
                     ),
@@ -272,12 +272,12 @@ class _ActionToggle extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: enabled
-            ? color.withValues(alpha: 0.08)
+            ? color.withOpacity(0.08)
             : Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: enabled
-              ? color.withValues(alpha: 0.5)
+              ? color.withOpacity(0.5)
               : Theme.of(context).dividerColor,
           width: enabled ? 1.5 : 1,
         ),
@@ -290,7 +290,7 @@ class _ActionToggle extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: enabled
-                  ? color.withValues(alpha: 0.2)
+                  ? color.withOpacity(0.2)
                   : Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
             ),

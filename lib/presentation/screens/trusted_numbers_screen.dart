@@ -60,7 +60,7 @@ class TrustedNumbersScreen extends StatelessWidget {
             border: Border.all(color: Theme.of(context).dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -4),
               ),
@@ -111,7 +111,7 @@ class TrustedNumbersScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.3),
+            color: AppTheme.primary.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -212,12 +212,12 @@ class TrustedNumbersScreen extends StatelessWidget {
   Future<void> _pickFromContacts(BuildContext context) async {
     try {
       if (await Permission.contacts.request().isGranted) {
-        final contact = await FlutterContacts.openExternalPick();
-        if (contact != null) {
-          final fullContact = await FlutterContacts.getContact(contact.id);
+        final pickedId = await FlutterContacts.native.showPicker();
+        if (pickedId != null) {
+          final fullContact = await FlutterContacts.get(pickedId);
           if (fullContact != null && fullContact.phones.isNotEmpty) {
             final phone = fullContact.phones.first.number;
-            final name = fullContact.displayName;
+            final name = fullContact.displayName ?? 'Unknown';
             
             if (context.mounted) {
               final provider = context.read<AppProvider>();
@@ -350,7 +350,7 @@ class _NumberTile extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.15),
+            color: AppTheme.primary.withOpacity(0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -492,15 +492,15 @@ class _NumberDialogState extends State<_NumberDialog> {
                 onPressed: () async {
                   try {
                     if (await Permission.contacts.request().isGranted) {
-                      final contact = await FlutterContacts.openExternalPick();
-                      if (contact != null) {
-                        final fullContact = await FlutterContacts.getContact(contact.id);
+                      final pickedId = await FlutterContacts.native.showPicker();
+                      if (pickedId != null) {
+                        final fullContact = await FlutterContacts.get(pickedId);
                         if (!mounted) return;
                         if (fullContact != null && fullContact.phones.isNotEmpty) {
                           setState(() {
                             _phoneCtrl.text = fullContact.phones.first.number;
                             if (_labelCtrl.text.isEmpty) {
-                              _labelCtrl.text = fullContact.displayName;
+                              _labelCtrl.text = fullContact.displayName ?? 'Unknown';
                             }
                           });
                         }

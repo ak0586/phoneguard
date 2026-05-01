@@ -1,0 +1,111 @@
+package com.kyvronix.phoneguard.services
+
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.IBinder
+import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.FieldValue
+import com.kyvronix.phoneguard.sms.CommandParser
+
+class FirestoreCommandService : Service() {
+    private val CHANNEL_ID = "FirestoreCmdChannel"
+    private val TAG = "FirestoreCmdService"
+    private var listener: com.google.firebase.firestore.ListenerRegistration? = null
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        val notification = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Cloud Sync Active")
+            .setContentText("Listening for remote commands from web dashboard")
+            .setSmallIcon(android.R.drawable.ic_popup_sync)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+            .build()
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(4, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(4, notification)
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val serviceChannel = android.app.NotificationChannel(
+                CHANNEL_ID,
+                "Firestore Command Channel",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(android.app.NotificationManager::class.java)
+            manager.createNotificationChannel(serviceChannel)
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "Service started")
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val uid = prefs.getString("flutter.flutter.user_uid", null)
+
+        if (uid != null) {
+            startListening(uid)
+        } else {
+            Log.w(TAG, "No user UID found, cannot listen to commands")
+            stopSelf()
+        }
+
+        return START_STICKY
+    }
+
+    private fun startListening(uid: String) {
+        if (listener != null) return
+
+        val db = FirebaseFirestore.getInstance()
+        val docRef = db.collection("users").document(uid)
+
+        listener = docRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.e(TAG, "Listen failed.", e)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && snapshot.exists()) {
+                val pendingCommand = snapshot.get("pendingCommand") as? Map<String, Any>
+                if (pendingCommand != null) {
+                    val action = pendingCommand["action"] as? String
+                    if (action != null) {
+                        Log.d(TAG, "Received pending command: $action")
+                        
+                        // Execute command
+                        CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
+
+                        // Sync state to Firestore
+                        com.kyvronix.phoneguard.utils.StateSyncManager.syncState(this, "WEB_COMMAND_$action")
+
+                        // Write result and clear pending command
+                        val resultData = hashMapOf<String, Any>(
+                            "action" to action,
+                            "status" to "executed",
+                            "at" to FieldValue.serverTimestamp()
+                        )
+                        docRef.update(
+                            "commandResult", resultData,
+                            "pendingCommand", FieldValue.delete()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        listener?.remove()
+        listener = null
+        Log.d(TAG, "Service destroyed")
+    }
+}
