@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone_utils.dart';
 import '../../domain/models/trusted_number.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../widgets/native_ad_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Manages trusted phone numbers that can send recovery commands
@@ -29,6 +31,7 @@ class TrustedNumbersScreen extends StatelessWidget {
           final numbers = provider.trustedNumbers;
           return Column(
             children: [
+              const NativeAdWidget(templateType: TemplateType.small),
               _buildHeader(context, numbers.length),
               if (numbers.isEmpty)
                 _buildEmptyState(context)

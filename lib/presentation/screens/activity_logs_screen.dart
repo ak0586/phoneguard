@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/app_provider.dart';
 import '../widgets/native_ad_widget.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/activity_log.dart';
 
@@ -34,14 +34,26 @@ class ActivityLogsScreen extends StatelessWidget {
         builder: (context, provider, _) {
           final logs = provider.logs;
           if (logs.isEmpty) return _buildEmptyState(context);
+
+          // Build item list with ads interspersed
+          final items = <dynamic>[];
+          for (int i = 0; i < logs.length; i++) {
+            items.add(logs[i]);
+            // Insert an ad after the 1st log and then every 5 logs
+            if (i == 0 || (i > 0 && (i + 1) % 5 == 0)) {
+              items.add('ad');
+            }
+          }
+
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: logs.length + 1,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 35),
+            itemCount: items.length,
             itemBuilder: (context, index) {
-              if (index == logs.length) {
-                return const NativeAdWidget(templateType: TemplateType.medium);
+              final item = items[index];
+              if (item == 'ad') {
+                return const NativeAdWidget(templateType: TemplateType.small);
               }
-              return _LogTile(log: logs[index]);
+              return _LogTile(log: item as ActivityLog);
             },
           );
         },
@@ -69,6 +81,11 @@ class ActivityLogsScreen extends StatelessWidget {
             'Recovery commands will appear here\nonce your phone receives them',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 32),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: NativeAdWidget(templateType: TemplateType.medium),
           ),
         ],
       ),
@@ -205,7 +222,11 @@ class _LogTile extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.grey),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: Colors.grey,
+              ),
               onPressed: () => context.read<AppProvider>().removeLog(log.id),
             ),
             const Icon(Icons.expand_more_rounded, color: Colors.grey),

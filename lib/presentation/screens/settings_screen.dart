@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../widgets/native_ad_widget.dart';
 import '../../core/theme/app_theme.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -126,6 +128,8 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+              const NativeAdWidget(templateType: TemplateType.medium),
               const SizedBox(height: 40),
             ],
           );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../widgets/native_ad_widget.dart';
 import '../../core/theme/app_theme.dart';
 
 /// Reference guide for all SMS commands
@@ -29,6 +31,7 @@ class CommandGuideScreen extends StatelessWidget {
             ),
             children: [
               _buildIntro(),
+              const NativeAdWidget(templateType: TemplateType.small),
               const SizedBox(height: 24),
               _buildFormatCard(keyword),
               const SizedBox(height: 24),
@@ -43,6 +46,8 @@ class CommandGuideScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               ..._commands.map((cmd) => _CommandCard(cmd: cmd)),
+              const SizedBox(height: 24),
+              const NativeAdWidget(templateType: TemplateType.medium),
               const SizedBox(height: 24),
               const Text(
                 'EXAMPLE SMS MESSAGES',

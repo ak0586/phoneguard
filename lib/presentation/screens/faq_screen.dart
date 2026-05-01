@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../widgets/native_ad_widget.dart';
 import '../../l10n/app_localizations.dart';
 
 class FaqScreen extends StatefulWidget {
@@ -46,6 +48,7 @@ class _FaqScreenState extends State<FaqScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_searchQuery.isEmpty) _buildSupportCard(context, l10n),
+                    if (_searchQuery.isEmpty) const NativeAdWidget(templateType: TemplateType.medium),
                     if (_searchQuery.isEmpty) const SizedBox(height: 32),
                     
                     if (filteredFaqs.isEmpty)
