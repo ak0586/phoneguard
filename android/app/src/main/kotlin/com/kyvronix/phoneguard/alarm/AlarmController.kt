@@ -17,10 +17,23 @@ class AlarmController(private val context: Context) {
         try {
             if (mediaPlayer?.isPlaying == true) return
             
+            val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
+            var bypassSilent = true
+            if (appSettingsJson != null) {
+                try {
+                    val json = org.json.JSONObject(appSettingsJson)
+                    bypassSilent = json.optBoolean("silentBypassEnabled", true)
+                } catch (e: Exception) {}
+            }
+
             val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             previousVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0)
+
+            if (bypassSilent) {
+                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0)
+            }
 
             val ringtoneUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)

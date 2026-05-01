@@ -129,10 +129,11 @@ class IntrusionCameraService : LifecycleService() {
             val dataUrl = "data:image/jpeg;base64,$base64Image"
 
             val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val uid = prefs.getString("flutter.flutter.user_uid", null)
+            val uid = prefs.getString("flutter.user_uid", null)
 
             if (uid != null) {
-                // Get location first, then save
+                // Save to Gallery and get location first, then save to Firebase
+                saveToGallery(bitmap)
                 fetchLocationAndSave(uid, dataUrl)
             } else {
                 Log.w(TAG, "No UID found, cannot upload Base64 photo")
@@ -143,6 +144,36 @@ class IntrusionCameraService : LifecycleService() {
             stopSelf()
         } finally {
             image.close()
+        }
+    }
+
+    private fun saveToGallery(bitmap: Bitmap) {
+        try {
+            val filename = "Intrusion_${System.currentTimeMillis()}.jpg"
+            var fos: java.io.OutputStream? = null
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/PhoneGuard")
+                }
+                val imageUri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                fos = imageUri?.let { contentResolver.openOutputStream(it) }
+            } else {
+                val imagesDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).toString() + "/PhoneGuard"
+                val file = java.io.File(imagesDir)
+                if (!file.exists()) file.mkdir()
+                val image = java.io.File(file, filename)
+                fos = java.io.FileOutputStream(image)
+            }
+
+            fos?.use {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
+                Log.d(TAG, "Photo saved to gallery")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save photo to gallery: ${e.message}")
         }
     }
 
@@ -173,11 +204,39 @@ class IntrusionCameraService : LifecycleService() {
             "longitude" to lng
         )
 
-        db.collection("users").document(uid).update(
-            "intrusionPhotos", FieldValue.arrayUnion(photoEntry)
-        ).addOnCompleteListener {
-            Log.d(TAG, "Firestore updated with new photo and location")
-            stopSelf()
+        // Using set with merge to ensure the document and field are created if they don't exist
+        db.collection("users").document(uid)
+            .set(mapOf("intrusionPhotos" to FieldValue.arrayUnion(photoEntry)), com.google.firebase.firestore.SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d(TAG, "Firestore updated with new photo and location")
+                logActivityLocally("Security Camera", "Intrusion selfie captured", true)
+                stopSelf()
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Failed to update Firestore: ${e.message}")
+                logActivityLocally("Security Camera", "Photo capture failed: ${e.message}", false)
+                stopSelf()
+            }
+    }
+
+    private fun logActivityLocally(command: String, result: String, success: Boolean) {
+        try {
+            val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val logsJsonStr = prefs.getString("flutter.activity_logs", "[]") ?: "[]"
+            val jsonArray = try { org.json.JSONArray(logsJsonStr) } catch (e: Exception) { org.json.JSONArray() }
+            
+            val newLogObj = org.json.JSONObject().apply {
+                put("id", System.currentTimeMillis().toString())
+                put("timestamp", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(java.util.Date()))
+                put("senderNumber", "SYSTEM")
+                put("command", command)
+                put("result", result)
+                put("success", success)
+            }
+            jsonArray.put(newLogObj)
+            prefs.edit().putString("flutter.activity_logs", jsonArray.toString()).apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Local log failed", e)
         }
     }
 

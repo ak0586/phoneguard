@@ -16,7 +16,7 @@ object StateSyncManager {
 
     fun syncState(context: Context, event: String, onComplete: (() -> Unit)? = null) {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val uid = sharedPrefs.getString("flutter.flutter.user_uid", null)
+        val uid = sharedPrefs.getString("flutter.user_uid", null)
 
         if (uid == null) {
             Log.w(TAG, "No UID found, skipping sync for event: $event")

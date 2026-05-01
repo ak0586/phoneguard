@@ -23,6 +23,14 @@ class SimChangeReceiver : BroadcastReceiver() {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null) ?: return
         
+        var isEnabled = true
+        try {
+            val json = org.json.JSONObject(appSettingsJson)
+            isEnabled = json.optBoolean("simChangeAlertEnabled", true)
+        } catch (e: Exception) {}
+
+        if (!isEnabled) return
+        
         val previousSim = sharedPrefs.getString("flutter.lastSimNumber", "")
         
         if (currentNumber != null && currentNumber != previousSim) {

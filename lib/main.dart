@@ -108,6 +108,8 @@ void main() async {
 class LostPhoneApp extends StatelessWidget {
   const LostPhoneApp({super.key});
 
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
@@ -126,6 +128,9 @@ class LostPhoneApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [Locale('en'), Locale('hi')],
+          navigatorObservers: [
+            FirebaseAnalyticsObserver(analytics: analytics),
+          ],
           home: const SplashScreen(),
           routes: {
             '/auth-wrapper': (context) => const AuthWrapper(),
