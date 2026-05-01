@@ -133,4 +133,8 @@ class HiveDataSource {
     await _logsBox.delete(keyLogs);
     await _prefs.remove(AppConstants.keyActivityLogs);
   }
+
+  SharedPreferences get prefs => _prefs;
+  
+  Future<SharedPreferences> getPrefs() async => _prefs;
 }

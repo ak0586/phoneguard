@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../../core/utils/phone_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -143,8 +144,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _mobileController,
                     keyboardType: TextInputType.phone,
                     style: const TextStyle(color: Colors.white),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Please enter a mobile number';
+                      if (!PhoneUtils.isValid(value)) return 'Include +country code (e.g. +91...)';
+                      return null;
+                    },
                     decoration: InputDecoration(
                       labelText: 'Mobile Number',
+                      hintText: '+91 9876543210',
+                      hintStyle: const TextStyle(color: Colors.white24),
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.phone, color: Colors.grey),
                       filled: true,
@@ -154,7 +162,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) => value == null || value.isEmpty ? 'Please enter a mobile number' : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

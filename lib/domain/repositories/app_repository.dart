@@ -9,4 +9,5 @@ abstract class AppRepository {
   Future<void> addLog(ActivityLog log);
   Future<void> removeLog(String id);
   Future<void> clearLogs();
+  Future<dynamic> getPrefs(); // For checking native flags
 }

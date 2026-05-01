@@ -6,13 +6,37 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.content.pm.ServiceInfo
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldValue
+import com.kyvronix.phoneguard.location.LocationManager
+import com.kyvronix.phoneguard.sms.CommandParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.net.NetworkInterface
+import java.util.Collections
 
 class RecoveryService : Service() {
     private val CHANNEL_ID = "RecoveryServiceChannel"
+    private val TAG = "RecoveryService"
+
+    // ContentObserver watches the SMS inbox at the OS level,
+    // bypassing the broadcast system. This works even when a
+    // messaging app intercepts and aborts the SMS_RECEIVED broadcast.
+    private var smsObserver: ContentObserver? = null
+
+    // Track the last SMS ID we processed to avoid handling the same
+    // message twice (once from SmsReceiver, once from ContentObserver).
+    private var lastProcessedSmsId: Long = -1L
 
     override fun onCreate() {
         super.onCreate()
@@ -21,14 +45,15 @@ class RecoveryService : Service() {
             .setContentTitle("Protection Active")
             .setContentText("Monitoring for remote recovery commands")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             } else {
                 0
             }
-            
             if (type != 0) {
                 startForeground(1, notification, type)
             } else {
@@ -37,15 +62,163 @@ class RecoveryService : Service() {
         } else {
             startForeground(1, notification)
         }
+
+        syncInitialState()
+        registerSmsObserver()
+    }
+
+    // ─── SMS ContentObserver (Bypass Broadcast Interception) ──────────────────
+
+    private fun registerSmsObserver() {
+        smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                super.onChange(selfChange, uri)
+                checkForNewSms()
+            }
+        }
+        contentResolver.registerContentObserver(
+            Uri.parse("content://sms/inbox"),
+            true,
+            smsObserver!!
+        )
+        Log.d(TAG, "SMS ContentObserver registered — messaging app bypass active")
+    }
+
+    private fun checkForNewSms() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val cursor = contentResolver.query(
+                    Uri.parse("content://sms/inbox"),
+                    arrayOf("_id", "address", "body", "date"),
+                    null,
+                    null,
+                    "date DESC LIMIT 1"
+                ) ?: return@launch
+
+                cursor.use {
+                    if (it.moveToFirst()) {
+                        val id   = it.getLong(it.getColumnIndexOrThrow("_id"))
+                        val from = it.getString(it.getColumnIndexOrThrow("address")) ?: return@use
+                        val body = it.getString(it.getColumnIndexOrThrow("body")) ?: return@use
+
+                        // Avoid double-processing if SmsReceiver already handled it
+                        if (id == lastProcessedSmsId) return@use
+
+                        // Store in SharedPreferences so duplicate detection survives
+                        // service restarts (load last ID on startup)
+                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                        val storedLastId = prefs.getLong("phoneguard.last_sms_id", -1L)
+                        if (id == storedLastId) return@use
+
+                        lastProcessedSmsId = id
+                        prefs.edit().putLong("phoneguard.last_sms_id", id).apply()
+
+                        Log.d(TAG, "ContentObserver: new SMS id=$id from=$from body='$body'")
+
+                        // Parse on Main thread to match SmsReceiver behaviour
+                        Handler(Looper.getMainLooper()).post {
+                            CommandParser(this@RecoveryService).parseAndExecute(
+                                sender = from,
+                                message = body,
+                                subscriptionId = -1
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "ContentObserver SMS check failed", e)
+            }
+        }
+    }
+
+    // ─── Startup Firestore Sync ───────────────────────────────────────────────
+
+    private fun syncInitialState() {
+        val sharedPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val uid = sharedPrefs.getString("flutter.flutter.user_uid", null)
+
+        // Load last processed SMS ID from prefs to survive restarts
+        lastProcessedSmsId = sharedPrefs.getLong("phoneguard.last_sms_id", -1L)
+
+        if (uid == null) {
+            Log.w(TAG, "Sync skipped: No UID found")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (com.google.firebase.FirebaseApp.getApps(this@RecoveryService).isEmpty()) {
+                    Log.w(TAG, "Firebase not ready, syncing aborted")
+                    return@launch
+                }
+
+                val location = LocationManager(this@RecoveryService).getCurrentLocation()
+                val ip = getIpAddress()
+                
+                val updates = mutableMapOf<String, Any>(
+                    "lastActive" to FieldValue.serverTimestamp(),
+                    "isOnline" to true,
+                    "deviceModel" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+                    "osVersion" to "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})"
+                )
+                
+                if (location != null) {
+                    updates["lastLatitude"] = location.latitude
+                    updates["lastLongitude"] = location.longitude
+                    updates["locationUpdatedAt"] = FieldValue.serverTimestamp()
+                }
+                
+                if (ip != null) {
+                    updates["lastIp"] = ip
+                }
+
+                FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(uid)
+                    .update(updates)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "Initial startup sync successful")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Firestore sync failed", e)
+                    }
+            } catch (e: Exception) {
+                Log.e(TAG, "Startup sync failed", e)
+            }
+        }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private fun getIpAddress(): String? {
+        try {
+            val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+            for (intf in interfaces) {
+                val addrs = Collections.list(intf.inetAddresses)
+                for (addr in addrs) {
+                    if (!addr.isLoopbackAddress) {
+                        val sAddr = addr.hostAddress
+                        val isIPv4 = sAddr.indexOf(':') < 0
+                        if (isIPv4) return sAddr
+                    }
+                }
+            }
+        } catch (e: Exception) {}
+        return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        return null
+    override fun onDestroy() {
+        smsObserver?.let { contentResolver.unregisterContentObserver(it) }
+        smsObserver = null
+        Log.d(TAG, "SMS ContentObserver unregistered")
+        super.onDestroy()
     }
+
+    override fun onBind(intent: Intent): IBinder? = null
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

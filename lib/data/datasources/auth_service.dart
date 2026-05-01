@@ -39,6 +39,41 @@ class AuthService {
     await _usersCollection.doc(profile.uid).set(profile.toFirestore(), SetOptions(merge: true));
   }
 
+  /// Ensure profile exists in Firestore, create with defaults if not
+  Future<void> ensureUserProfileExists(User user, {String? name, String? mobile}) async {
+    final doc = await _usersCollection.doc(user.uid).get();
+    if (!doc.exists) {
+      final profile = UserProfile(
+        uid: user.uid,
+        name: name ?? user.displayName ?? 'User',
+        email: user.email ?? '',
+        mobile: mobile ?? '',
+        createdAt: DateTime.now(),
+      );
+      await setUserProfile(profile);
+    } else {
+      // Document exists, just update last active timestamp
+      await _usersCollection.doc(user.uid).update({
+        'lastActive': FieldValue.serverTimestamp(),
+      }).catchError((_) {}); // Ignore if fails due to offline
+    }
+  }
+
+  /// Update location and set timestamp
+  Future<void> updateLocation(String uid, {required double latitude, required double longitude}) async {
+    await _usersCollection.doc(uid).set({
+      'lastLatitude': latitude,
+      'lastLongitude': longitude,
+      'locationUpdatedAt': FieldValue.serverTimestamp(),
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Update device metadata
+  Future<void> updateDeviceMetadata(String uid, Map<String, dynamic> metadata) async {
+    await _usersCollection.doc(uid).set(metadata, SetOptions(merge: true));
+  }
+
   /// Update specific fields in user profile
   Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
     await _usersCollection.doc(uid).update(data);
@@ -64,6 +99,20 @@ class AuthService {
       email: email,
       password: password,
     );
+  }
+
+  /// Update Profile (both Auth and Firestore)
+  Future<void> updateFullProfile(String uid, {required String name, required String mobile}) async {
+    // 1. Update Firebase Auth (if current user matches)
+    if (currentUser != null && currentUser!.uid == uid) {
+      await currentUser!.updateDisplayName(name);
+    }
+
+    // 2. Update Firestore
+    await _usersCollection.doc(uid).update({
+      'name': name,
+      'mobile': mobile,
+    });
   }
 
   /// Update Profile Display Name (Firebase Auth)

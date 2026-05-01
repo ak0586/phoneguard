@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/models/app_settings.dart';
 import '../../domain/models/trusted_number.dart';
@@ -52,6 +53,7 @@ class AppProvider extends ChangeNotifier {
       _settings = await _repository.getSettings();
       _logs = await _repository.getLogs();
       await refreshActiveActions();
+      await _checkNativeEvents(); // New: Check for SIM change/Shutdown
       _startPolling();
       _state = AppState.idle;
     } catch (e) {
@@ -79,6 +81,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> updateSettings(AppSettings newSettings) async {
     final oldNumbers = _settings.trustedNumbers;
+    final oldKeyword = _settings.triggerKeyword;
     _settings = newSettings;
     await _repository.saveSettings(_settings);
     
@@ -86,6 +89,11 @@ class AppProvider extends ChangeNotifier {
     if (oldNumbers.length != _settings.trustedNumbers.length ||
         oldNumbers.any((n) => !_settings.trustedNumbers.contains(n))) {
       onTrustedNumbersChanged?.call(_settings.trustedNumbers);
+    }
+    
+    // Notify Firestore if keyword changed
+    if (oldKeyword != _settings.triggerKeyword) {
+      onTriggerKeywordChanged?.call(_settings.triggerKeyword);
     }
     
     notifyListeners();
@@ -152,10 +160,15 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    final isoCode = prefs.getString('cached_iso_country_code');
+    final formattedMobile = PhoneUtils.formatWithCountryCode(phoneNumber, isoCode);
+
     final number = TrustedNumber(
       id: _uuid.v4(),
       label: label.trim(),
-      phoneNumber: PhoneUtils.normalize(phoneNumber),
+      phoneNumber: formattedMobile,
       addedAt: DateTime.now(),
     );
     final updated = List<TrustedNumber>.from(trustedNumbers)..add(number);
@@ -163,8 +176,14 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateTrustedNumber(TrustedNumber updated) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isoCode = prefs.getString('cached_iso_country_code');
+    final formattedMobile = PhoneUtils.formatWithCountryCode(updated.phoneNumber, isoCode);
+    
+    final finalUpdated = updated.copyWith(phoneNumber: formattedMobile);
+
     final list = trustedNumbers
-        .map((n) => n.id == updated.id ? updated : n)
+        .map((n) => n.id == finalUpdated.id ? finalUpdated : n)
         .toList();
     await updateSettings(_settings.copyWith(trustedNumbers: list));
   }
@@ -337,6 +356,32 @@ class AppProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error refreshing actions: $e');
+    }
+  }
+
+  Future<void> _checkNativeEvents() async {
+    try {
+      final prefs = await _repository.getPrefs(); // Need to ensure repository has getPrefs or use SharedPreferences directly
+      
+      // 1. Check for Detecting SIM Change
+      final lastSim = prefs.getString('flutter.lastSimNumber') ?? '';
+      if (lastSim.isNotEmpty) {
+        debugPrint('Last SIM detected: $lastSim');
+      }
+      
+      // 2. Check for Shutdown detection
+      final wasShutdown = prefs.getBool('flutter.last_shutdown_detected') ?? false;
+      if (wasShutdown) {
+        await addLog(
+          sender: 'System', 
+          command: 'Power Off', 
+          result: 'Device was shut down or restarted.',
+          success: true,
+        );
+        await prefs.remove('flutter.last_shutdown_detected');
+      }
+    } catch (e) {
+      debugPrint('Error checking native events: $e');
     }
   }
 

@@ -237,88 +237,117 @@ class AppTheme {
   }
 
   static ThemeData get lightTheme {
+    const Color lightBackground = Color(0xFFFBFBFF);
+    const Color lightSurface = Colors.white;
+    const Color lightOnSurface = Color(0xFF1A1A2E);
+    const Color lightDivider = Color(0xFFEEEEF5);
+    const Color lightHeading = Color(0xFF0F0F1A);
+
     const colorScheme = ColorScheme.light(
       primary: primary,
-      primaryContainer: Color(0xFFE53935),
+      primaryContainer: primaryDark,
       secondary: accent,
-      surface: Colors.white,
+      surface: lightSurface,
       onPrimary: Colors.white,
       onSecondary: Colors.white,
-      onSurface: Color(0xFF13131A),
+      onSurface: lightOnSurface,
       error: error,
     );
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF8F9FE), // Premium light blue tint
+      scaffoldBackgroundColor: lightBackground,
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF8F9FE),
-        foregroundColor: Color(0xFF13131A),
+        backgroundColor: lightBackground,
+        foregroundColor: lightHeading,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: Color(0xFF13131A),
-          fontSize: 20,
+          color: lightHeading,
+          fontSize: 22,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
         ),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 0,
+        color: lightSurface,
+        elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.blueGrey.shade50, width: 1.5),
+          side: const BorderSide(color: lightDivider, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
-      dividerTheme: DividerThemeData(color: Colors.blueGrey.shade50, thickness: 1),
-      listTileTheme: const ListTileThemeData(
-        tileColor: Colors.transparent,
-        textColor: Color(0xFF13131A),
-        iconColor: Color(0xFF13131A),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF1F1F7),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: lightDivider, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primary, width: 1.5),
+        ),
+        labelStyle: const TextStyle(color: Color(0xFF757585)),
+        hintStyle: const TextStyle(color: Color(0xFF9E9EAE)),
+        prefixIconColor: const Color(0xFF757585),
       ),
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primary;
-          return Colors.white;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return primary.withValues(alpha: 0.3);
-          }
-          return Colors.grey.shade300;
-        }),
+      dividerTheme: const DividerThemeData(
+        color: lightDivider,
+        thickness: 1,
+        space: 0,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          elevation: 2,
-          shadowColor: primary.withValues(alpha: 0.4),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          elevation: 4,
+          shadowColor: primary.withValues(alpha: 0.3),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primary,
+          side: const BorderSide(color: primary, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
       textTheme: const TextTheme(
-        headlineLarge: TextStyle(
-          color: Color(0xFF13131A),
-          fontWeight: FontWeight.w800,
-        ),
-        headlineMedium: TextStyle(
-          color: Color(0xFF13131A),
-          fontWeight: FontWeight.w700,
-        ),
-        titleLarge: TextStyle(
-          color: Color(0xFF13131A),
-          fontWeight: FontWeight.w700,
-        ),
-        bodyLarge: TextStyle(color: Color(0xFF2D2D3A)),
-        bodyMedium: TextStyle(color: Color(0xFF4A4A58)),
-        bodySmall: TextStyle(color: Color(0xFF757585)),
+        displayLarge: TextStyle(color: lightHeading, fontWeight: FontWeight.w800),
+        headlineLarge: TextStyle(color: lightHeading, fontWeight: FontWeight.w800),
+        headlineMedium: TextStyle(color: lightHeading, fontWeight: FontWeight.w700),
+        titleLarge: TextStyle(color: lightHeading, fontWeight: FontWeight.w700),
+        bodyLarge: TextStyle(color: Color(0xFF2D2D3A), fontSize: 16),
+        bodyMedium: TextStyle(color: Color(0xFF4A4A58), fontSize: 14),
+        bodySmall: TextStyle(color: Color(0xFF757585), fontSize: 12),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF4A4A58)),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: lightHeading,
+        contentTextStyle: const TextStyle(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

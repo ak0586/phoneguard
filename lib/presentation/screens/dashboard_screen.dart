@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/protection_status_card.dart';
 import '../widgets/permissions_card.dart';
 import '../widgets/active_actions_card.dart';
@@ -24,14 +25,54 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Refresh on load
+    
+    // Set up listeners for auth profile changes
+    context.read<AuthProvider>().addListener(_onAuthChanged);
+
+    // Initial sync and setup
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppProvider>().refreshActiveActions();
+      final appProvider = context.read<AppProvider>();
+      final authProvider = context.read<AuthProvider>();
+      
+      appProvider.refreshActiveActions();
+      
+      // Local -> Firestore
+      appProvider.onTrustedNumbersChanged = (numbers) {
+        authProvider.updateTrustedNumbers(numbers);
+      };
+      appProvider.onTriggerKeywordChanged = (keyword) {
+        authProvider.updateTriggerKeyword(keyword);
+      };
+
+      // Firestore -> Local (One-time check on start)
+      if (authProvider.profile != null) {
+        appProvider.syncTrustedNumbers(authProvider.profile!.trustedNumbers);
+        if (authProvider.profile!.triggerKeyword != null) {
+          appProvider.syncTriggerKeyword(authProvider.profile!.triggerKeyword!);
+        }
+      }
     });
+  }
+
+  void _onAuthChanged() {
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    final app = context.read<AppProvider>();
+    
+    if (auth.profile != null) {
+      // Sync incoming profile changes to local
+      if (auth.profile!.trustedNumbers.isNotEmpty) {
+        app.syncTrustedNumbers(auth.profile!.trustedNumbers);
+      }
+      if (auth.profile!.triggerKeyword != null) {
+        app.syncTriggerKeyword(auth.profile!.triggerKeyword!);
+      }
+    }
   }
 
   @override
   void dispose() {
+    context.read<AuthProvider>().removeListener(_onAuthChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -51,13 +92,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     return Scaffold(
       key: ValueKey(isDarkMode),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          if (auth.hasDeviceConflict) {
+            return _buildDeviceConflictOverlay(context, auth);
+          }
+          
+          return SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 _buildHeader(context),
                 const SizedBox(height: 24),
                 const ProtectionStatusCard(),
@@ -81,6 +128,76 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             ),
           ),
         ),
+      );
+    },
+  ),
+);
+  }
+
+  Widget _buildDeviceConflictOverlay(BuildContext context, AuthProvider auth) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.phonelink_erase_rounded,
+              size: 80,
+              color: Colors.redAccent,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Primary Device Conflict',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Your account is currently active on another device.\n\nFor security, PhoneGuard only allows one primary device at a time to prevent remote command conflicts.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              fontSize: 16,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 48),
+          ElevatedButton(
+            onPressed: auth.isLoading ? null : () => auth.setAsPrimaryDevice(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: auth.isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'SWITCH TO THIS DEVICE',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => auth.signOut(),
+            child: const Text('LOGOUT', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

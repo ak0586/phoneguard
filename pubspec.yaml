@@ -43,6 +43,8 @@ dependencies:
   geocoding: ^4.0.0
   cloud_firestore: ^6.2.0
   google_mobile_ads: ^7.0.0
+  device_info_plus: ^13.1.0
+  flutter_contacts: 1.1.9
 
 dev_dependencies:
   flutter_test:

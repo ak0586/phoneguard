@@ -39,7 +39,7 @@ void main() async {
 
   // Initialize Hive with prefs for background sync
   final hiveDataSource = await HiveDataSource.init(prefs);
-  
+
   // Handle migration from SharedPreferences to Hive if needed
   await hiveDataSource.migrateIfNeeded();
 
@@ -49,8 +49,8 @@ void main() async {
   final authService = AuthService();
   final adService = AdService();
 
-  // Initialize Ads
-  await adService.init();
+  // Initialize Ads in background to prevent hanging during launch
+  adService.init().catchError((e) => debugPrint('AdService init error: $e'));
 
   runApp(
     MultiProvider(
@@ -64,30 +64,40 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) {
             final appProvider = AppProvider(appRepository, nativeService);
-            
+
             // Link App -> Auth
             appProvider.onTrustedNumbersChanged = (numbers) {
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
               if (authProvider.isAuthenticated) {
                 authProvider.updateTrustedNumbers(numbers);
               }
             };
-            
+
             appProvider.onTriggerKeywordChanged = (keyword) {
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
               if (authProvider.isAuthenticated) {
                 authProvider.updateTriggerKeyword(keyword);
               }
             };
 
             // Link Auth -> App
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final authProvider = Provider.of<AuthProvider>(
+              context,
+              listen: false,
+            );
             authProvider.onProfileChanged = (profile) {
               if (profile != null) {
                 if (profile.trustedNumbers.isNotEmpty) {
                   appProvider.syncTrustedNumbers(profile.trustedNumbers);
                 }
-                if (profile.triggerKeyword != null && profile.triggerKeyword!.isNotEmpty) {
+                if (profile.triggerKeyword != null &&
+                    profile.triggerKeyword!.isNotEmpty) {
                   appProvider.syncTriggerKeyword(profile.triggerKeyword!);
                 }
               }
@@ -112,7 +122,7 @@ class LostPhoneApp extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         return MaterialApp(
-          title: 'Lost Phone Recovery',
+          title: 'PhoneGuard: Lost Phone Recovery',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: provider.settings.isDarkMode
@@ -161,8 +171,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, auth, _) {
         if (auth.isInitializing) {
           return const Scaffold(
-            backgroundColor: Color(0xFF121212),
-            body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         if (!auth.isAuthenticated) {

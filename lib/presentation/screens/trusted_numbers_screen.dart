@@ -4,6 +4,8 @@ import '../providers/app_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone_utils.dart';
 import '../../domain/models/trusted_number.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Manages trusted phone numbers that can send recovery commands
 class TrustedNumbersScreen extends StatelessWidget {
@@ -49,25 +51,51 @@ class TrustedNumbersScreen extends StatelessWidget {
       ),
       floatingActionButton: null,
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: SizedBox(
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: () => _showAddDialog(context),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Add Number',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Theme.of(context).dividerColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -4),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'ADD NUMBER',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ActionButton(
+                    icon: Icons.contact_phone_rounded,
+                    onTap: () => _pickFromContacts(context),
+                    isOutlined: true,
+                  ),
+                  const SizedBox(width: 40),
+                  _ActionButton(
+                    icon: Icons.keyboard_rounded,
+                    onTap: () => _showAddDialog(context),
+                    isOutlined: false,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -160,7 +188,7 @@ class TrustedNumbersScreen extends StatelessWidget {
         title: const Text('About Trusted Numbers'),
         content: const Text(
           'Only SMS messages from trusted numbers will be processed as recovery commands.\n\n'
-          'Make sure to add numbers in international format (e.g. +919876543210).\n\n'
+          'Country codes are detected automatically, but you can also enter them manually (e.g. +91...).\n\n'
           'Messages from all other numbers are silently ignored.',
         ),
         actions: [
@@ -179,6 +207,36 @@ class TrustedNumbersScreen extends StatelessWidget {
 
   void _showEditDialog(BuildContext context, TrustedNumber number) {
     _NumberDialog.show(context, number);
+  }
+
+  Future<void> _pickFromContacts(BuildContext context) async {
+    try {
+      if (await Permission.contacts.request().isGranted) {
+        final contact = await FlutterContacts.openExternalPick();
+        if (contact != null) {
+          final fullContact = await FlutterContacts.getContact(contact.id);
+          if (fullContact != null && fullContact.phones.isNotEmpty) {
+            final phone = fullContact.phones.first.number;
+            final name = fullContact.displayName;
+            
+            if (context.mounted) {
+              final provider = context.read<AppProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              await provider.addTrustedNumber(name, phone);
+              messenger.showSnackBar(
+                SnackBar(content: Text('✓ Added $name')),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not access contacts: $e')),
+        );
+      }
+    }
   }
 
   void _confirmDelete(
@@ -209,6 +267,56 @@ class TrustedNumbersScreen extends StatelessWidget {
             child: const Text('Remove'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Shared Components ────────────────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isOutlined;
+
+  const _ActionButton({
+    required this.icon,
+    required this.onTap,
+    required this.isOutlined,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isOutlined) {
+      return SizedBox(
+        width: 56,
+        height: 56,
+        child: OutlinedButton(
+          onPressed: onTap,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primary,
+            side: const BorderSide(color: AppTheme.primary, width: 2),
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+          ),
+          child: Icon(icon, size: 26),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: FilledButton(
+        onPressed: onTap,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          elevation: 2,
+        ),
+        child: Icon(icon, size: 26),
       ),
     );
   }
@@ -335,7 +443,7 @@ class _NumberDialogState extends State<_NumberDialog> {
       return;
     }
     if (!PhoneUtils.isValid(phone)) {
-      setState(() => _error = 'Invalid phone number (use +country code)');
+      setState(() => _error = 'Invalid phone number format');
       return;
     }
 
@@ -375,10 +483,34 @@ class _NumberDialogState extends State<_NumberDialog> {
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Phone Number',
               hintText: '+919876543210',
-              prefixIcon: Icon(Icons.phone_rounded),
+              prefixIcon: const Icon(Icons.phone_rounded),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.contact_page_rounded, color: AppTheme.primary),
+                onPressed: () async {
+                  try {
+                    if (await Permission.contacts.request().isGranted) {
+                      final contact = await FlutterContacts.openExternalPick();
+                      if (contact != null) {
+                        final fullContact = await FlutterContacts.getContact(contact.id);
+                        if (!mounted) return;
+                        if (fullContact != null && fullContact.phones.isNotEmpty) {
+                          setState(() {
+                            _phoneCtrl.text = fullContact.phones.first.number;
+                            if (_labelCtrl.text.isEmpty) {
+                              _labelCtrl.text = fullContact.displayName;
+                            }
+                          });
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    debugPrint('Contact pick internal error: $e');
+                  }
+                },
+              ),
             ),
           ),
           if (_error != null) ...[

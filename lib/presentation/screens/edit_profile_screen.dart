@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../../core/utils/phone_utils.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -31,22 +32,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _save() async {
     if (_formKey.currentState!.validate()) {
-      final auth = context.read<AuthProvider>();
-      await auth.updateAdditionalInfo(
-        _nameController.text.trim(),
-        _mobileController.text.trim(),
-      );
+      try {
+        final auth = context.read<AuthProvider>();
+        await auth.updateAdditionalInfo(
+          _nameController.text.trim(),
+          _mobileController.text.trim(),
+        );
 
-      if (!mounted) return;
-      if (auth.errorMessage != null) {
+        if (!mounted) return;
+        
+        if (auth.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(auth.errorMessage!), 
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully!'), 
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(auth.errorMessage!), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.redAccent),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Colors.green),
-        );
-        Navigator.pop(context);
       }
     }
   }
@@ -54,10 +71,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -69,58 +84,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Name',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.person, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
+                  prefixIcon: Icon(Icons.person),
                 ),
                 validator: (val) => val == null || val.isEmpty ? 'Enter your name' : null,
               ),
-              const SizedBox(height: 16),
               TextFormField(
                 controller: _mobileController,
                 keyboardType: TextInputType.phone,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+                validator: (val) {
+                  if (val == null || val.isEmpty) return 'Enter mobile number';
+                  if (!PhoneUtils.isValid(val)) return 'Include +country code (e.g. +91...)';
+                  return null;
+                },
+                decoration: const InputDecoration(
                   labelText: 'Mobile Number',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.phone, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
+                  prefixIcon: Icon(Icons.phone),
+                  hintText: '+91 9876543210',
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Enter mobile number' : null,
               ),
-              const SizedBox(height: 32),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
                   return ElevatedButton(
                     onPressed: auth.isLoading ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00E5FF),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                     child: auth.isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('SAVE CHANGES', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        : const Text('SAVE CHANGES'),
                   );
                 },
               ),

@@ -19,7 +19,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildHeader(l10n),
+          _buildHeader(context, l10n),
           const SizedBox(height: 24),
           ..._getSections(isHi).map((s) => _PolicySection(section: s)),
           const SizedBox(height: 24),
@@ -30,7 +30,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(AppLocalizations l10n) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,8 +50,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           l10n.privacyPolicy,
-          style: const TextStyle(
-            color: AppTheme.onBackground,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 26,
             fontWeight: FontWeight.w800,
           ),
@@ -64,8 +64,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           l10n.privacyIntro,
-          style: const TextStyle(
-            color: AppTheme.onSurface,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 14,
             height: 1.5,
           ),

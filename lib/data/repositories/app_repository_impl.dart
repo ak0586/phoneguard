@@ -35,4 +35,7 @@ class AppRepositoryImpl implements AppRepository {
 
   @override
   Future<void> clearLogs() => _dataSource.clearLogs();
+
+  @override
+  Future<dynamic> getPrefs() async => _dataSource.prefs;
 }

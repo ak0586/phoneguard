@@ -6,7 +6,7 @@ class UserProfile {
   final String name;
   final String email;
   final String mobile;
-  final String subscriptionType;
+  final String subscriptionType; // none, monthly, yearly
   final bool isPremium;
   final DateTime? protectionExpiry;
   final double? lastLatitude;
@@ -15,6 +15,13 @@ class UserProfile {
   final DateTime createdAt;
   final List<TrustedNumber> trustedNumbers;
   final String? triggerKeyword;
+  final String? currentDeviceId;
+  
+  // Extra metadata
+  final String? deviceModel;
+  final String? osVersion;
+  final String? lastIp;
+  final DateTime? lastActive;
 
   UserProfile({
     required this.uid,
@@ -30,6 +37,11 @@ class UserProfile {
     required this.createdAt,
     this.trustedNumbers = const [],
     this.triggerKeyword,
+    this.currentDeviceId,
+    this.deviceModel,
+    this.osVersion,
+    this.lastIp,
+    this.lastActive,
   });
 
   factory UserProfile.fromFirestore(DocumentSnapshot doc) {
@@ -51,6 +63,11 @@ class UserProfile {
               .toList() ??
           [],
       triggerKeyword: data['triggerKeyword'] as String?,
+      currentDeviceId: data['currentDeviceId'] as String?,
+      deviceModel: data['deviceModel'] as String?,
+      osVersion: data['osVersion'] as String?,
+      lastIp: data['lastIp'] as String?,
+      lastActive: (data['lastActive'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -68,6 +85,11 @@ class UserProfile {
       'createdAt': Timestamp.fromDate(createdAt),
       'trustedNumbers': trustedNumbers.map((n) => n.toMap()).toList(),
       'triggerKeyword': triggerKeyword,
+      'currentDeviceId': currentDeviceId,
+      'deviceModel': deviceModel,
+      'osVersion': osVersion,
+      'lastIp': lastIp,
+      'lastActive': lastActive != null ? Timestamp.fromDate(lastActive!) : FieldValue.serverTimestamp(),
     };
   }
 
@@ -82,6 +104,11 @@ class UserProfile {
     DateTime? locationUpdatedAt,
     List<TrustedNumber>? trustedNumbers,
     String? triggerKeyword,
+    String? currentDeviceId,
+    String? deviceModel,
+    String? osVersion,
+    String? lastIp,
+    DateTime? lastActive,
   }) {
     return UserProfile(
       uid: uid,
@@ -97,6 +124,11 @@ class UserProfile {
       createdAt: createdAt,
       trustedNumbers: trustedNumbers ?? this.trustedNumbers,
       triggerKeyword: triggerKeyword ?? this.triggerKeyword,
+      currentDeviceId: currentDeviceId ?? this.currentDeviceId,
+      deviceModel: deviceModel ?? this.deviceModel,
+      osVersion: osVersion ?? this.osVersion,
+      lastIp: lastIp ?? this.lastIp,
+      lastActive: lastActive ?? this.lastActive,
     );
   }
 }

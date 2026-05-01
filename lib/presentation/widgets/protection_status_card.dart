@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -5,8 +6,47 @@ import '../providers/auth_provider.dart';
 import '../../data/datasources/ad_service.dart';
 import '../../core/theme/app_theme.dart';
 
-class ProtectionStatusCard extends StatelessWidget {
+class ProtectionStatusCard extends StatefulWidget {
   const ProtectionStatusCard({super.key});
+
+  @override
+  State<ProtectionStatusCard> createState() => _ProtectionStatusCardState();
+}
+
+class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Tick every second to update the countdown display
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  String _formatCountdown(Duration diff) {
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
+
+    if (days >= 1) {
+      return "$days day${days > 1 ? 's' : ''} remaining";
+    } else {
+      // Less than 24 hours — show live HH:MM:SS countdown
+      final h = hours.toString().padLeft(2, '0');
+      final m = minutes.toString().padLeft(2, '0');
+      final s = seconds.toString().padLeft(2, '0');
+      return "$h:$m:$s remaining";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +56,44 @@ class ProtectionStatusCard extends StatelessWidget {
       builder: (context, appProvider, authProvider, _) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         final profile = authProvider.profile;
-        
+
         bool isBasicActive = appProvider.isProtectionActive;
         bool isPremium = profile?.isPremium ?? false;
-        
+
         DateTime? expiry = profile?.protectionExpiry;
         DateTime createdAt = profile?.createdAt ?? DateTime.now();
         bool isTrial = DateTime.now().difference(createdAt).inDays < 3;
-        
-        bool isProtectionFunctional = isPremium || isTrial || (expiry != null && expiry.isAfter(DateTime.now()));
+
+        bool isProtectionFunctional =
+            isPremium || isTrial || (expiry != null && expiry.isAfter(DateTime.now()));
         bool isActuallyActive = isBasicActive && isProtectionFunctional;
+
+        String getRemainingTimeString() {
+          final now = DateTime.now();
+          DateTime? activeExpiry;
+
+          if (isPremium) {
+            activeExpiry = expiry;
+          } else if (isTrial) {
+            activeExpiry = createdAt.add(const Duration(days: 3));
+          } else if (expiry != null && expiry.isAfter(now)) {
+            activeExpiry = expiry;
+          }
+
+          if (activeExpiry == null || activeExpiry.isBefore(now)) return '';
+
+          final diff = activeExpiry.difference(now);
+
+          if (isPremium) {
+            if (profile?.subscriptionType == 'yearly') {
+              return _formatCountdown(diff);
+            } else {
+              return _formatCountdown(diff);
+            }
+          } else {
+            return _formatCountdown(diff);
+          }
+        }
 
         Color statusColor = AppTheme.error;
         IconData statusIcon = Icons.shield_outlined;
@@ -41,14 +109,14 @@ class ProtectionStatusCard extends StatelessWidget {
           statusColor = AppTheme.success;
           statusIcon = Icons.verified_user_rounded;
           statusTitle = 'Premium Protection';
-          statusSubtitle = 'All features unlocked permanently';
+          statusSubtitle = getRemainingTimeString();
         } else if (isActuallyActive) {
           statusColor = isTrial ? const Color(0xFF00E5FF) : AppTheme.success;
           statusIcon = Icons.shield_rounded;
           statusTitle = 'Protection Active';
-          statusSubtitle = isTrial 
-            ? '3-day free trial active' 
-            : 'Expires in: ${expiry!.difference(DateTime.now()).inHours}h ${expiry.difference(DateTime.now()).inMinutes % 60}m';
+          statusSubtitle = isTrial
+              ? '3-day free trial active • ${getRemainingTimeString()}'
+              : getRemainingTimeString();
         } else {
           statusColor = Colors.orange;
           statusIcon = Icons.gpp_maybe_rounded;
@@ -61,7 +129,9 @@ class ProtectionStatusCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDarkMode ? statusColor.withValues(alpha: 0.1) : Colors.white,
+                color: isDarkMode
+                    ? statusColor.withValues(alpha: 0.1)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: statusColor.withValues(alpha: isDarkMode ? 0.3 : 0.2),
@@ -73,7 +143,8 @@ class ProtectionStatusCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
+                      color:
+                          statusColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(statusIcon, color: statusColor, size: 32),
@@ -83,53 +154,93 @@ class ProtectionStatusCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          statusTitle,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              statusTitle,
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).colorScheme.onSurface,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            if (isPremium) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.success.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                      color: AppTheme.success
+                                          .withValues(alpha: 0.5)),
+                                ),
+                                child: const Text(
+                                  'PRO',
+                                  style: TextStyle(
+                                    color: AppTheme.success,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          statusSubtitle,
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.7),
-                            fontSize: 13,
-                            height: 1.3,
-                          ),
-                        ),
+                        // Show countdown with monospace font when < 24h
+                        Builder(builder: (_) {
+                          final isLiveCountdown = statusSubtitle
+                              .contains(RegExp(r'\d{2}:\d{2}:\d{2}'));
+                          return Text(
+                            statusSubtitle,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.7),
+                              fontSize: isLiveCountdown ? 14 : 13,
+                              fontWeight: isLiveCountdown
+                                  ? FontWeight.w700
+                                  : FontWeight.normal,
+                              fontFamily:
+                                  isLiveCountdown ? 'monospace' : null,
+                              height: 1.3,
+                              letterSpacing: isLiveCountdown ? 1.0 : 0,
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            if (isBasicActive && !isPremium) ...[
+            if (isBasicActive && !isPremium && !isTrial) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Show Loading Snackbar
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Loading Ad...'), duration: Duration(seconds: 1)),
+                      const SnackBar(
+                          content: Text('Loading Ad...'),
+                          duration: Duration(seconds: 1)),
                     );
-                    
+
                     adService.loadRewardedAd(
                       onAdLoaded: (ad) {
                         adService.showRewardedAd(
                           ad: ad,
                           onUserEarnedReward: (ad, reward) {
-                            authProvider.extendProtection(12);
+                            authProvider.extendProtection(8);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('🎉 Protection extended by 12 hours!'),
+                                content:
+                                    Text('🎉 Protection extended by 8 hours!'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -139,13 +250,17 @@ class ProtectionStatusCard extends StatelessWidget {
                       },
                       onAdFailedToLoad: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Ad failed to load. Try again later.')),
+                          const SnackBar(
+                              content:
+                                  Text('Ad failed to load. Try again later.')),
                         );
                       },
                     );
                   },
                   icon: const Icon(Icons.play_circle_fill),
-                  label: Text(isActuallyActive ? 'EXTEND PROTECTION (12h)' : 'REACTIVATE PROTECTION (12h)'),
+                  label: Text(isActuallyActive
+                      ? 'EXTEND PROTECTION (8h)'
+                      : 'REACTIVATE PROTECTION (8h)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00E5FF),
                     foregroundColor: Colors.black,

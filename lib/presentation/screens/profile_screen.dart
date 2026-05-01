@@ -44,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final status = await Permission.locationWhenInUse.request();
       if (status.isGranted) {
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium,
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
         );
 
         List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -54,9 +54,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (placemarks.isNotEmpty && mounted) {
           final country = placemarks.first.country ?? "Unknown Country";
+          final isoCode = placemarks.first.isoCountryCode;
           
           // Save to cache
           await prefs.setString('cached_country_name', country);
+          if (isoCode != null) {
+            await prefs.setString('cached_iso_country_code', isoCode);
+          }
           await prefs.setInt('last_country_fetch_time', currentTime);
 
           setState(() {
@@ -139,17 +143,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 user?.displayName ?? 'No Name',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 authProvider.mobileNumber ?? 'No Mobile Number',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 16, 
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -175,43 +182,148 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 user?.email ?? 'Unknown User',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 14, 
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
               ),
               const SizedBox(height: 16),
-              if (profile?.subscriptionType != null)
-                Text(
-                  profile!.isPremium ? 'Premium Plan' : 'Free Plan',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF00E5FF),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              if (profile != null && !profile.isPremium)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    profile.protectionExpiry != null && profile.protectionExpiry!.isAfter(DateTime.now())
-                        ? "Protection expires in: ${profile.protectionExpiry!.difference(DateTime.now()).inHours}h"
-                        : "Protection Expired",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: profile.protectionExpiry != null && profile.protectionExpiry!.isAfter(DateTime.now())
-                          ? Colors.orange
-                          : Colors.redAccent,
+              if (profile != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      profile.isPremium ? 'Premium Plan' : 'Free Plan',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF00E5FF),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    if (profile.isPremium) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.success.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppTheme.success.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          'PRO',
+                          style: TextStyle(
+                            color: AppTheme.success,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+                Builder(
+                  builder: (context) {
+                    final now = DateTime.now();
+                    final createdAt = profile.createdAt;
+                    final expiry = profile.protectionExpiry;
+                    final bool isTrial = now.difference(createdAt).inDays < 3;
+                    
+                    DateTime? activeExpiry;
+                    if (profile.isPremium) {
+                      activeExpiry = expiry;
+                    } else if (isTrial) {
+                      activeExpiry = createdAt.add(const Duration(days: 3));
+                    } else if (expiry != null && expiry.isAfter(now)) {
+                      activeExpiry = expiry;
+                    }
+
+                    if (activeExpiry == null) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          "Protection Disabled",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                        ),
+                      );
+                    }
+
+                    final diff = activeExpiry.difference(now);
+                    if (diff.isNegative) {
+                      return const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          "Protection Expired",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                        ),
+                      );
+                    }
+
+                    String timeStr = "";
+                    Color statusColor = Colors.orange;
+
+                    final days = diff.inDays;
+                    if (profile.isPremium) {
+                      statusColor = AppTheme.success;
+                      if (profile.subscriptionType == 'yearly') {
+                        if (days > 30) {
+                          final months = (days / 30).floor();
+                          timeStr = "$months month${months > 1 ? 's' : ''} remaining";
+                        } else if (days >= 1) {
+                          timeStr = "$days day${days > 1 ? 's' : ''} remaining";
+                        } else {
+                          timeStr = "${diff.inHours}h ${diff.inMinutes % 60}m remaining";
+                        }
+                      } else { // monthly
+                        if (days >= 1) {
+                          timeStr = "$days day${days > 1 ? 's' : ''} remaining";
+                        } else {
+                          timeStr = "${diff.inHours}h ${diff.inMinutes % 60}m remaining";
+                        }
+                      }
+                    } else {
+                      // Free tier
+                      if (isTrial) {
+                        statusColor = const Color(0xFF00E5FF);
+                        timeStr = "Trial: $days days remaining";
+                      } else {
+                        statusColor = Colors.orange;
+                        if (days >= 30) {
+                          final months = (days / 30).floor();
+                          timeStr = "$months month${months > 1 ? 's' : ''} remaining";
+                        } else if (days >= 1) {
+                          timeStr = "$days day${days > 1 ? 's' : ''} remaining";
+                        } else {
+                          timeStr = "${diff.inHours}h ${diff.inMinutes % 60}m remaining";
+                        }
+                      }
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        timeStr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+                ),
+              ],
               if (lastSeenStr != null) ...[
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   child: Column(
                     children: [
@@ -234,16 +346,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 8),
                       Text(
                         '${profile?.lastLatitude?.toStringAsFixed(6)}, ${profile?.lastLongitude?.toStringAsFixed(6)}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 16,
                           fontFamily: 'monospace',
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         lastSeenStr,
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), 
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -255,21 +371,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/edit-profile');
                 },
-                icon: const Icon(Icons.edit, color: Color(0xFF00E5FF)),
-                label: const Text(
-                  'EDIT PROFILE',
-                  style: TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF00E5FF)),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                icon: const Icon(Icons.edit),
+                label: const Text('EDIT PROFILE'),
               ),
               const SizedBox(height: 16),
               // Logout Button
@@ -278,47 +381,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      title: const Text(
+                      title: Text(
                         'Logout',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      content: const Text(
+                      content: Text(
                         'Are you sure you want to logout?',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text(
-                            'CANCEL',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
                         ),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, true),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent.withValues(
-                              alpha: 0.9,
-                            ),
+                            backgroundColor: Colors.redAccent,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
                           ),
-                          child: const Text(
-                            'LOGOUT',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          child: const Text('LOGOUT'),
                         ),
                       ],
                     ),
@@ -332,21 +417,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text(
-                  'LOGOUT',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+                label: const Text('LOGOUT'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent.withValues(alpha: 0.9),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),

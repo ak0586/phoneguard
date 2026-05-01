@@ -18,6 +18,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.FieldValue
 import com.kyvronix.phoneguard.location.LocationResult
 import java.util.*
 
@@ -29,6 +30,9 @@ class CommandParser(private val context: Context) {
 
     fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1) {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        // NOTE: Flutter's SharedPreferences plugin stores keys with a "flutter." prefix.
+        // So Dart key "protection_expiry" → stored as "flutter.protection_expiry".
+        // Keys manually written from Kotlin (e.g., user_uid) use "flutter.user_uid" directly.
 
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
@@ -53,10 +57,16 @@ class CommandParser(private val context: Context) {
             val messageLower = message.trim().lowercase()
             val triggerLower = triggerKeyword.trim().lowercase()
 
-            if (!messageLower.startsWith(triggerLower)) return
+            Log.d(TAG, "Keyword check: messageLower='$messageLower' triggerLower='$triggerLower'")
+            if (!messageLower.startsWith(triggerLower)) {
+                Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
+                return
+            }
+            Log.d(TAG, "  ✅ Keyword matched")
 
-            val senderLast10 = extractLast10Digits(sender)
-            if (senderLast10.isEmpty()) return
+            val senderNorm = normalizeNumber(sender)
+            Log.d(TAG, "Number matching: senderRaw='$sender' senderNorm='$senderNorm'")
+            if (senderNorm.isEmpty()) return
 
             val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
             var matchedTrustedNumber: String? = null
@@ -64,9 +74,12 @@ class CommandParser(private val context: Context) {
             for (i in 0 until trustedNumbersArray.length()) {
                 val trustedObj = trustedNumbersArray.optJSONObject(i) ?: continue
                 val storedNumber = trustedObj.optString("phoneNumber", "")
-                val storedLast10 = extractLast10Digits(storedNumber)
-                if (storedLast10 == senderLast10) {
+                val storedNorm = normalizeNumber(storedNumber)
+                val matched = numbersMatch(senderNorm, storedNorm)
+                Log.d(TAG, "  Comparing stored='$storedNumber' norm='$storedNorm' → matched=$matched")
+                if (matched) {
                     matchedTrustedNumber = storedNumber
+                    Log.d(TAG, "  ✅ Trusted match found: '$storedNumber'")
                     break
                 }
             }
@@ -75,15 +88,16 @@ class CommandParser(private val context: Context) {
 
             // Check Protection Eligibility
             if (!isProtectionActive()) {
-                SmsSender.sendSmsWithSim(context, sender, "⚠️ PhoneGuard: Protection Expired. Please watch an ad in the app to re-enable remote commands.", subscriptionId)
+                SmsSender.sendSmsWithSim(context, sender, "⚠️ PhoneGuard: Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands.", subscriptionId)
                 logActivity(sender, "denied", "Protection expired", false)
                 return
             }
 
-            // --- New Space-Separated Parsing ---
-            val remainder = message.substring(triggerKeyword.length).trim()
+            // IMPORTANT: use lowercase lengths so casing differences don't mis-slice
+            val remainder = messageLower.substring(triggerLower.length).trim()
             val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
-            
+            Log.d(TAG, "Action parsing: remainder='$remainder' parts=$parts isPinEnabled=$isPinEnabled")
+
             var action = "default"
             var receivedPin = ""
 
@@ -109,6 +123,8 @@ class CommandParser(private val context: Context) {
             val stopAlarmOnTrigger = defaultActions.optBoolean("stopAlarmOnTrigger", false)
             val lockDevice = defaultActions.optBoolean("lockDevice", false)
 
+            Log.d(TAG, "Resolved action='$action' sendLocation=$sendLocation startAlarm=$startAlarm enableTracking=$enableTracking lockDevice=$lockDevice stopAlarmOnTrigger=$stopAlarmOnTrigger")
+
             CoroutineScope(Dispatchers.Main).launch {
                 kotlinx.coroutines.delay(1000)
 
@@ -117,11 +133,12 @@ class CommandParser(private val context: Context) {
                         "location" -> {
                             val result = LocationManager(context).getCurrentLocation()
                             if (result != null) {
-                                SmsSender.sendSmsWithSim(context, sender, "📍 Location: ${result.mapsUrl}", subscriptionId)
-                                logActivity(sender, action, "Sent location link", true)
-                                updateFirestoreLocation(result)
+                                val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
+                                SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
+                                logActivity(sender, action, "Sent location link (approx=${result.isApproximate})", true)
+                                updateFirestoreState(result)
                             } else {
-                                SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable", subscriptionId)
+                                SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
                                 logActivity(sender, action, "Location failed", false)
                             }
                         }
@@ -129,6 +146,7 @@ class CommandParser(private val context: Context) {
                             startForegroundServiceCompat(Intent(context, AlarmService::class.java))
                             SmsSender.sendSmsWithSim(context, sender, "🔔 Alarm started", subscriptionId)
                             logActivity(sender, action, "Alarm started", true)
+                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
                         }
                         "stop" -> {
                             context.stopService(Intent(context, AlarmService::class.java))
@@ -140,6 +158,7 @@ class CommandParser(private val context: Context) {
                             lockDeviceNow()
                             SmsSender.sendSmsWithSim(context, sender, "🔒 Device locked", subscriptionId)
                             logActivity(sender, action, "Locked", true)
+                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
                         }
                         "tracking" -> {
                             val trackingIntent = Intent(context, TrackingService::class.java).apply {
@@ -149,23 +168,35 @@ class CommandParser(private val context: Context) {
                             startForegroundServiceCompat(trackingIntent)
                             SmsSender.sendSmsWithSim(context, sender, "🛰️ Position tracking started", subscriptionId)
                             logActivity(sender, action, "Tracking started", true)
+                            LocationManager(context).getCurrentLocation()?.let { updateFirestoreState(it) }
                         }
                         else -> {
+                            Log.d(TAG, "Executing DEFAULT actions: stopAlarmOnTrigger=$stopAlarmOnTrigger startAlarm=$startAlarm sendLocation=$sendLocation enableTracking=$enableTracking lockDevice=$lockDevice")
                             if (stopAlarmOnTrigger) {
+                                Log.d(TAG, "  Stopping existing alarm & tracking")
                                 context.stopService(Intent(context, AlarmService::class.java))
                                 context.stopService(Intent(context, TrackingService::class.java))
                             }
                             if (startAlarm) {
+                                Log.d(TAG, "  Starting alarm")
                                 startForegroundServiceCompat(Intent(context, AlarmService::class.java))
                             }
+                            val result = LocationManager(context).getCurrentLocation()
+                            Log.d(TAG, "  Location result: ${if (result != null) "${result.mapsUrl} approx=${result.isApproximate}" else "null"}")
                             if (sendLocation) {
-                                val result = LocationManager(context).getCurrentLocation()
                                 if (result != null) {
-                                    SmsSender.sendSmsWithSim(context, sender, "📍 Location: ${result.mapsUrl}", subscriptionId)
-                                    updateFirestoreLocation(result)
+                                    val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
+                                    SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
+                                    Log.d(TAG, "  Location SMS sent (approximate=${result.isApproximate})")
+                                } else {
+                                    SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
+                                    Log.w(TAG, "  Location was null — all tiers exhausted")
                                 }
                             }
+                            result?.let { updateFirestoreState(it) }
+                            
                             if (enableTracking) {
+                                Log.d(TAG, "  Starting tracking service")
                                 val trackingIntent = Intent(context, TrackingService::class.java).apply {
                                     putExtra("trustedNumber", sender)
                                     putExtra("subscriptionId", subscriptionId)
@@ -173,10 +204,12 @@ class CommandParser(private val context: Context) {
                                 startForegroundServiceCompat(trackingIntent)
                             }
                             if (lockDevice) {
+                                Log.d(TAG, "  Locking device")
                                 lockDeviceNow()
                             }
                             SmsSender.sendSmsWithSim(context, sender, "✅ Recovery command executed", subscriptionId)
                             logActivity(sender, "default", "Executed actions", true)
+                            Log.d(TAG, "Default actions complete")
                         }
                     }
                 } catch (e: Exception) {
@@ -215,39 +248,103 @@ class CommandParser(private val context: Context) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             
-            // 1. Premium always active
-            if (prefs.getBoolean("flutter.is_premium", false)) return true
+            // Flutter's SharedPreferences plugin stores keys as "flutter.<key>"
+            // Keys written by Dart code are stored as "flutter.flutter.<key>" because
+            // the plugin adds "flutter." and the key already had "flutter." in it.
+            // The correct stored key names are read from the XML directly:
+            val isPremium = prefs.getBoolean("flutter.flutter.is_premium", false)
+            Log.d(TAG, "isProtectionActive: isPremium=$isPremium")
+            if (isPremium) return true
             
             // 2. 3-day Free Trial
-            val createdAtStr = prefs.getString("flutter.created_at", null)
+            val createdAtStr = prefs.getString("flutter.flutter.created_at", null)
+            Log.d(TAG, "isProtectionActive: createdAtStr=$createdAtStr")
             if (createdAtStr != null) {
-                // ISO format might vary, try parsing first 19 chars
-                val datePart = createdAtStr.substring(0, 19)
-                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-                val createdAt = sdf.parse(datePart)
+                // Try full string first, then truncate to 19 chars as fallback
+                val parseTargets = listOf(createdAtStr, createdAtStr.take(19))
+                val formatters = listOf(
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale.US),
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US),
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                )
+                var createdAt: java.util.Date? = null
+                outer@ for (target in parseTargets) {
+                    for (fmt in formatters) {
+                        try {
+                            fmt.isLenient = false
+                            createdAt = fmt.parse(target)
+                            if (createdAt != null) {
+                                Log.d(TAG, "isProtectionActive: parsed createdAt=$createdAt using target='$target'")
+                                break@outer
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+
                 if (createdAt != null) {
                     val trialMillis = 3 * 24 * 60 * 60 * 1000L
-                    if (System.currentTimeMillis() - createdAt.time < trialMillis) return true
+                    val elapsed = System.currentTimeMillis() - createdAt.time
+                    Log.d(TAG, "isProtectionActive: elapsed=${elapsed}ms trialMillis=${trialMillis}ms inTrial=${elapsed < trialMillis}")
+                    if (elapsed < trialMillis) return true
+                } else {
+                    Log.e(TAG, "isProtectionActive: Could not parse createdAt from '$createdAtStr'")
                 }
             }
 
             // 3. Ad-extended expiry
-            val expiryStr = prefs.getString("flutter.protection_expiry", null)
+            val expiryStr = prefs.getString("flutter.flutter.protection_expiry", null)
+            Log.d(TAG, "isProtectionActive: expiryStr=$expiryStr")
             if (expiryStr != null) {
-                val datePart = expiryStr.substring(0, 19)
+                val datePart = expiryStr.take(19)
                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-                val expiry = sdf.parse(datePart)
+                val expiry = try { sdf.parse(datePart) } catch (_: Exception) { null }
+                Log.d(TAG, "isProtectionActive: expiry=$expiry now=${java.util.Date()}")
                 if (expiry != null && expiry.after(java.util.Date())) return true
             }
         } catch (e: Exception) {
             Log.e(TAG, "Protection check failed", e)
         }
+        Log.w(TAG, "isProtectionActive: returning FALSE — no valid protection found")
         return false
     }
 
-    private fun extractLast10Digits(number: String): String {
-        val digits = number.filter { it.isDigit() }
-        return if (digits.length >= 10) digits.takeLast(10) else digits
+    /**
+     * Strips a phone number down to pure digits, removes leading zeros
+     * (trunk prefix used in many countries like India: 09XXXXXXXXX → 9XXXXXXXXX),
+     * and returns the result.
+     */
+    private fun normalizeNumber(raw: String): String {
+        val digits = raw.filter { it.isDigit() }
+        return digits.trimStart('0')
+    }
+
+    /**
+     * Matches two normalized (digits-only, leading-zeros stripped) phone numbers
+     * using four strategies to handle every real-world format combination:
+     *
+     *  Strategy 1 — Exact: "9165939300" == "9165939300"
+     *  Strategy 2 — Suffix overlap: "919165939300".endsWith("9165939300")
+     *                               handles +91 country-code vs local-only storage
+     *  Strategy 3 — Adaptive last-N: compare last min(lenA, lenB) digits
+     *                               handles 7-digit local numbers vs full numbers
+     *  Strategy 4 — One is suffix of the other (reverse direction)
+     */
+    private fun numbersMatch(a: String, b: String): Boolean {
+        if (a.isEmpty() || b.isEmpty()) return false
+
+        // S1: Exact match
+        if (a == b) return true
+
+        // S2 & S4: Suffix match in either direction
+        if (a.endsWith(b) || b.endsWith(a)) return true
+
+        // S3: Adaptive last-N (minimum of both lengths, floor at 7 to avoid false positives)
+        val n = minOf(a.length, b.length).coerceAtLeast(7)
+        if (a.length >= n && b.length >= n) {
+            if (a.takeLast(n) == b.takeLast(n)) return true
+        }
+
+        return false
     }
 
     private fun logActivity(sender: String, command: String, result: String, success: Boolean) {
@@ -272,24 +369,47 @@ class CommandParser(private val context: Context) {
         }
     }
 
-    private fun updateFirestoreLocation(result: LocationResult) {
+    private fun updateFirestoreState(result: LocationResult) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val uid = prefs.getString("flutter.user_uid", null) ?: return
+            val uid = prefs.getString("flutter.flutter.user_uid", null) ?: return
             
             val db = FirebaseFirestore.getInstance()
-            val data = mapOf(
+            val updates = mutableMapOf<String, Any>(
                 "lastLatitude" to result.latitude,
                 "lastLongitude" to result.longitude,
-                "locationUpdatedAt" to Date()
+                "locationUpdatedAt" to Date(),
+                "lastActive" to FieldValue.serverTimestamp(),
+                "isOnline" to true,
+                "deviceModel" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+                "osVersion" to "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})"
             )
+
+            getIpAddress()?.let { updates["lastIp"] = it }
             
             db.collection("users").document(uid)
-                .set(data, SetOptions.merge())
-                .addOnSuccessListener { Log.d(TAG, "Location updated in Firestore") }
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener { Log.d(TAG, "Full state updated in Firestore") }
                 .addOnFailureListener { e -> Log.e(TAG, "Firestore update failed", e) }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update Firestore", e)
+            Log.e(TAG, "Failed to update Firestore state", e)
         }
+    }
+
+    private fun getIpAddress(): String? {
+        try {
+            val interfaces = java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())
+            for (intf in interfaces) {
+                val addrs = java.util.Collections.list(intf.inetAddresses)
+                for (addr in addrs) {
+                    if (!addr.isLoopbackAddress) {
+                        val sAddr = addr.hostAddress
+                        val isIPv4 = sAddr.indexOf(':') < 0
+                        if (isIPv4) return sAddr
+                    }
+                }
+            }
+        } catch (e: Exception) {}
+        return null
     }
 }
