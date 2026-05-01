@@ -219,57 +219,77 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                 ],
               ),
             ),
-            if (isBasicActive && !isPremium && !isTrial) ...[
+            if (isBasicActive && !isPremium) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Loading Ad...'),
-                          duration: Duration(seconds: 1)),
-                    );
+              Row(
+                children: [
+                  if (!isTrial)
+                    Expanded(
+                      flex: 3,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Loading Ad...'),
+                                duration: Duration(seconds: 1)),
+                          );
 
-                    adService.loadRewardedAd(
-                      onAdLoaded: (ad) {
-                        adService.showRewardedAd(
-                          ad: ad,
-                          onUserEarnedReward: (ad, reward) {
-                            authProvider.extendProtection(8);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('🎉 Protection extended by 8 hours!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          },
-                          onAdDismissed: () {},
-                        );
-                      },
-                      onAdFailedToLoad: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Ad failed to load. Try again later.')),
-                        );
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.play_circle_fill),
-                  label: Text(isActuallyActive
-                      ? 'EXTEND PROTECTION (8h)'
-                      : 'REACTIVATE PROTECTION (8h)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                          adService.loadRewardedAd(
+                            onAdLoaded: (ad) {
+                              adService.showRewardedAd(
+                                ad: ad,
+                                onUserEarnedReward: (ad, reward) {
+                                  authProvider.extendProtection(8);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('🎉 Protection extended by 8 hours!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                },
+                                onAdDismissed: () {},
+                              );
+                            },
+                            onAdFailedToLoad: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Ad failed to load. Try again later.')),
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.play_circle_fill),
+                        label: Text(isActuallyActive ? 'EXTEND' : 'REACTIVE'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00E5FF),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!isTrial) const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/subscription'),
+                      icon: const Icon(Icons.stars_rounded),
+                      label: const Text('GO PREMIUM'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ],

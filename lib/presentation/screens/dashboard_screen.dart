@@ -140,7 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PhoneGuard',
+            'PhoneGuard: Lost Phone Finder',
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 22,
@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             ),
           ),
           Text(
-            'Anti-Theft Suite',
+            'Anti-Theft Security',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.blue.shade400),
           ),
         ],
@@ -296,7 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'PhoneGuard',
+                        'PhoneGuard: Finder',
                         style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
                       ),
                       const Text(
@@ -326,6 +326,16 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, '/activity-logs');
+                  },
+                ),
+                _DrawerCardTile(
+                  icon: Icons.stars_rounded,
+                  label: auth.profile?.isPremium == true ? 'Premium Active' : 'Upgrade to Premium',
+                  color: Colors.amber,
+                  trailing: auth.profile?.isPremium == true ? const Icon(Icons.verified_rounded, color: Colors.amber, size: 18) : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/subscription');
                   },
                 ),
                 

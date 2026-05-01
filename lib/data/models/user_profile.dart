@@ -7,6 +7,8 @@ class UserProfile {
   final String email;
   final String mobile;
   final String subscriptionType; // none, monthly, yearly
+  final String subscriptionStatus; // active, expired, cancelled, none
+  final String? purchaseToken;
   final bool isPremium;
   final DateTime? protectionExpiry;
   final double? lastLatitude;
@@ -31,6 +33,8 @@ class UserProfile {
     required this.email,
     required this.mobile,
     this.subscriptionType = 'none',
+    this.subscriptionStatus = 'none',
+    this.purchaseToken,
     this.isPremium = false,
     this.protectionExpiry,
     this.lastLatitude,
@@ -56,6 +60,8 @@ class UserProfile {
       email: data['email'] ?? '',
       mobile: data['mobile'] ?? '',
       subscriptionType: data['subscriptionType'] ?? 'none',
+      subscriptionStatus: data['subscriptionStatus'] ?? 'none',
+      purchaseToken: data['purchaseToken'] as String?,
       isPremium: data['isPremium'] ?? false,
       protectionExpiry: (data['protectionExpiry'] as Timestamp?)?.toDate(),
       lastLatitude: (data['lastLatitude'] as num?)?.toDouble(),
@@ -83,6 +89,8 @@ class UserProfile {
       'email': email,
       'mobile': mobile,
       'subscriptionType': subscriptionType,
+      'subscriptionStatus': subscriptionStatus,
+      'purchaseToken': purchaseToken,
       'isPremium': isPremium,
       'protectionExpiry': protectionExpiry != null ? Timestamp.fromDate(protectionExpiry!) : null,
       'lastLatitude': lastLatitude,
@@ -105,6 +113,8 @@ class UserProfile {
     String? name,
     String? mobile,
     String? subscriptionType,
+    String? subscriptionStatus,
+    String? purchaseToken,
     bool? isPremium,
     DateTime? protectionExpiry,
     double? lastLatitude,
@@ -126,6 +136,8 @@ class UserProfile {
       email: email,
       mobile: mobile ?? this.mobile,
       subscriptionType: subscriptionType ?? this.subscriptionType,
+      subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
+      purchaseToken: purchaseToken ?? this.purchaseToken,
       isPremium: isPremium ?? this.isPremium,
       protectionExpiry: protectionExpiry ?? this.protectionExpiry,
       lastLatitude: lastLatitude ?? this.lastLatitude,

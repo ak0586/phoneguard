@@ -90,20 +90,6 @@ class DefaultActionsScreen extends StatelessWidget {
                   provider.setDefaultActions(actions.copyWith(lockDevice: v));
                 },
               ),
-              const SizedBox(height: 20),
-              // ─── Stop / Reset ──────────────────────────────────────────
-              _buildSectionLabel(context, 'STOP / RESET'),
-              const SizedBox(height: 10),
-              _ActionToggle(
-                icon: Icons.stop_circle_rounded,
-                title: 'Stop Alarm on Trigger',
-                subtitle: 'Stop any running alarm & tracking when trigger is received',
-                enabled: actions.stopAlarmOnTrigger,
-                color: const Color(0xFF607D8B),
-                onChanged: (v) => provider.setDefaultActions(
-                  actions.copyWith(stopAlarmOnTrigger: v),
-                ),
-              ),
               const SizedBox(height: 28),
               _buildPreview(context, actions, provider.settings.triggerKeyword),
             ],
@@ -162,7 +148,6 @@ class DefaultActionsScreen extends StatelessWidget {
     String keyword,
   ) {
     final cmds = <String>[];
-    if (actions.stopAlarmOnTrigger) cmds.add('stop');
     if (actions.sendLocation) cmds.add('location');
     if (actions.startAlarm) cmds.add('alarm');
     if (actions.enableTracking) cmds.add('track');

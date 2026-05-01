@@ -233,6 +233,11 @@ class CommandGuideScreen extends StatelessWidget {
       actions: ['Overrides silent mode', 'Plays loud alarm sound'],
     ),
     _Example(
+      title: 'Enable live tracking',
+      sms: '$keyword track',
+      actions: ['Starts continuous location updates every 3 minutes'],
+    ),
+    _Example(
       title: 'All default actions',
       sms: keyword,
       actions: ['Runs all enabled default actions'],
@@ -429,9 +434,11 @@ class _ExampleCard extends StatelessWidget {
                     size: 18,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    a,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  Expanded(
+                    child: Text(
+                      a,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ),
                 ],
               ),

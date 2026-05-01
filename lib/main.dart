@@ -34,6 +34,8 @@ import 'presentation/screens/trusted_numbers_screen.dart';
 import 'presentation/screens/settings_screen.dart';
 import 'presentation/widgets/app_lock_wrapper.dart';
 import 'data/datasources/ad_service.dart';
+import 'presentation/providers/subscription_provider.dart';
+import 'presentation/screens/subscription_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,6 +99,10 @@ void main() async {
             return app;
           },
         ),
+        ChangeNotifierProxyProvider<AuthProvider, SubscriptionProvider>(
+          create: (context) => SubscriptionProvider(Provider.of<AuthProvider>(context, listen: false)),
+          update: (context, auth, sub) => sub ?? SubscriptionProvider(auth),
+        ),
         Provider.value(value: permissionService),
         Provider.value(value: adService),
       ],
@@ -115,7 +121,7 @@ class LostPhoneApp extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         return MaterialApp(
-          title: 'PhoneGuard: Lost Phone Recovery',
+          title: 'PhoneGuard: Lost Phone Finder',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: provider.settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -149,6 +155,7 @@ class LostPhoneApp extends StatelessWidget {
             '/privacy-policy': (context) => const PrivacyPolicyScreen(),
             '/faq': (context) => const FaqScreen(),
             '/settings': (context) => const SettingsScreen(),
+            '/subscription': (context) => const SubscriptionScreen(),
           },
           debugShowCheckedModeBanner: false,
         );
