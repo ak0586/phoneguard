@@ -37,19 +37,15 @@ class CommandParser(private val context: Context) {
         private const val DEDUPE_WINDOW_MS = 10000L // 10 seconds
         private val lastProcessedCommands = mutableMapOf<String, Long>()
         
-        // Global lock: prevents parallel execution of recovery actions
-        // (e.g., 10 trusted numbers triggering simultaneously)
-        @Volatile private var isExecutingRecovery = false
-        
         private fun isDuplicate(sender: String, action: String?): Boolean {
             val key = "$sender:$action"
             val now = System.currentTimeMillis()
             val lastTime = lastProcessedCommands[key] ?: 0L
             if (now - lastTime < DEDUPE_WINDOW_MS) {
+                Log.w("CommandParser", "Dedup: blocking duplicate command key=$key within ${DEDUPE_WINDOW_MS}ms")
                 return true
             }
             lastProcessedCommands[key] = now
-            // Clean up old entries occasionally
             if (lastProcessedCommands.size > 100) {
                 lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
             }
@@ -61,11 +57,11 @@ class CommandParser(private val context: Context) {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
-            Log.w(TAG, "No app_settings found in SharedPreferences")
+            Log.w(TAG, "PHONEGUARD_DEBUG ❌ No app_settings found in SharedPreferences")
             return CommandStatus.IGNORED
         }
 
-        Log.d(TAG, "Processing command from=$sender body='$message'")
+        Log.d(TAG, "PHONEGUARD_DEBUG ─── NEW SMS ─── from='$sender' subId=$subscriptionId body='$message'")
 
         try {
             val settings = JSONObject(appSettingsJson)
@@ -83,47 +79,51 @@ class CommandParser(private val context: Context) {
                 val messageLower = message.trim().lowercase()
                 val triggerLower = triggerKeyword.trim().lowercase()
 
+                Log.d(TAG, "PHONEGUARD_DEBUG [1] Keyword check: message='$messageLower' trigger='$triggerLower'")
                 if (!messageLower.startsWith(triggerLower)) {
-                    Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
+                    Log.d(TAG, "PHONEGUARD_DEBUG [1] ❌ Keyword NOT matched, ignoring")
                     return CommandStatus.IGNORED
                 }
-                Log.d(TAG, "  ✅ Keyword matched")
+                Log.d(TAG, "PHONEGUARD_DEBUG [1] ✅ Keyword matched")
 
                 // Check Trusted Number
                 val senderNorm = normalizeNumber(sender)
                 val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
+                Log.d(TAG, "PHONEGUARD_DEBUG [2] Trusted number check: senderRaw='$sender' senderNorm='$senderNorm' trustedCount=${trustedNumbersArray.length()}")
 
                 for (i in 0 until trustedNumbersArray.length()) {
                     val trustedObj = trustedNumbersArray.optJSONObject(i) ?: continue
                     val trustedNum = trustedObj.optString("phoneNumber", "")
-                    if (numbersMatch(senderNorm, normalizeNumber(trustedNum))) {
+                    val trustedNorm = normalizeNumber(trustedNum)
+                    val matches = numbersMatch(senderNorm, trustedNorm)
+                    Log.d(TAG, "PHONEGUARD_DEBUG [2]   [$i] stored='$trustedNum' norm='$trustedNorm' → match=$matches")
+                    if (matches) {
                         matchedTrustedNumber = trustedNum
                         break
                     }
                 }
 
                 if (matchedTrustedNumber == null) {
-                    Log.d(TAG, "  ❌ Number $senderNorm not in trusted list, ignoring SMS")
+                    Log.w(TAG, "PHONEGUARD_DEBUG [2] ❌ senderNorm='$senderNorm' NOT in trusted list — ignoring")
                     return CommandStatus.IGNORED
                 }
-                Log.d(TAG, "  ✅ Trusted number matched")
+                Log.d(TAG, "PHONEGUARD_DEBUG [2] ✅ Trusted number matched: '$matchedTrustedNumber'")
             } else {
                 // Remote Dashboard Command
                 action = message.removePrefix("REMOTE_ACTION ").trim().lowercase()
-                Log.d(TAG, "  ✅ Remote dashboard command authorized: action='$action'")
+                Log.d(TAG, "PHONEGUARD_DEBUG [2] ✅ Remote dashboard command: action='$action'")
             }
 
             // 2. PROTECTION ENFORCEMENT PHASE
-            // Only happens for valid triggers from trusted numbers (or authenticated dashboard)
             if (!isProtectionActive()) {
                 val expiredMsg = "⚠️ PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands"
-                Log.w(TAG, "Valid trigger received but protection is EXPIRED. Sender: $sender")
-                
+                Log.w(TAG, "PHONEGUARD_DEBUG [3] ❌ Protection EXPIRED — notifying sender")
                 if (!isRemoteCommand) {
                     SmsSender.sendSmsWithSim(context, sender, expiredMsg, subscriptionId)
                 }
                 return CommandStatus.EXPIRED
             }
+            Log.d(TAG, "PHONEGUARD_DEBUG [3] ✅ Protection active")
 
             // 3. SERVICE START PHASE
             try {
@@ -170,13 +170,6 @@ class CommandParser(private val context: Context) {
                 Log.w(TAG, "Skipping duplicate command: sender=$sender action=$action (within 10s)")
                 return CommandStatus.IGNORED
             }
-
-            // 7. GLOBAL EXECUTION LOCK (prevents parallel recovery from multiple senders)
-            if (isExecutingRecovery) {
-                Log.w(TAG, "Another recovery is already executing — queuing ignored to prevent device overload")
-                return CommandStatus.IGNORED
-            }
-            isExecutingRecovery = true
 
             try {
                 when (action) {
@@ -280,8 +273,6 @@ class CommandParser(private val context: Context) {
                 } catch (e: Exception) {
                     Log.e(TAG, "Error executing action: $action", e)
                     logActivity(sender, action ?: "unknown", "Error: ${e.message}", false)
-                } finally {
-                    isExecutingRecovery = false
                 }
             return CommandStatus.EXECUTED
         } catch (e: Exception) {
