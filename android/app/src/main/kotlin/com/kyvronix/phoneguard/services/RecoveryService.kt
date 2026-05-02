@@ -112,23 +112,31 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                         val id   = it.getLong(it.getColumnIndexOrThrow("_id"))
                         val from = it.getString(it.getColumnIndexOrThrow("address")) ?: return@use
                         val body = it.getString(it.getColumnIndexOrThrow("body")) ?: return@use
+                        val date = it.getLong(it.getColumnIndexOrThrow("date"))
 
-                        // Avoid double-processing if SmsReceiver already handled it
+                        // Avoid double-processing if SmsReceiver already handled it (by ID)
                         if (id == lastProcessedSmsId) return@use
 
-                        // Store in SharedPreferences so duplicate detection survives
-                        // service restarts (load last ID on startup)
                         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+
+                        // Check persistent ID across restarts
                         val storedLastId = prefs.getLong("phoneguard.last_sms_id", -1L)
                         if (id == storedLastId) return@use
+
+                        // Check the hash stored by SmsReceiver — closes the race window
+                        val expectedHash = "${from.hashCode()}_${body.hashCode()}_${date}"
+                        val storedHash = prefs.getString("phoneguard.last_sms_hash", null)
+                        if (expectedHash == storedHash) {
+                            Log.d(TAG, "ContentObserver: SMS already handled by SmsReceiver (hash match), skipping id=$id")
+                            lastProcessedSmsId = id
+                            return@use
+                        }
 
                         lastProcessedSmsId = id
                         prefs.edit().putLong("phoneguard.last_sms_id", id).commit()
 
                         Log.d(TAG, "ContentObserver: new SMS id=$id from=$from body='$body'")
 
-                        // Parse on Main thread to match SmsReceiver behaviour
-                        // Parse on Main thread via coroutine
                         launch {
                             CommandParser(this@RecoveryService).parseAndExecute(
                                 sender = from,

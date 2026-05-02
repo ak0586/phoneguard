@@ -37,6 +37,10 @@ class CommandParser(private val context: Context) {
         private const val DEDUPE_WINDOW_MS = 10000L // 10 seconds
         private val lastProcessedCommands = mutableMapOf<String, Long>()
         
+        // Global lock: prevents parallel execution of recovery actions
+        // (e.g., 10 trusted numbers triggering simultaneously)
+        @Volatile private var isExecutingRecovery = false
+        
         private fun isDuplicate(sender: String, action: String?): Boolean {
             val key = "$sender:$action"
             val now = System.currentTimeMillis()
@@ -167,6 +171,13 @@ class CommandParser(private val context: Context) {
                 return CommandStatus.IGNORED
             }
 
+            // 7. GLOBAL EXECUTION LOCK (prevents parallel recovery from multiple senders)
+            if (isExecutingRecovery) {
+                Log.w(TAG, "Another recovery is already executing — queuing ignored to prevent device overload")
+                return CommandStatus.IGNORED
+            }
+            isExecutingRecovery = true
+
             try {
                 when (action) {
                         "location" -> {
@@ -224,20 +235,26 @@ class CommandParser(private val context: Context) {
                                 Log.d(TAG, "  Starting alarm")
                                 startForegroundServiceCompat(Intent(context, AlarmService::class.java))
                             }
-                            val result = LocationManager(context).getCurrentLocation()
-                            Log.d(TAG, "  Location result: ${if (result != null) "${result.mapsUrl} approx=${result.isApproximate}" else "null"}")
+
+                            // Only fetch GPS if actually needed — avoids 10-18s delay when disabled
+                            var locationSent = false
                             if (sendLocation) {
+                                val result = LocationManager(context).getCurrentLocation()
+                                Log.d(TAG, "  Location result: ${if (result != null) "${result.mapsUrl} approx=${result.isApproximate}" else "null"}")
                                 if (result != null) {
                                     val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
                                     SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
                                     Log.d(TAG, "  Location SMS sent (approximate=${result.isApproximate})")
+                                    locationSent = true
                                 } else {
                                     SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
                                     Log.w(TAG, "  Location was null — all tiers exhausted")
+                                    locationSent = true // still sent a message, don't double-send confirmation
                                 }
                             }
+
                             com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_DEFAULT")
-                            
+
                             if (enableTracking) {
                                 Log.d(TAG, "  Starting tracking service")
                                 val trackingIntent = Intent(context, TrackingService::class.java).apply {
@@ -250,14 +267,21 @@ class CommandParser(private val context: Context) {
                                 Log.d(TAG, "  Locking device")
                                 lockDeviceNow()
                             }
-                            SmsSender.sendSmsWithSim(context, sender, "✅ Recovery command executed", subscriptionId)
-                            logActivity(sender, "default", "Executed actions", true)
+
+                            // Only send "✅ Recovery command executed" if no location message was sent
+                            // (avoid flooding with 2 messages when sendLocation=true)
+                            if (!locationSent) {
+                                SmsSender.sendSmsWithSim(context, sender, "✅ Recovery command executed", subscriptionId)
+                            }
+                            logActivity(sender, "default", "Executed actions (locationSent=$locationSent)", true)
                             Log.d(TAG, "Default actions complete")
                         }
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error executing action: $action", e)
                     logActivity(sender, action ?: "unknown", "Error: ${e.message}", false)
+                } finally {
+                    isExecutingRecovery = false
                 }
             return CommandStatus.EXECUTED
         } catch (e: Exception) {
