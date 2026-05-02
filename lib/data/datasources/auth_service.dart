@@ -172,8 +172,14 @@ class AuthService {
         currentExpiry = DateTime.now();
       }
       final newExpiry = currentExpiry.add(Duration(hours: hours));
+      
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      int newCount = (profile.lastAdDate == today) ? (profile.adsWatchedToday + 1) : 1;
+
       await _usersCollection.doc(uid).update({
         'protectionExpiry': Timestamp.fromDate(newExpiry),
+        'adsWatchedToday': newCount,
+        'lastAdDate': today,
       });
     }
   }

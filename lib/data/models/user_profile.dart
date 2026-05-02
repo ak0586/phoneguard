@@ -26,6 +26,8 @@ class UserProfile {
   final String? lastIp;
   final DateTime? lastActive;
   final String role; // user, admin
+  final int adsWatchedToday;
+  final String? lastAdDate;
 
   UserProfile({
     required this.uid,
@@ -50,6 +52,8 @@ class UserProfile {
     this.lastIp,
     this.lastActive,
     this.role = 'user',
+    this.adsWatchedToday = 0,
+    this.lastAdDate,
   });
 
   factory UserProfile.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -80,6 +84,8 @@ class UserProfile {
       lastIp: data['lastIp'] as String?,
       lastActive: (data['lastActive'] as Timestamp?)?.toDate(),
       role: data['role'] ?? 'user',
+      adsWatchedToday: data['adsWatchedToday'] ?? 0,
+      lastAdDate: data['lastAdDate'] as String?,
     );
   }
 
@@ -107,6 +113,8 @@ class UserProfile {
       'lastIp': lastIp,
       'lastActive': lastActive?.toIso8601String(),
       'role': role,
+      'adsWatchedToday': adsWatchedToday,
+      'lastAdDate': lastAdDate,
     };
   }
 
@@ -137,6 +145,8 @@ class UserProfile {
       lastIp: map['lastIp'] as String?,
       lastActive: map['lastActive'] != null ? DateTime.parse(map['lastActive']) : null,
       role: map['role'] ?? 'user',
+      adsWatchedToday: map['adsWatchedToday'] ?? 0,
+      lastAdDate: map['lastAdDate'] as String?,
     );
   }
 
@@ -163,6 +173,8 @@ class UserProfile {
       'lastIp': lastIp,
       'lastActive': lastActive != null ? Timestamp.fromDate(lastActive!) : FieldValue.serverTimestamp(),
       'role': role,
+      'adsWatchedToday': adsWatchedToday,
+      'lastAdDate': lastAdDate,
     };
   }
 
@@ -186,6 +198,8 @@ class UserProfile {
     String? lastIp,
     DateTime? lastActive,
     String? role,
+    int? adsWatchedToday,
+    String? lastAdDate,
   }) {
     return UserProfile(
       uid: uid,
@@ -210,6 +224,8 @@ class UserProfile {
       lastIp: lastIp ?? this.lastIp,
       lastActive: lastActive ?? this.lastActive,
       role: role ?? this.role,
+      adsWatchedToday: adsWatchedToday ?? this.adsWatchedToday,
+      lastAdDate: lastAdDate ?? this.lastAdDate,
     );
   }
 }

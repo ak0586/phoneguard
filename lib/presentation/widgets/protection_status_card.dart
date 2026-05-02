@@ -228,6 +228,16 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                       flex: 3,
                       child: ElevatedButton.icon(
                         onPressed: () {
+                          if (!authProvider.canWatchAd) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('🚫 Daily limit reached (6 ads). Try again tomorrow!'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Loading Ad...'),
@@ -239,11 +249,11 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                               adService.showRewardedAd(
                                 ad: ad,
                                 onUserEarnedReward: (ad, reward) {
-                                  authProvider.extendProtection(8);
+                                  authProvider.extendProtection(4);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content:
-                                          Text('🎉 Protection extended by 8 hours!'),
+                                          Text('🎉 Protection extended by 4 hours!'),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -261,7 +271,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                           );
                         },
                         icon: const Icon(Icons.play_circle_fill),
-                        label: Text(isActuallyActive ? 'EXTEND' : 'REACTIVE'),
+                        label: Text(!authProvider.canWatchAd ? 'LIMIT REACHED' : (isActuallyActive ? 'EXTEND' : 'REACTIVE')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00E5FF),
                           foregroundColor: Colors.black,

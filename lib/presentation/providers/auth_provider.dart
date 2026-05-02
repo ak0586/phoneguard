@@ -44,6 +44,14 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get mobileNumber => _profile?.mobile ?? _mobileNumber;
   bool get hasDeviceConflict => _deviceConflict;
+  
+  bool get canWatchAd {
+    if (_profile == null) return false;
+    if (_profile!.isPremium) return false;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (_profile!.lastAdDate != today) return true;
+    return _profile!.adsWatchedToday < 6;
+  }
 
   void _init() {
     _authService.authStateChanges.listen((User? authUser) async {
@@ -329,6 +337,8 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> extendProtection(int hours) async {
     if (_user == null) return;
+    if (hours == 8) hours = 4; // Update from legacy 8 to 4 for ads
+    
     _setLoading(true);
     try {
       await _authService.extendProtection(_user!.uid, hours);
@@ -338,6 +348,7 @@ class AuthProvider extends ChangeNotifier {
       final newExpiry = base.add(Duration(hours: hours));
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('flutter.protection_expiry', newExpiry.toIso8601String());
+      await prefs.setInt('flutter.ads_watched_today', (_profile?.adsWatchedToday ?? 0) + 1);
 
       await FirebaseAnalytics.instance.logEvent(
         name: 'extend_protection',
