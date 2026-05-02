@@ -511,7 +511,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           TextButton(
             onPressed: () {
               auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              Navigator.pushNamedAndRemoveUntil(context, '/auth-wrapper', (route) => false);
             },
             child: const Text('LOGOUT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
@@ -582,7 +582,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           ),
           const SizedBox(height: 48),
           ElevatedButton(
-            onPressed: () => auth.signOut(),
+            onPressed: () {
+              auth.signOut();
+              Navigator.pushNamedAndRemoveUntil(context, '/auth-wrapper', (route) => false);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,

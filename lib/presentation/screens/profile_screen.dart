@@ -104,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (confirm == true && context.mounted) {
                 await authProvider.signOut();
                 if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
                 }
               }
             },
@@ -317,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final success = await auth.deleteAccount(passwordController.text);
                 if (success && context.mounted) {
                   Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
                 } else {
                   setDialogState(() {}); // Refresh for error message
                 }
