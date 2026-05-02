@@ -64,11 +64,22 @@ class TrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        trustedNumber = intent?.getStringExtra("trustedNumber") ?: ""
-        subscriptionId = intent?.getIntExtra("subscriptionId", -1) ?: -1
+        val newNumber = intent?.getStringExtra("trustedNumber") ?: ""
+        val newSubId = intent?.getIntExtra("subscriptionId", -1) ?: -1
+
+        // Always update the target number from the latest intent.
+        // This ensures if a different trusted number sends a trigger,
+        // subsequent location updates go to that number, not the previous one.
+        if (newNumber.isNotEmpty()) {
+            trustedNumber = newNumber
+            subscriptionId = newSubId
+            Log.d("TrackingService", "Target updated to: $trustedNumber (subId=$subscriptionId)")
+        }
+
         if (!isTracking) {
             isTracking = true
             handler.post(trackingRunnable)
+            Log.d("TrackingService", "Tracking started for: $trustedNumber")
         }
         return START_NOT_STICKY
     }

@@ -112,15 +112,6 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                         val id   = it.getLong(it.getColumnIndexOrThrow("_id"))
                         val from = it.getString(it.getColumnIndexOrThrow("address")) ?: return@use
                         val body = it.getString(it.getColumnIndexOrThrow("body")) ?: return@use
-                        val date = it.getLong(it.getColumnIndexOrThrow("date"))
-
-                        // 1. Freshness Check: Skip if the message is older than 2 minutes.
-                        // This prevents race conditions where we pick the 'previous' message 
-                        // from another trusted number if the database hasn't updated yet.
-                        val now = System.currentTimeMillis()
-                        if (now - date > 120_000) { // 2 minutes
-                            return@use
-                        }
 
                         // Avoid double-processing if SmsReceiver already handled it
                         if (id == lastProcessedSmsId) return@use
