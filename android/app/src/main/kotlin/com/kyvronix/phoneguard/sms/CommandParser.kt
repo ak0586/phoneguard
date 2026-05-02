@@ -32,6 +32,25 @@ class CommandParser(private val context: Context) {
 
     companion object {
         private const val TAG = "CommandParser"
+        
+        // Deduplication window to prevent multiple triggers for the same message
+        private const val DEDUPE_WINDOW_MS = 10000L // 10 seconds
+        private val lastProcessedCommands = mutableMapOf<String, Long>()
+        
+        private fun isDuplicate(sender: String, action: String?): Boolean {
+            val key = "$sender:$action"
+            val now = System.currentTimeMillis()
+            val lastTime = lastProcessedCommands[key] ?: 0L
+            if (now - lastTime < DEDUPE_WINDOW_MS) {
+                return true
+            }
+            lastProcessedCommands[key] = now
+            // Clean up old entries occasionally
+            if (lastProcessedCommands.size > 100) {
+                lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
+            }
+            return false
+        }
     }
 
     suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
@@ -141,6 +160,12 @@ class CommandParser(private val context: Context) {
             val lockDevice = defaultActions.optBoolean("lockDevice", false)
 
             Log.d(TAG, "Resolved action='$action' sendLocation=$sendLocation startAlarm=$startAlarm enableTracking=$enableTracking lockDevice=$lockDevice stopAlarmOnTrigger=$stopAlarmOnTrigger")
+
+            // 6. DEDUPLICATION CHECK
+            if (isDuplicate(sender, action)) {
+                Log.w(TAG, "Skipping duplicate command: sender=$sender action=$action (within 10s)")
+                return CommandStatus.IGNORED
+            }
 
             try {
                 when (action) {

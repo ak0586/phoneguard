@@ -21,22 +21,22 @@ import com.kyvronix.phoneguard.location.LocationManager
 import com.kyvronix.phoneguard.sms.CommandParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.net.NetworkInterface
 import java.util.Collections
 
-class RecoveryService : Service() {
-    private val CHANNEL_ID = "RecoveryServiceChannel"
-    private val TAG = "RecoveryService"
+class RecoveryService : Service(), CoroutineScope by MainScope() {
+    companion object {
+        private const val TAG = "RecoveryService"
+        private const val CHANNEL_ID = "RecoveryServiceChannel"
+        
+        // Static tracker to avoid double-processing even if service is recreated
+        private var lastProcessedSmsId: Long = -1L
+    }
 
-    // ContentObserver watches the SMS inbox at the OS level,
-    // bypassing the broadcast system. This works even when a
-    // messaging app intercepts and aborts the SMS_RECEIVED broadcast.
     private var smsObserver: ContentObserver? = null
-
-    // Track the last SMS ID we processed to avoid handling the same
-    // message twice (once from SmsReceiver, once from ContentObserver).
-    private var lastProcessedSmsId: Long = -1L
 
     override fun onCreate() {
         super.onCreate()
@@ -123,12 +123,13 @@ class RecoveryService : Service() {
                         if (id == storedLastId) return@use
 
                         lastProcessedSmsId = id
-                        prefs.edit().putLong("phoneguard.last_sms_id", id).apply()
+                        prefs.edit().putLong("phoneguard.last_sms_id", id).commit()
 
                         Log.d(TAG, "ContentObserver: new SMS id=$id from=$from body='$body'")
 
                         // Parse on Main thread to match SmsReceiver behaviour
-                        Handler(Looper.getMainLooper()).post {
+                        // Parse on Main thread via coroutine
+                        launch {
                             CommandParser(this@RecoveryService).parseAndExecute(
                                 sender = from,
                                 message = body,
@@ -226,7 +227,8 @@ class RecoveryService : Service() {
     override fun onDestroy() {
         smsObserver?.let { contentResolver.unregisterContentObserver(it) }
         smsObserver = null
-        Log.d(TAG, "SMS ContentObserver unregistered")
+        cancel()
+        Log.d(TAG, "Service destroyed and scope cancelled")
         super.onDestroy()
     }
 
