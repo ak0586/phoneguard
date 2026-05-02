@@ -83,6 +83,63 @@ class UserProfile {
     );
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'mobile': mobile,
+      'subscriptionType': subscriptionType,
+      'subscriptionStatus': subscriptionStatus,
+      'purchaseToken': purchaseToken,
+      'isPremium': isPremium,
+      'protectionExpiry': protectionExpiry?.toIso8601String(),
+      'lastLatitude': lastLatitude,
+      'lastLongitude': lastLongitude,
+      'locationUpdatedAt': locationUpdatedAt?.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+      'trustedNumbers': trustedNumbers.map((n) => n.toMap()).toList(),
+      'triggerKeyword': triggerKeyword,
+      'currentDeviceId': currentDeviceId,
+      'photoUrl': photoUrl,
+      'deviceModel': deviceModel,
+      'osVersion': osVersion,
+      'lastIp': lastIp,
+      'lastActive': lastActive?.toIso8601String(),
+      'role': role,
+    };
+  }
+
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      mobile: map['mobile'] ?? '',
+      subscriptionType: map['subscriptionType'] ?? 'none',
+      subscriptionStatus: map['subscriptionStatus'] ?? 'none',
+      purchaseToken: map['purchaseToken'] as String?,
+      isPremium: map['isPremium'] ?? false,
+      protectionExpiry: map['protectionExpiry'] != null ? DateTime.parse(map['protectionExpiry']) : null,
+      lastLatitude: (map['lastLatitude'] as num?)?.toDouble(),
+      lastLongitude: (map['lastLongitude'] as num?)?.toDouble(),
+      locationUpdatedAt: map['locationUpdatedAt'] != null ? DateTime.parse(map['locationUpdatedAt']) : null,
+      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
+      trustedNumbers: (map['trustedNumbers'] as List?)
+              ?.map((e) => TrustedNumber.fromMap(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      triggerKeyword: map['triggerKeyword'] as String?,
+      currentDeviceId: map['currentDeviceId'] as String?,
+      photoUrl: map['photoUrl'] as String?,
+      deviceModel: map['deviceModel'] as String?,
+      osVersion: map['osVersion'] as String?,
+      lastIp: map['lastIp'] as String?,
+      lastActive: map['lastActive'] != null ? DateTime.parse(map['lastActive']) : null,
+      role: map['role'] ?? 'user',
+    );
+  }
+
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,

@@ -81,7 +81,22 @@ class FirestoreCommandService : Service() {
                         Log.d(TAG, "Received pending command: $action")
                         
                         // Execute command
-                        CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
+                        val result = CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
+
+                        if (result == com.kyvronix.phoneguard.sms.CommandStatus.EXPIRED) {
+                            Log.w(TAG, "Command BLOCKED: Protection EXPIRED")
+                            val resultData = hashMapOf<String, Any>(
+                                "action" to action,
+                                "status" to "expired",
+                                "message" to "PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands",
+                                "at" to FieldValue.serverTimestamp()
+                            )
+                            docRef.update(
+                                "commandResult", resultData,
+                                "pendingCommand", FieldValue.delete()
+                            )
+                            return@addSnapshotListener
+                        }
 
                         // Sync state to Firestore
                         com.kyvronix.phoneguard.utils.StateSyncManager.syncState(this, "WEB_COMMAND_$action")

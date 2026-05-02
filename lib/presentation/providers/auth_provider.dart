@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -51,55 +52,101 @@ class AuthProvider extends ChangeNotifier {
       await _profileSubscription?.cancel();
 
       if (authUser != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_uid', authUser.uid);
+        // 1. Load cached profile immediately to unblock UI
+        await _loadCachedProfile(authUser.uid);
         
-        await _authService.ensureUserProfileExists(authUser);
-        await _syncDeviceMetadata(authUser.uid);
+        // 2. We have some state (even if cached), mark as not initializing
+        _isInitializing = false;
+        notifyListeners();
 
-        _profileSubscription = _authService.userProfileStream(authUser.uid).listen(
-          (profile) async {
-            if (_disposed) return;
-            _profile = profile;
-            if (profile != null) {
-              _localDeviceId ??= await _getOrCreateDeviceId();
-              
-              if (profile.currentDeviceId == null) {
-                await setAsPrimaryDevice();
-              } else if (profile.currentDeviceId != _localDeviceId) {
-                _deviceConflict = true;
-              } else {
-                _deviceConflict = false;
-              }
-
-              final p = await SharedPreferences.getInstance();
-              await p.setBool('flutter.is_premium', profile.isPremium);
-              await p.setString('flutter.created_at', profile.createdAt.toIso8601String());
-              if (profile.protectionExpiry != null) {
-                await p.setString('flutter.protection_expiry', profile.protectionExpiry!.toIso8601String());
-              }
-            }
-            onProfileChanged?.call(profile);
-            notifyListeners();
-          },
-          onError: (error) {
-            if (_disposed) return;
-            debugPrint('Profile Stream Error: $error');
-            _errorMessage = 'Failed to sync profile: Insufficient Permissions.';
-            notifyListeners();
-          },
-        );
-        NativeService().startFirestoreCommandService();
+        // 3. Start Firestore sync and device updates in background (don't await)
+        _syncBackgroundData(authUser);
       } else {
         _profile = null;
         _mobileNumber = null;
+        _isInitializing = false;
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('user_uid');
+        await prefs.remove('cached_user_profile');
         NativeService().stopFirestoreCommandService();
+        notifyListeners();
       }
-      _isInitializing = false;
-      notifyListeners();
     });
+  }
+
+  Future<void> _syncBackgroundData(User authUser) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_uid', authUser.uid);
+      
+      // These are important but shouldn't block the initial screen load
+      _authService.ensureUserProfileExists(authUser).catchError((e) => debugPrint('Sync Error: $e'));
+      _syncDeviceMetadata(authUser.uid).catchError((e) => debugPrint('Metadata Sync Error: $e'));
+
+      _profileSubscription = _authService.userProfileStream(authUser.uid).listen(
+        (profile) async {
+          if (_disposed) return;
+          if (profile != null) {
+            _profile = profile;
+            _cacheProfile(profile);
+            
+            _localDeviceId ??= await _getOrCreateDeviceId();
+            
+            if (profile.currentDeviceId == null) {
+              await setAsPrimaryDevice();
+            } else if (profile.currentDeviceId != _localDeviceId) {
+              _deviceConflict = true;
+            } else {
+              _deviceConflict = false;
+            }
+
+            final p = await SharedPreferences.getInstance();
+            await p.setBool('flutter.is_premium', profile.isPremium);
+            await p.setString('flutter.created_at', profile.createdAt.toIso8601String());
+            if (profile.protectionExpiry != null) {
+              await p.setString('flutter.protection_expiry', profile.protectionExpiry!.toIso8601String());
+            }
+          }
+          onProfileChanged?.call(profile);
+          notifyListeners();
+        },
+        onError: (error) {
+          if (_disposed) return;
+          debugPrint('Profile Stream Error: $error');
+          // If we have cached data, we don't strictly need to show an error here
+        },
+      );
+      NativeService().startFirestoreCommandService();
+    } catch (e) {
+      debugPrint('Background sync setup error: $e');
+    }
+  }
+
+  Future<void> _loadCachedProfile(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString('cached_user_profile');
+      if (cachedJson != null) {
+        final Map<String, dynamic> map = jsonDecode(cachedJson);
+        final cachedProfile = UserProfile.fromMap(map);
+        if (cachedProfile.uid == uid) {
+          _profile = cachedProfile;
+          debugPrint('Loaded cached profile for $uid');
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to load cached profile: $e');
+    }
+  }
+
+  Future<void> _cacheProfile(UserProfile profile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = jsonEncode(profile.toMap());
+      await prefs.setString('cached_user_profile', json);
+    } catch (e) {
+      debugPrint('Failed to cache profile: $e');
+    }
   }
 
   Future<void> signIn(String email, String password) async {

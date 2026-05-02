@@ -22,13 +22,19 @@ import com.google.firebase.firestore.FieldValue
 import com.kyvronix.phoneguard.location.LocationResult
 import java.util.*
 
+enum class CommandStatus {
+    EXECUTED,
+    EXPIRED,
+    IGNORED
+}
+
 class CommandParser(private val context: Context) {
 
     companion object {
         private const val TAG = "CommandParser"
     }
 
-    fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1) {
+    fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         // NOTE: Flutter's SharedPreferences plugin stores keys with a "flutter." prefix.
         // So Dart key "protection_expiry" → stored as "flutter.protection_expiry".
@@ -37,7 +43,18 @@ class CommandParser(private val context: Context) {
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
             Log.w(TAG, "No app_settings found in SharedPreferences")
-            return
+            return CommandStatus.IGNORED
+        }
+
+        // 🛡️ SECURITY ENFORCEMENT: Check if the user has active protection
+        if (!isProtectionActive()) {
+            val expiredMsg = "⚠️ PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands"
+            Log.w(TAG, "Command received but protection is EXPIRED. Sender: $sender")
+            
+            if (sender != "WEB_DASHBOARD") {
+                SmsSender.sendSmsWithSim(context, sender, expiredMsg, subscriptionId)
+            }
+            return CommandStatus.EXPIRED
         }
 
         Log.d(TAG, "SMS from=$sender body='$message'")
@@ -67,14 +84,14 @@ class CommandParser(private val context: Context) {
 
                 Log.d(TAG, "Keyword check: messageLower='$messageLower' triggerLower='$triggerLower'")
                 if (!messageLower.startsWith(triggerLower)) {
-                    Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
-                    return
+                    Log.d(TAG, "  ❌ Keyword not matched ('$messageLower' doesn't start with '$triggerLower'), ignoring SMS")
+                    return CommandStatus.IGNORED
                 }
                 Log.d(TAG, "  ✅ Keyword matched")
 
                 val senderNorm = normalizeNumber(sender)
                 Log.d(TAG, "Number matching: senderRaw='$sender' senderNorm='$senderNorm'")
-                if (senderNorm.isEmpty()) return
+                if (senderNorm.isEmpty()) return CommandStatus.IGNORED
 
                 val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
                 var matchedTrustedNumber: String? = null
@@ -92,7 +109,10 @@ class CommandParser(private val context: Context) {
                     }
                 }
 
-                if (matchedTrustedNumber == null) return
+                if (matchedTrustedNumber == null) {
+                    Log.d(TAG, "  ❌ Sender $senderNorm is not in trusted numbers")
+                    return CommandStatus.IGNORED
+                }
                 
                 // IMPORTANT: use lowercase lengths so casing differences don't mis-slice
                 val remainder = messageLower.substring(triggerLower.length).trim()
@@ -112,7 +132,7 @@ class CommandParser(private val context: Context) {
                 if (isPinEnabled && action != "default" && action != "stop") {
                     if (receivedPin != pin) {
                         SmsSender.sendSmsWithSim(context, sender, "❌ Invalid PIN", subscriptionId)
-                        return
+                        return CommandStatus.IGNORED
                     }
                 }
             }
@@ -221,8 +241,10 @@ class CommandParser(private val context: Context) {
                     Log.e(TAG, "Error executing action: $action", e)
                 }
             }
+            return CommandStatus.EXECUTED
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse settings", e)
+            return CommandStatus.IGNORED
         }
     }
 
@@ -253,19 +275,15 @@ class CommandParser(private val context: Context) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             
-            // Flutter's SharedPreferences plugin stores keys as "flutter.<key>"
-            // Keys written by Dart code are stored as "flutter.flutter.<key>" because
-            // the plugin adds "flutter." and the key already had "flutter." in it.
-            // The correct stored key names are read from the XML directly:
+            // 1. Premium Check
             val isPremium = prefs.getBoolean("flutter.flutter.is_premium", false)
-            Log.d(TAG, "isProtectionActive: isPremium=$isPremium")
+            Log.d(TAG, "isProtectionActive: [1] isPremium=$isPremium")
             if (isPremium) return true
             
             // 2. 3-day Free Trial
             val createdAtStr = prefs.getString("flutter.flutter.created_at", null)
-            Log.d(TAG, "isProtectionActive: createdAtStr=$createdAtStr")
             if (createdAtStr != null) {
-                // Try full string first, then truncate to 19 chars as fallback
+                Log.d(TAG, "isProtectionActive: [2] Found createdAt='$createdAtStr'")
                 val parseTargets = listOf(createdAtStr, createdAtStr.take(19))
                 val formatters = listOf(
                     java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale.US),
@@ -278,10 +296,7 @@ class CommandParser(private val context: Context) {
                         try {
                             fmt.isLenient = false
                             createdAt = fmt.parse(target)
-                            if (createdAt != null) {
-                                Log.d(TAG, "isProtectionActive: parsed createdAt=$createdAt using target='$target'")
-                                break@outer
-                            }
+                            if (createdAt != null) break@outer
                         } catch (_: Exception) {}
                     }
                 }
@@ -289,27 +304,38 @@ class CommandParser(private val context: Context) {
                 if (createdAt != null) {
                     val trialMillis = 3 * 24 * 60 * 60 * 1000L
                     val elapsed = System.currentTimeMillis() - createdAt.time
-                    Log.d(TAG, "isProtectionActive: elapsed=${elapsed}ms trialMillis=${trialMillis}ms inTrial=${elapsed < trialMillis}")
-                    if (elapsed < trialMillis) return true
+                    val inTrial = elapsed < trialMillis
+                    Log.d(TAG, "isProtectionActive: [2] Trial status: elapsed=${elapsed/1000}s, trialLimit=${trialMillis/1000}s, inTrial=$inTrial")
+                    if (inTrial) return true
                 } else {
-                    Log.e(TAG, "isProtectionActive: Could not parse createdAt from '$createdAtStr'")
+                    Log.e(TAG, "isProtectionActive: [2] Could not parse createdAt from '$createdAtStr'")
                 }
+            } else {
+                Log.d(TAG, "isProtectionActive: [2] No createdAt found")
             }
 
             // 3. Ad-extended expiry
             val expiryStr = prefs.getString("flutter.flutter.protection_expiry", null)
-            Log.d(TAG, "isProtectionActive: expiryStr=$expiryStr")
             if (expiryStr != null) {
+                Log.d(TAG, "isProtectionActive: [3] Found expiryStr='$expiryStr'")
                 val datePart = expiryStr.take(19)
                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
                 val expiry = try { sdf.parse(datePart) } catch (_: Exception) { null }
-                Log.d(TAG, "isProtectionActive: expiry=$expiry now=${java.util.Date()}")
-                if (expiry != null && expiry.after(java.util.Date())) return true
+                
+                if (expiry != null) {
+                    val active = expiry.after(java.util.Date())
+                    Log.d(TAG, "isProtectionActive: [3] Ad-expiry check: expiry=$expiry, now=${java.util.Date()}, active=$active")
+                    if (active) return true
+                } else {
+                    Log.e(TAG, "isProtectionActive: [3] Could not parse expiryStr from '$expiryStr'")
+                }
+            } else {
+                Log.d(TAG, "isProtectionActive: [3] No expiryStr found")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Protection check failed", e)
+            Log.e(TAG, "Protection check failed with error", e)
         }
-        Log.w(TAG, "isProtectionActive: returning FALSE — no valid protection found")
+        Log.w(TAG, "isProtectionActive: returning FALSE — all protection tiers exhausted or missing")
         return false
     }
 

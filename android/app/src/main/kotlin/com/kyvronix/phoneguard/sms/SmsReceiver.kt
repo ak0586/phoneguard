@@ -21,11 +21,12 @@ class SmsReceiver : BroadcastReceiver() {
                 Log.d("SmsReceiver", "Processing SMS from=$sender body='$messageBody'")
 
                 if (sender != null) {
-                    CommandParser(context).parseAndExecute(
+                    val result = CommandParser(context).parseAndExecute(
                         sender = sender,
                         message = messageBody,
                         subscriptionId = subscriptionId
                     )
+                    Log.d("SmsReceiver", "Command execution result: $result")
                 }
             }
         }
