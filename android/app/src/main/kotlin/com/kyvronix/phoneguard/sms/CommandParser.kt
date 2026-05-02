@@ -167,6 +167,8 @@ class CommandParser(private val context: Context) {
                 return CommandStatus.IGNORED
             }
 
+            Log.d(TAG, "🚀 EXECUTING actions for sender=$sender, action=$action")
+
             try {
                 when (action) {
                         "location" -> {

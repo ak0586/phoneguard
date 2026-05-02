@@ -19,15 +19,16 @@ class SmsReceiver : BroadcastReceiver() {
 
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 try {
-                    for (smsMessage in messages) {
-                        val sender = smsMessage.displayOriginatingAddress
-                        val messageBody = smsMessage.messageBody
-                        Log.d("SmsReceiver", "Processing SMS from=$sender body='$messageBody'")
+                    if (messages.isNotEmpty()) {
+                        val sender = messages[0].displayOriginatingAddress
+                        val fullBody = messages.mapNotNull { it.displayMessageBody }.joinToString("")
+                        
+                        Log.d("SmsReceiver", "Processing SMS from=$sender body='$fullBody'")
 
                         if (sender != null) {
                             val result = CommandParser(context).parseAndExecute(
                                 sender = sender,
-                                message = messageBody,
+                                message = fullBody,
                                 subscriptionId = subscriptionId
                             )
                             Log.d("SmsReceiver", "Command execution result: $result")
