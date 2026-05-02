@@ -165,4 +165,15 @@ class NativeService {
       debugPrint('Failed to stop command service: ${e.message}');
     }
   }
+
+  /// Starts the RecoveryService which monitors ALL incoming SMS via
+  /// ContentObserver — bypasses apps that abort the SMS broadcast.
+  /// Must be called on login so monitoring is always active.
+  Future<void> startRecoveryService() async {
+    try {
+      await _channel.invokeMethod<void>('startRecoveryService');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to start recovery service: ${e.message}');
+    }
+  }
 }

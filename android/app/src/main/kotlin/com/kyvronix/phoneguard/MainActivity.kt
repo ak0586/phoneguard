@@ -107,6 +107,13 @@ class MainActivity: FlutterActivity() {
                         stopService(intent)
                         result.success(true)
                     }
+                    "startRecoveryService" -> {
+                        // Start the ContentObserver-based SMS monitor so ALL numbers work,
+                        // even if other apps block the SMS_RECEIVED broadcast.
+                        val intent = Intent(this, com.kyvronix.phoneguard.services.RecoveryService::class.java)
+                        startServiceCompat(intent)
+                        result.success(true)
+                    }
                     "captureIntruderPhoto" -> {
                         val intent = Intent(this, com.kyvronix.phoneguard.security.IntrusionCameraService::class.java)
                         startServiceCompat(intent)
