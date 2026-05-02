@@ -172,7 +172,7 @@ class _LogTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _commandColor;
-    final dateStr = DateFormat('MMM dd, yyyy · HH:mm:ss').format(log.timestamp);
+    final dateStr = DateFormat('MMM dd, yyyy · HH:mm:ss').format(log.timestamp.toLocal());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
