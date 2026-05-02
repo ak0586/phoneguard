@@ -60,6 +60,7 @@ class AppProvider extends ChangeNotifier {
     try {
       _settings = await _repository.getSettings();
       _logs = await _repository.getLogs();
+      _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       await refreshActiveActions();
       await _checkNativeEvents(); // New: Check for SIM change/Shutdown
       await _checkVersionUpdate(); // New: Force update check
@@ -381,6 +382,7 @@ class AppProvider extends ChangeNotifier {
       
       if (_logs.length != logs.length) {
         _logs = logs;
+        _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         changed = true;
       }
 
