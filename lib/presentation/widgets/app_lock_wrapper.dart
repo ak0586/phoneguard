@@ -23,6 +23,7 @@ class _AppLockWrapperState extends State<AppLockWrapper> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = Provider.of<AppProvider>(context, listen: false);
       if (!provider.settings.isPinEnabled || provider.settings.pin.isEmpty) {
         setState(() {

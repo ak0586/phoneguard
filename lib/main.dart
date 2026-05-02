@@ -171,6 +171,7 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
+        debugPrint('AuthWrapper: isInit=${auth.isInitializing}, auth=${auth.isAuthenticated}, verified=${auth.isEmailVerified}');
         if (auth.isInitializing) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }

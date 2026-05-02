@@ -53,15 +53,18 @@ class AuthProvider extends ChangeNotifier {
 
       if (authUser != null) {
         // 1. Load cached profile immediately to unblock UI
+        debugPrint('Auth: Loading cached profile for ${authUser.uid}');
         await _loadCachedProfile(authUser.uid);
         
         // 2. We have some state (even if cached), mark as not initializing
         _isInitializing = false;
+        debugPrint('Auth: Initialized with user: ${authUser.email}');
         notifyListeners();
 
         // 3. Start Firestore sync and device updates in background (don't await)
         _syncBackgroundData(authUser);
       } else {
+        debugPrint('Auth: No user logged in');
         _profile = null;
         _mobileNumber = null;
         _isInitializing = false;
