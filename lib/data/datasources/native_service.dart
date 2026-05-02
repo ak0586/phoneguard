@@ -176,4 +176,21 @@ class NativeService {
       debugPrint('Failed to start recovery service: ${e.message}');
     }
   }
+
+  Future<bool> isNotificationListenerEnabled() async {
+    try {
+      final result = await _channel.invokeMethod<bool>(AppConstants.methodIsNotificationListenerEnabled);
+      return result ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  Future<void> openNotificationListenerSettings() async {
+    try {
+      await _channel.invokeMethod<void>(AppConstants.methodOpenNotificationListenerSettings);
+    } on PlatformException catch (e) {
+      throw Exception('Failed to open notification settings: ${e.message}');
+    }
+  }
 }

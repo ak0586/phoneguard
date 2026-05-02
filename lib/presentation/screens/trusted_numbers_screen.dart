@@ -8,6 +8,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../widgets/native_ad_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 /// Manages trusted phone numbers that can send recovery commands
 class TrustedNumbersScreen extends StatelessWidget {
@@ -15,9 +16,10 @@ class TrustedNumbersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trusted Numbers'),
+        title: Text(l10n.trustedNumbersTitle),
         leading: const BackButton(),
         actions: [
           IconButton(
@@ -72,9 +74,9 @@ class TrustedNumbersScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'ADD NUMBER',
-                style: TextStyle(
+              Text(
+                l10n.addNumberTitle,
+                style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -106,6 +108,7 @@ class TrustedNumbersScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, int count) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -128,16 +131,16 @@ class TrustedNumbersScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$count Trusted ${count == 1 ? 'Number' : 'Numbers'}',
+                count == 1 ? l10n.trustedNumberCount(count) : l10n.trustedNumbersCount(count),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const Text(
-                'Only these numbers can send commands',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              Text(
+                l10n.onlyTheseNumbers,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -147,6 +150,7 @@ class TrustedNumbersScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Expanded(
       child: Center(
         child: Column(
@@ -158,25 +162,25 @@ class TrustedNumbersScreen extends StatelessWidget {
               color: Colors.grey.shade700,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No trusted numbers yet',
-              style: TextStyle(
+            Text(
+              l10n.noTrustedNumbers,
+              style: const TextStyle(
                 color: null, // Defer to ThemeData
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Add at least one trusted number\nto enable remote recovery',
+            Text(
+              l10n.addTrustedDesc,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _showAddDialog(context),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add First Number'),
+              label: Text(l10n.addFirstNumber),
             ),
           ],
         ),
@@ -185,19 +189,16 @@ class TrustedNumbersScreen extends StatelessWidget {
   }
 
   void _showHelp(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('About Trusted Numbers'),
-        content: const Text(
-          'Only SMS messages from trusted numbers will be processed as recovery commands.\n\n'
-          'Country codes are detected automatically, but you can also enter them manually (e.g. +91...).\n\n'
-          'Messages from all other numbers are silently ignored.',
-        ),
+        title: Text(l10n.aboutTrustedNumbers),
+        content: Text(l10n.aboutTrustedDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Got it'),
+            child: Text(l10n.gotIt),
           ),
         ],
       ),
@@ -247,17 +248,18 @@ class TrustedNumbersScreen extends StatelessWidget {
     AppProvider provider,
     TrustedNumber number,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Number?'),
+        title: Text(l10n.removeNumberConfirm),
         content: Text(
-          'Remove "${number.label}" (${number.phoneNumber}) from trusted numbers?',
+          '${l10n.remove} "${number.label}" (${number.phoneNumber}) ${l10n.fromTrustedNumbers}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             style: TextButton.styleFrom(
@@ -267,7 +269,7 @@ class TrustedNumbersScreen extends StatelessWidget {
               provider.removeTrustedNumber(number.id);
               Navigator.pop(ctx);
             },
-            child: const Text('Remove'),
+            child: Text(l10n.remove),
           ),
         ],
       ),

@@ -140,6 +140,22 @@ class MainActivity: FlutterActivity() {
                         startActivity(intent)
                         result.success(true)
                     }
+                    "isNotificationListenerEnabled" -> {
+                        val pkgName = packageName
+                        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                        val enabled = flat != null && flat.contains(pkgName)
+                        result.success(enabled)
+                    }
+                    "openNotificationListenerSettings" -> {
+                        val intent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
+                            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        } else {
+                            Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                        }
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             } catch (e: Exception) {

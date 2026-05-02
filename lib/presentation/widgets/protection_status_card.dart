@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../../data/datasources/ad_service.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class ProtectionStatusCard extends StatefulWidget {
   const ProtectionStatusCard({super.key});
@@ -31,26 +32,32 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
     super.dispose();
   }
 
-  String _formatCountdown(Duration diff) {
+  String _formatCountdown(BuildContext context, Duration diff) {
+    final l10n = AppLocalizations.of(context)!;
     final days = diff.inDays;
     final hours = diff.inHours % 24;
     final minutes = diff.inMinutes % 60;
     final seconds = diff.inSeconds % 60;
 
     if (days >= 1) {
-      return "$days day${days > 1 ? 's' : ''} remaining";
+      if (days == 1) {
+        return l10n.dayRemaining(days);
+      } else {
+        return l10n.daysRemaining(days);
+      }
     } else {
       // Less than 24 hours — show live HH:MM:SS countdown
       final h = hours.toString().padLeft(2, '0');
       final m = minutes.toString().padLeft(2, '0');
       final s = seconds.toString().padLeft(2, '0');
-      return "$h:$m:$s remaining";
+      return l10n.timeRemaining("$h:$m:$s");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final adService = Provider.of<AdService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer2<AppProvider, AuthProvider>(
       builder: (context, appProvider, authProvider, _) {
@@ -83,45 +90,36 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
           if (activeExpiry == null || activeExpiry.isBefore(now)) return '';
 
           final diff = activeExpiry.difference(now);
-
-          if (isPremium) {
-            if (profile?.subscriptionType == 'yearly') {
-              return _formatCountdown(diff);
-            } else {
-              return _formatCountdown(diff);
-            }
-          } else {
-            return _formatCountdown(diff);
-          }
+          return _formatCountdown(context, diff);
         }
 
         Color statusColor = AppTheme.error;
         IconData statusIcon = Icons.shield_outlined;
-        String statusTitle = 'Protection Disabled';
-        String statusSubtitle = 'Add a trusted number to enable protection';
+        String statusTitle = l10n.protectionDisabled;
+        String statusSubtitle = l10n.addTrustedDesc;
 
         if (!isBasicActive) {
           statusColor = AppTheme.error;
           statusIcon = Icons.shield_outlined;
-          statusTitle = 'Setup Required';
-          statusSubtitle = 'Add a trusted number to enable protection';
+          statusTitle = l10n.setupRequired;
+          statusSubtitle = l10n.addTrustedDesc;
         } else if (isPremium) {
           statusColor = AppTheme.success;
           statusIcon = Icons.verified_user_rounded;
-          statusTitle = 'Premium Protection';
+          statusTitle = l10n.premiumProtection;
           statusSubtitle = getRemainingTimeString();
         } else if (isActuallyActive) {
           statusColor = isTrial ? const Color(0xFF00E5FF) : AppTheme.success;
           statusIcon = Icons.shield_rounded;
-          statusTitle = 'Protection Active';
+          statusTitle = l10n.protectionActive;
           statusSubtitle = isTrial
-              ? '3-day free trial active • ${getRemainingTimeString()}'
+              ? '${l10n.freeTrialActive} • ${getRemainingTimeString()}'
               : getRemainingTimeString();
         } else {
           statusColor = Colors.orange;
           statusIcon = Icons.gpp_maybe_rounded;
-          statusTitle = 'Protection Expired';
-          statusSubtitle = 'Watch an ad to re-enable remote protection';
+          statusTitle = l10n.protectionExpired;
+          statusSubtitle = l10n.watchAdDesc;
         }
 
         return Column(
@@ -178,9 +176,9 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                                       color: AppTheme.success
                                           .withOpacity(0.5)),
                                 ),
-                                child: const Text(
-                                  'PRO',
-                                  style: TextStyle(
+                                child: Text(
+                                  l10n.pro,
+                                  style: const TextStyle(
                                     color: AppTheme.success,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
@@ -230,8 +228,8 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                         onPressed: () {
                           if (!authProvider.canWatchAd) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('🚫 Daily limit reached (6 ads). Try again tomorrow!'),
+                              SnackBar(
+                                content: Text(l10n.limitReachedMsg),
                                 backgroundColor: Colors.orange,
                               ),
                             );
@@ -239,9 +237,9 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                           }
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Loading Ad...'),
-                                duration: Duration(seconds: 1)),
+                            SnackBar(
+                                content: Text(l10n.loadingAd),
+                                duration: const Duration(seconds: 1)),
                           );
 
                           adService.loadRewardedAd(
@@ -251,9 +249,9 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                                 onUserEarnedReward: (ad, reward) {
                                   authProvider.extendProtection(4);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content:
-                                          Text('🎉 Protection extended by 4 hours!'),
+                                          Text(l10n.protectionExtendedMsg),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -263,15 +261,15 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                             },
                             onAdFailedToLoad: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                     content:
-                                        Text('Ad failed to load. Try again later.')),
+                                        Text(l10n.adFailedMsg)),
                               );
                             },
                           );
                         },
                         icon: const Icon(Icons.play_circle_fill),
-                        label: Text(!authProvider.canWatchAd ? 'LIMIT REACHED' : (isActuallyActive ? 'EXTEND' : 'REACTIVE')),
+                        label: Text((!authProvider.canWatchAd ? l10n.limitReached : (isActuallyActive ? l10n.extend : l10n.reactive)) ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00E5FF),
                           foregroundColor: Colors.black,
@@ -288,7 +286,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.pushNamed(context, '/subscription'),
                       icon: const Icon(Icons.stars_rounded),
-                      label: const Text('GO PREMIUM'),
+                      label: Text(l10n.goPremium),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber.shade700,
                         foregroundColor: Colors.white,

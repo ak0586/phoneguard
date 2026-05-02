@@ -33,6 +33,7 @@ class AppProvider extends ChangeNotifier {
   Timer? _pollingTimer;
   void Function(List<TrustedNumber>)? onTrustedNumbersChanged;
   void Function(String)? onTriggerKeywordChanged;
+  bool _isNotificationListenerEnabled = false;
   bool _disposed = false;
 
   AppProvider(this._repository, this._nativeService);
@@ -49,6 +50,7 @@ class AppProvider extends ChangeNotifier {
   bool get isDeviceAdminActive => _isDeviceAdminActive;
   bool get isUpdateRequired => _isUpdateRequired;
   String get playStoreUrl => _playStoreUrl;
+  bool get isNotificationListenerEnabled => _isNotificationListenerEnabled;
   bool get isProtectionActive => trustedNumbers.isNotEmpty;
   DefaultActions get defaultActions => _settings.defaultActions;
 
@@ -327,11 +329,9 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> checkDeviceAdminStatus() async {
-    final active = await _nativeService.isDeviceAdminActive();
-    if (_isDeviceAdminActive != active) {
-      _isDeviceAdminActive = active;
-      notifyListeners();
-    }
+    _isDeviceAdminActive = await _nativeService.isDeviceAdminActive();
+    _isNotificationListenerEnabled = await _nativeService.isNotificationListenerEnabled();
+    notifyListeners();
   }
 
   Future<void> requestDeviceAdmin() async {
@@ -379,6 +379,12 @@ class AppProvider extends ChangeNotifier {
         _isDeviceAdminActive = admin;
         changed = true;
       }
+
+      final notificationEnabled = await _nativeService.isNotificationListenerEnabled();
+      if (_isNotificationListenerEnabled != notificationEnabled) {
+        _isNotificationListenerEnabled = notificationEnabled;
+        changed = true;
+      }
       
       if (_logs.length != logs.length) {
         _logs = logs;
@@ -423,6 +429,15 @@ class AppProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> openNotificationListenerSettings() async {
+    try {
+      await _nativeService.openNotificationListenerSettings();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
   }
 
   Future<void> _checkVersionUpdate() async {

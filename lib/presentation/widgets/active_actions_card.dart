@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class ActiveActionsCard extends StatelessWidget {
   final bool showEmptyState;
@@ -8,6 +9,7 @@ class ActiveActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final activeAlarm = provider.isAlarmActive;
@@ -20,9 +22,9 @@ class ActiveActionsCard extends StatelessWidget {
             children: [
               Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey.withOpacity(0.5)),
               const SizedBox(height: 12),
-              const Text(
-                'No actions are currently running',
-                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+              Text(
+                l10n.noActionsRunning,
+                style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
               ),
             ],
           );
@@ -48,10 +50,11 @@ class ActiveActionsCard extends StatelessWidget {
                     ),
                     child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
                   ),
-                  const Expanded(
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      'RUNNING ACTIONS',
-                      style: TextStyle(
+                      l10n.runningActions,
+                      style: const TextStyle(
                         color: Colors.orange,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -68,7 +71,7 @@ class ActiveActionsCard extends StatelessWidget {
                       foregroundColor: Colors.red,
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text('STOP ALL', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(l10n.stopAll, style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -76,14 +79,14 @@ class ActiveActionsCard extends StatelessWidget {
               if (activeAlarm)
                 _ActiveItem(
                   icon: Icons.volume_up_rounded,
-                  label: 'Siren Alarm is active',
+                  label: l10n.sirenActive,
                   onStop: () => provider.stopAlarm(),
                 ),
               if (activeAlarm && activeTracking) const Divider(height: 16),
               if (activeTracking)
                 _ActiveItem(
                   icon: Icons.my_location_rounded,
-                  label: 'Live Tracking is active',
+                  label: l10n.trackingActive,
                   onStop: () => provider.stopTracking(),
                 ),
             ],

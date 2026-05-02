@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -64,11 +65,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
     final profile = authProvider.profile;
+    final l10n = AppLocalizations.of(context)!;
 
     String? lastSeenStr;
     if (profile?.lastLatitude != null && profile?.lastLongitude != null) {
       if (profile!.locationUpdatedAt != null) {
-        lastSeenStr = "Last Seen: ${DateFormat('dd MMM, hh:mm a').format(profile.locationUpdatedAt!)}";
+        lastSeenStr = "${l10n.incidentTime}: ${DateFormat('dd MMM, hh:mm a').format(profile.locationUpdatedAt!)}";
       }
     }
 
@@ -76,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.profileTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -85,17 +87,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
-                  content: const Text('Are you sure you want to logout?'),
+                  title: Text(l10n.logout, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  content: Text(l10n.logoutConfirmMsg),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                      child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-                      child: const Text('LOGOUT'),
+                      child: Text(l10n.logout.toUpperCase()),
                     ),
                   ],
                 ),
@@ -194,13 +196,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               OutlinedButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/edit-profile'),
                 icon: const Icon(Icons.edit),
-                label: const Text('EDIT PROFILE'),
+                label: Text(l10n.editProfile),
               ),
               const SizedBox(height: 16),
               TextButton.icon(
                 onPressed: () => _showDeleteAccountDialog(context, authProvider),
                 icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                label: const Text('DELETE ACCOUNT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                label: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.redAccent.withOpacity(0.2))),
@@ -219,25 +221,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final createdAt = profile.createdAt;
     final expiry = profile.protectionExpiry;
     final bool isTrial = now.difference(createdAt).inDays < 3;
+    final l10n = AppLocalizations.of(context)!;
     DateTime? activeExpiry;
     if (profile.isPremium) activeExpiry = expiry;
     else if (isTrial) activeExpiry = createdAt.add(const Duration(days: 3));
     else if (expiry != null && expiry.isAfter(now)) activeExpiry = expiry;
 
-    if (activeExpiry == null) return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Protection Disabled", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.redAccent)));
+    if (activeExpiry == null) return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(l10n.protectionDisabled, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.redAccent)));
     
     final diff = activeExpiry.difference(now);
-    if (diff.isNegative) return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Protection Expired", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.redAccent)));
+    if (diff.isNegative) return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(l10n.protectionExpired, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.redAccent)));
 
     String timeStr = "";
     Color statusColor = Colors.orange;
     final days = diff.inDays;
     if (profile.isPremium) {
       statusColor = AppTheme.success;
-      timeStr = days >= 1 ? "$days days remaining" : "${diff.inHours}h ${diff.inMinutes % 60}m remaining";
+      timeStr = days >= 1 ? l10n.daysRemaining(days) : "${diff.inHours}h ${diff.inMinutes % 60}m ${l10n.leftLabel}";
     } else {
       statusColor = isTrial ? const Color(0xFF00E5FF) : Colors.orange;
-      timeStr = isTrial ? "Trial: $days days remaining" : "$days days remaining";
+      timeStr = isTrial ? "${l10n.trialLabel}: ${l10n.daysRemaining(days)}" : l10n.daysRemaining(days);
     }
 
     return Padding(
@@ -252,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).dividerColor)),
       child: Column(
         children: [
-          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.gps_fixed, color: Color(0xFF00E5FF), size: 16), SizedBox(width: 8), Text('EXACT LAST LOCATION', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1))]),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.gps_fixed, color: Color(0xFF00E5FF), size: 16), const SizedBox(width: 8), Text(AppLocalizations.of(context)!.exactLastLocation, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1))]),
           const SizedBox(height: 8),
           Text('${profile?.lastLatitude?.toStringAsFixed(6)}, ${profile?.lastLongitude?.toStringAsFixed(6)}', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontFamily: 'monospace', fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
@@ -265,6 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showDeleteAccountDialog(BuildContext context, AuthProvider auth) {
     final passwordController = TextEditingController();
     bool isObscured = true;
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -272,26 +276,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-              SizedBox(width: 12),
-              Text('Delete Account', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              const SizedBox(width: 12),
+              Text(l10n.deleteAccount, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('This action is permanent and will delete all your data including recovery settings and logs.'),
+              Text(l10n.deleteAccountDesc),
               const SizedBox(height: 20),
-              const Text('Please enter your password to confirm:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(l10n.enterPasswordConfirm, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
               TextField(
                 controller: passwordController,
                 obscureText: isObscured,
                 decoration: InputDecoration(
-                  hintText: 'Password',
+                  hintText: l10n.password,
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
                     icon: Icon(isObscured ? Icons.visibility_off : Icons.visibility),
@@ -309,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: auth.isLoading ? null : () => Navigator.pop(context),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+              child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: auth.isLoading ? null : () async {
@@ -323,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-              child: auth.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('DELETE'),
+              child: auth.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(l10n.deleteAccountConfirm),
             ),
           ],
         ),

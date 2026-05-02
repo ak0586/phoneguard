@@ -32,10 +32,12 @@ import 'presentation/screens/setup_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/trusted_numbers_screen.dart';
 import 'presentation/screens/settings_screen.dart';
+import 'presentation/screens/mandatory_setup_guide_screen.dart';
 import 'presentation/widgets/app_lock_wrapper.dart';
 import 'data/datasources/ad_service.dart';
 import 'presentation/providers/subscription_provider.dart';
 import 'presentation/screens/subscription_screen.dart';
+import 'presentation/screens/main_navigation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -144,7 +146,7 @@ class LostPhoneApp extends StatelessWidget {
             '/register': (context) => const RegisterScreen(),
             '/forgot-password': (context) => const ForgotPasswordScreen(),
             '/verify-email': (context) => const EmailVerificationScreen(),
-            '/dashboard': (context) => const DashboardScreen(),
+            '/dashboard': (context) => const MainNavigationScreen(),
             '/profile': (context) => const ProfileScreen(),
             '/edit-profile': (context) => const EditProfileScreen(),
             '/setup': (context) => const SetupScreen(),
@@ -156,6 +158,7 @@ class LostPhoneApp extends StatelessWidget {
             '/faq': (context) => const FaqScreen(),
             '/settings': (context) => const SettingsScreen(),
             '/subscription': (context) => const SubscriptionScreen(),
+            '/setup-guide': (context) => const MandatorySetupGuideScreen(),
           },
           debugShowCheckedModeBanner: false,
         );
@@ -177,7 +180,7 @@ class AuthWrapper extends StatelessWidget {
         }
         if (!auth.isAuthenticated) return const LoginScreen();
         if (!auth.isEmailVerified) return const EmailVerificationScreen();
-        return const AppLockWrapper(child: DashboardScreen());
+        return const AppLockWrapper(child: MainNavigationScreen());
       },
     );
   }

@@ -62,6 +62,7 @@ class CommandParser(private val context: Context) {
         }
 
         Log.d(TAG, "PHONEGUARD_DEBUG ─── NEW SMS ─── from='$sender' subId=$subscriptionId body='$message'")
+        val senderNorm = normalizeNumber(sender)
 
         try {
             val settings = JSONObject(appSettingsJson)
@@ -87,7 +88,6 @@ class CommandParser(private val context: Context) {
                 Log.d(TAG, "PHONEGUARD_DEBUG [1] ✅ Keyword matched")
 
                 // Check Trusted Number
-                val senderNorm = normalizeNumber(sender)
                 val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
                 Log.d(TAG, "PHONEGUARD_DEBUG [2] Trusted number check: senderRaw='$sender' senderNorm='$senderNorm' trustedCount=${trustedNumbersArray.length()}")
 
@@ -96,7 +96,7 @@ class CommandParser(private val context: Context) {
                     val trustedNum = trustedObj.optString("phoneNumber", "")
                     val trustedNorm = normalizeNumber(trustedNum)
                     val matches = numbersMatch(senderNorm, trustedNorm)
-                    Log.d(TAG, "PHONEGUARD_DEBUG [2]   [$i] stored='$trustedNum' norm='$trustedNorm' → match=$matches")
+                    Log.d(TAG, "PHONEGUARD_DEBUG [2]   [$i] stored='$trustedNum' norm='$trustedNorm' (Checking against senderNorm='$senderNorm') → match=$matches")
                     if (matches) {
                         matchedTrustedNumber = trustedNum
                         break
@@ -166,8 +166,9 @@ class CommandParser(private val context: Context) {
             Log.d(TAG, "Resolved action='$action' sendLocation=$sendLocation startAlarm=$startAlarm enableTracking=$enableTracking lockDevice=$lockDevice stopAlarmOnTrigger=$stopAlarmOnTrigger")
 
             // 6. DEDUPLICATION CHECK
-            if (isDuplicate(sender, action)) {
-                Log.w(TAG, "Skipping duplicate command: sender=$sender action=$action (within 10s)")
+            // Use normalized sender to ensure different formats (+91 vs local) don't trigger twice
+            if (isDuplicate(senderNorm, action)) {
+                Log.w(TAG, "Skipping duplicate command: senderNorm=$senderNorm action=$action (within 10s)")
                 return CommandStatus.IGNORED
             }
 

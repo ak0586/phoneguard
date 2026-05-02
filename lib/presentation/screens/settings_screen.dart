@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/native_ad_widget.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -11,10 +12,12 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        automaticallyImplyLeading: true,
+        title: Text(l10n.settingsTitle),
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
@@ -23,16 +26,16 @@ class SettingsScreen extends StatelessWidget {
           final settings = provider.settings;
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
             children: [
-              _buildSectionHeader('SECURITY & INTRUSION'),
+              _buildSectionHeader(l10n.securityIntrusion),
               _buildSettingCard(
                 context,
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Intrusion Selfie'),
-                      subtitle: const Text('Automatically capture photo on wrong PIN'),
+                      title: Text(l10n.intrusionSelfie),
+                      subtitle: Text(l10n.intrusionSelfieDesc),
                       value: settings.intrusionSelfieEnabled,
                       onChanged: (val) => provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val)),
                       secondary: const Icon(Icons.camera_front_rounded, color: Colors.blue),
@@ -40,12 +43,12 @@ class SettingsScreen extends StatelessWidget {
                     const Divider(indent: 70),
                     ListTile(
                       leading: const Icon(Icons.pin_rounded, color: Colors.orange),
-                      title: const Text('Intrusion Threshold'),
-                      subtitle: Text('${settings.intrusionThreshold} failed attempts'),
+                      title: Text(l10n.intrusionThreshold),
+                      subtitle: Text(l10n.failedAttempts(settings.intrusionThreshold)),
                       trailing: DropdownButton<int>(
                         value: settings.intrusionThreshold,
                         underline: const SizedBox(),
-                        items: [1, 2, 3, 5].map((i) => DropdownMenuItem(value: i, child: Text('$i attempts'))).toList(),
+                        items: [1, 2, 3, 5].map((i) => DropdownMenuItem(value: i, child: Text(l10n.attemptsCount(i)))).toList(),
                         onChanged: (val) {
                           if (val != null) {
                             provider.updateSettings(settings.copyWith(intrusionThreshold: val));
@@ -55,68 +58,95 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     const Divider(indent: 70),
                     SwitchListTile(
-                      title: const Text('SIM Change Alert'),
-                      subtitle: const Text('Notify trusted numbers if SIM is replaced'),
+                      title: Text(l10n.simChangeAlert),
+                      subtitle: Text(l10n.simChangeAlertDesc),
                       value: settings.simChangeAlertEnabled,
                       onChanged: (val) => provider.updateSettings(settings.copyWith(simChangeAlertEnabled: val)),
                       secondary: const Icon(Icons.sd_card_alert_rounded, color: Colors.redAccent),
+                    ),
+                    const Divider(indent: 70),
+                    ListTile(
+                      leading: const Icon(Icons.people_alt_rounded, color: Colors.green),
+                      title: const Text('Trusted Numbers'),
+                      subtitle: Text(l10n.trustedNumbersSettingsDesc),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.pushNamed(context, '/trusted-numbers'),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader('NOTIFICATIONS'),
+              _buildSectionHeader(l10n.notifications),
               _buildSettingCard(
                 context,
-                child: SwitchListTile(
-                  title: const Text('Silent Mode Bypass'),
-                  subtitle: const Text('Play alarm at full volume even on silent'),
-                  value: settings.silentBypassEnabled,
-                  onChanged: (val) => provider.updateSettings(settings.copyWith(silentBypassEnabled: val)),
-                  secondary: const Icon(Icons.volume_up_rounded, color: Colors.green),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: Text(l10n.silentBypass),
+                      subtitle: Text(l10n.silentBypassDesc),
+                      value: settings.silentBypassEnabled,
+                      onChanged: (val) => provider.updateSettings(settings.copyWith(silentBypassEnabled: val)),
+                      secondary: const Icon(Icons.volume_up_rounded, color: Colors.green),
+                    ),
+                    const Divider(indent: 70),
+                    ListTile(
+                      leading: Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: provider.isNotificationListenerEnabled ? Colors.green : Colors.red,
+                      ),
+                      title: Text(l10n.chatProtectionTitle),
+                      subtitle: Text(
+                        provider.isNotificationListenerEnabled 
+                          ? l10n.chatActiveDesc
+                          : l10n.chatInactiveDesc,
+                      ),
+                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                      onTap: () => provider.openNotificationListenerSettings(),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader('PRIVACY & DATA'),
+              _buildSectionHeader(l10n.privacyData),
               _buildSettingCard(
                 context,
                 child: Column(
                   children: [
                     ListTile(
                       leading: const Icon(Icons.security_rounded, color: Colors.teal),
-                      title: const Text('App Permissions'),
-                      subtitle: const Text('Manage Android system access'),
+                      title: Text(l10n.appPermissionsTitle),
+                      subtitle: Text(l10n.appPermissionsDesc),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                       onTap: () => provider.openAppInfo(),
                     ),
                     const Divider(indent: 70),
                     ListTile(
                       leading: const Icon(Icons.delete_sweep_rounded, color: Colors.grey),
-                      title: const Text('Clear Local Logs'),
-                      subtitle: const Text('Wipe all activity history'),
+                      title: Text(l10n.clearLocalLogsTitle),
+                      subtitle: Text(l10n.clearLocalLogsDesc),
                       onTap: () => _confirmClearLogs(context, provider),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader('TECHNICAL'),
+              _buildSectionHeader(l10n.technical),
               _buildSettingCard(
                 context,
                 child: Column(
                   children: [
                     ListTile(
                       leading: const Icon(Icons.battery_saver_rounded, color: Colors.amber),
-                      title: const Text('Battery Optimization'),
-                      subtitle: const Text('Ensure background service stays alive'),
+                      title: Text(l10n.batteryOptimizationTitle),
+                      subtitle: Text(l10n.batteryOptimizationDesc),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                       onTap: () => provider.openBatteryOptimizationSettings(),
                     ),
                     const Divider(indent: 70),
                     ListTile(
                       leading: Icon(Icons.admin_panel_settings_rounded, color: provider.isDeviceAdminActive ? Colors.green : Colors.red),
-                      title: const Text('Device Administrator'),
-                      subtitle: Text(provider.isDeviceAdminActive ? 'Active (Recommended)' : 'Inactive - Tap to Activate'),
+                      title: Text(l10n.deviceAdminTitle),
+                      subtitle: Text(provider.isDeviceAdminActive ? l10n.deviceAdminActive : l10n.deviceAdminInactive),
                       onTap: () {
                         if (provider.isDeviceAdminActive) {
                           _confirmDeactivation(context, provider);
@@ -162,20 +192,21 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _confirmClearLogs(BuildContext context, AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Logs?'),
-        content: const Text('This will permanently delete all local activity history.'),
+        title: Text(l10n.clearLogsConfirm),
+        content: Text(l10n.clearLocalLogsDesc),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel.toUpperCase())),
           TextButton(
             onPressed: () {
               provider.clearLogs();
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logs cleared successfully')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.logsClearedMsg)));
             },
-            child: const Text('CLEAR', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.clear.toUpperCase(), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -183,33 +214,34 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _confirmDeactivation(BuildContext context, AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Deactivate Protection?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Column(
+        title: Text(l10n.deactivateProtection, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Warning: Disabling Device Admin will allow anyone to uninstall the app and stop remote protection.',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+              l10n.deactivateWarning,
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 12),
-            Text('Are you sure you want to proceed?'),
+            const SizedBox(height: 12),
+            Text(l10n.areYouSureProceed),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+            child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
               provider.deactivateDeviceAdmin();
               Navigator.pop(context);
             },
-            child: const Text('DEACTIVATE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(l10n.deactivate.toUpperCase(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

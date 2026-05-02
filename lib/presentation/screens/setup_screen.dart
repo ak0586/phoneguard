@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 /// Setup screen - configure trigger keyword, PIN, and stealth mode
 class SetupScreen extends StatefulWidget {
@@ -45,6 +46,7 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
     setState(() => _isLoading = true);
     final provider = context.read<AppProvider>();
     final settings = provider.settings;
+    final l10n = AppLocalizations.of(context)!;
 
     await provider.updateSettings(
       settings.copyWith(
@@ -58,12 +60,13 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
     setState(() => _isLoading = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✓ Settings saved successfully')),
+        SnackBar(content: Text(l10n.settingsSavedMsg)),
       );
     }
   }
 
   Future<bool?> _showPinDialog(BuildContext context, AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     if (_pinController.text.isEmpty) {
       _pinController.text = provider.settings.pin;
     }
@@ -71,19 +74,19 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Set Security PIN'),
+          title: Text(l10n.setSecurityPin),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter a 4-8 digit PIN to protect your commands.'),
+              Text(l10n.setPinDesc),
               const SizedBox(height: 16),
               TextField(
                 controller: _pinController,
                 keyboardType: TextInputType.number,
                 maxLength: 8,
-                decoration: const InputDecoration(
-                  labelText: 'PIN',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.password,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -91,7 +94,7 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -102,13 +105,11 @@ class _SetupScreenState extends State<SetupScreen> with WidgetsBindingObserver {
                   Navigator.pop(context, true);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('PIN must be at least 4 digits'),
-                    ),
+                    SnackBar(content: Text(l10n.pinLengthError)),
                   );
                 }
               },
-              child: const Text('Enable'),
+              child: Text(l10n.enable),
             ),
           ],
         );

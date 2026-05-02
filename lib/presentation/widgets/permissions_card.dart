@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
+
 class PermissionsCard extends StatefulWidget {
   const PermissionsCard({super.key});
 
@@ -95,24 +97,23 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
     if (!mounted) return;
 
     if (anyPermanentlyDenied) {
+      final l10n = AppLocalizations.of(context)!;
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Permissions Required'),
-          content: const Text(
-            'Some permissions were permanently denied.\n\nPlease open App Settings and grant all permissions manually.',
-          ),
+          title: Text(l10n.permsRequired),
+          content: Text(l10n.permsRequiredDesc),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 openAppSettings();
               },
-              child: const Text('Open Settings'),
+              child: Text(l10n.openSettings),
             ),
           ],
         ),
@@ -122,6 +123,7 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isLight = Theme.of(context).brightness == Brightness.light;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -148,9 +150,9 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'SYSTEM PERMISSIONS',
-                style: TextStyle(
+              Text(
+                l10n.systemPermissions,
+                style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -165,32 +167,32 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
           _permRow(
             Permission.sms,
             Icons.sms_rounded,
-            'SMS Access',
-            'Receive & send recovery commands',
+            l10n.smsAccess,
+            l10n.smsAccessDesc,
           ),
           _permRow(
             Permission.location,
             Icons.location_on_rounded,
-            'Location',
-            'GPS coordinates for recovery',
+            l10n.locationAccessTitle,
+            l10n.locationAccessSubtitle,
           ),
           _permRow(
             Permission.phone,
             Icons.phone_android_rounded,
-            'Phone State',
-            'SIM change detection',
+            l10n.phoneState,
+            l10n.phoneStateDesc,
           ),
           _permRow(
             Permission.camera,
             Icons.camera_alt_rounded,
-            'Camera',
-            'Capture intruder selfies',
+            l10n.cameraAccess,
+            l10n.cameraAccessDesc,
           ),
           _permRow(
             Permission.contacts,
             Icons.contacts_rounded,
-            'Contacts',
-            'Select trusted recovery contacts',
+            l10n.contactsAccess,
+            l10n.contactsAccessDesc,
           ),
           const SizedBox(height: 16),
           Consumer<AppProvider>(
@@ -222,8 +224,8 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
                           ),
                     label: Text(
                       _requesting 
-                          ? 'Checking...' 
-                          : (allGranted ? 'All Permissions Granted' : 'Check / Grant Permissions'),
+                          ? l10n.checking 
+                          : (allGranted ? l10n.allPermsGranted : l10n.checkGrantPerms),
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),

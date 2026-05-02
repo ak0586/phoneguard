@@ -24,9 +24,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // Don't load ads if user is premium
+    // Don't load ads if user is premium or already loaded/loading
     final isPremium = Provider.of<AuthProvider>(context, listen: false).profile?.isPremium ?? false;
-    if (!isPremium) {
+    if (!isPremium && _nativeAd == null) {
       _loadAd();
     }
   }
@@ -47,6 +47,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       },
       onAdFailedToLoad: (ad, error) {
         ad.dispose();
+        if (mounted) {
+          setState(() {
+            _isAdLoaded = false;
+            _nativeAd = null; // Clear so it can try again or stay hidden
+          });
+        }
       },
     );
 

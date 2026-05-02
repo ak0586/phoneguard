@@ -30,10 +30,10 @@ class CommandGuideScreen extends StatelessWidget {
               20 + MediaQuery.of(context).padding.bottom,
             ),
             children: [
-              _buildIntro(),
+              _buildIntro(context),
               const NativeAdWidget(templateType: TemplateType.small),
               const SizedBox(height: 24),
-              _buildFormatCard(keyword),
+              _buildFormatCard(context, keyword),
               const SizedBox(height: 24),
               const Text(
                 'COMMAND REFERENCE',
@@ -61,7 +61,7 @@ class CommandGuideScreen extends StatelessWidget {
               const SizedBox(height: 12),
               ..._buildExamples(keyword).map((ex) => _ExampleCard(example: ex)),
               const SizedBox(height: 24),
-              _buildPinInfo(keyword),
+              _buildPinInfo(context, keyword),
               const SizedBox(height: 24),
             ],
           ),
@@ -70,7 +70,7 @@ class CommandGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildIntro() {
+  Widget _buildIntro(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -107,21 +107,29 @@ class CommandGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFormatCard(String keyword) {
+  Widget _buildFormatCard(BuildContext context, String keyword) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: isDark ? const Color(0xFF13131A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.divider),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Command Format',
             style: TextStyle(
-              color: AppTheme.onBackground,
+              color: isDark ? Colors.white : Colors.black,
               fontWeight: FontWeight.w700,
               fontSize: 15,
             ),
@@ -142,7 +150,7 @@ class CommandGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPinInfo(String keyword) {
+  Widget _buildPinInfo(BuildContext context, String keyword) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -286,6 +294,7 @@ class _CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         Clipboard.setData(ClipboardData(text: text));
@@ -296,17 +305,17 @@ class _CodeBlock extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.background,
+          color: isDark ? const Color(0xFF0A0A0F) : const Color(0xFFF5F5FA),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.divider),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(
-                  color: AppTheme.primary,
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
                   fontFamily: 'monospace',
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -327,12 +336,20 @@ class _CommandCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: isDark ? const Color(0xFF13131A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.divider),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: ExpansionTile(
         leading: Container(
@@ -346,8 +363,8 @@ class _CommandCard extends StatelessWidget {
         ),
         title: Text(
           cmd.cmd,
-          style: const TextStyle(
-            color: AppTheme.onBackground,
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
             fontWeight: FontWeight.w700,
             fontFamily: 'monospace',
             fontSize: 15,
@@ -374,13 +391,13 @@ class _CommandCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.background,
+                    color: isDark ? const Color(0xFF0A0A0F) : const Color(0xFFF5F5FA),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     cmd.response,
-                    style: const TextStyle(
-                      color: AppTheme.success,
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF43A047) : const Color(0xFF2E7D32),
                       fontFamily: 'monospace',
                       fontSize: 12,
                     ),
@@ -401,21 +418,29 @@ class _ExampleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: isDark ? const Color(0xFF13131A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.divider),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             example.title,
-            style: const TextStyle(
-              color: AppTheme.onBackground,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),

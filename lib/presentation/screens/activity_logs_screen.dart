@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/app_provider.dart';
 import '../widgets/native_ad_widget.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../domain/models/activity_log.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Shows history of all received commands and recovery actions
 class ActivityLogsScreen extends StatelessWidget {
@@ -13,17 +14,18 @@ class ActivityLogsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Activity Logs'),
-        leading: const BackButton(),
+        automaticallyImplyLeading: true,
+        title: Text(l10n.activityLogsTitle),
         actions: [
           Consumer<AppProvider>(
             builder: (ctx, provider, _) {
               if (provider.logs.isEmpty) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.delete_outline_rounded),
-                tooltip: 'Clear logs',
+                tooltip: l10n.clearLogsTooltip,
                 onPressed: () => _confirmClear(ctx, provider),
               );
             },
@@ -46,7 +48,7 @@ class ActivityLogsScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 35),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
@@ -62,6 +64,7 @@ class ActivityLogsScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -69,7 +72,7 @@ class ActivityLogsScreen extends StatelessWidget {
           Icon(Icons.history_rounded, size: 80, color: Colors.grey.shade700),
           const SizedBox(height: 16),
           Text(
-            'No activity yet',
+            l10n.noActivityYet,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -77,10 +80,10 @@ class ActivityLogsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Recovery commands will appear here\nonce your phone receives them',
+          Text(
+            l10n.recoveryWillAppear,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 32),
           const Padding(
@@ -93,17 +96,16 @@ class ActivityLogsScreen extends StatelessWidget {
   }
 
   void _confirmClear(BuildContext context, AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear All Logs?'),
-        content: const Text(
-          'This will permanently delete all activity log entries.',
-        ),
+        title: Text(l10n.clearLogsConfirm),
+        content: Text(l10n.clearLogsDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             style: TextButton.styleFrom(
@@ -113,7 +115,7 @@ class ActivityLogsScreen extends StatelessWidget {
               provider.clearLogs();
               Navigator.pop(ctx);
             },
-            child: const Text('Clear'),
+            child: Text(l10n.clear, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -172,7 +174,9 @@ class _LogTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _commandColor;
-    final dateStr = DateFormat('MMM dd, yyyy · HH:mm:ss').format(log.timestamp.toLocal());
+    final dateStr = DateFormat(
+      'MMM dd, yyyy · HH:mm:ss',
+    ).format(log.timestamp.toLocal());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

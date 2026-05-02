@@ -8,6 +8,8 @@ import 'package:lost_phone_finder/core/theme/app_theme.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
+
 class IntrusionAlertsCard extends StatelessWidget {
   const IntrusionAlertsCard({super.key});
 
@@ -17,6 +19,7 @@ class IntrusionAlertsCard extends StatelessWidget {
     final date = timestamp?.toDate() ?? DateTime.now();
     final lat = photo['latitude'];
     final lng = photo['longitude'];
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -47,7 +50,7 @@ class IntrusionAlertsCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Incident Time: ${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}',
+                    '${l10n.incidentTime}: ${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
@@ -55,7 +58,7 @@ class IntrusionAlertsCard extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: () => _launchMaps(lat, lng),
                       icon: const Icon(Icons.map_rounded),
-                      label: const Text('VIEW ON GOOGLE MAPS'),
+                      label: Text(l10n.viewOnMaps),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade700,
                         foregroundColor: Colors.white,
@@ -119,7 +122,7 @@ class IntrusionAlertsCard extends StatelessWidget {
                     const Icon(Icons.warning_amber_rounded, color: AppTheme.error),
                     const SizedBox(width: 8),
                     Text(
-                      'Intrusion Alerts (${photos.length})',
+                      '${AppLocalizations.of(context)!.intrusionAlerts} (${photos.length})',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.error,
@@ -134,7 +137,7 @@ class IntrusionAlertsCard extends StatelessWidget {
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                       ),
-                      child: const Text('Clear All', style: TextStyle(color: AppTheme.error)),
+                      child: Text(AppLocalizations.of(context)!.clearAll, style: const TextStyle(color: AppTheme.error)),
                     ),
                   ],
                 ),

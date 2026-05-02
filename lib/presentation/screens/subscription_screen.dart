@@ -4,6 +4,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -14,27 +15,31 @@ class SubscriptionScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
     final profile = authProvider.profile;
     final isPremium = profile?.isPremium ?? false;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(context, isPremium),
+          _buildAppBar(context, isPremium, l10n),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(25.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (isPremium) _buildActiveSubscriptionCard(context, profile!) else _buildPremiumHeader(context),
+                  if (isPremium)
+                    _buildActiveSubscriptionCard(context, profile!, l10n)
+                  else
+                    _buildPremiumHeader(context, l10n),
                   const SizedBox(height: 32),
-                  _buildFeaturesList(context),
+                  _buildFeaturesList(context, l10n),
                   const SizedBox(height: 32),
                   if (!isPremium) ...[
-                    _buildPricingSection(context, subProvider),
+                    _buildPricingSection(context, subProvider, l10n),
                     const SizedBox(height: 24),
-                    _buildRestoreButton(context, subProvider),
+                    _buildRestoreButton(context, subProvider, l10n),
                   ],
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 110),
                 ],
               ),
             ),
@@ -44,14 +49,15 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, bool isPremium) {
+  Widget _buildAppBar(BuildContext context, bool isPremium, AppLocalizations l10n) {
     return SliverAppBar(
+      automaticallyImplyLeading: true,
       expandedHeight: 200,
       pinned: true,
       backgroundColor: AppTheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
-          isPremium ? 'Premium Active' : 'Upgrade to Premium',
+          isPremium ? l10n.premiumActive : l10n.upgradePremium,
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         background: Stack(
@@ -85,7 +91,11 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActiveSubscriptionCard(BuildContext context, dynamic profile) {
+  Widget _buildActiveSubscriptionCard(
+    BuildContext context,
+    dynamic profile,
+    AppLocalizations l10n,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -97,82 +107,122 @@ class SubscriptionScreen extends StatelessWidget {
         children: [
           const Icon(Icons.verified_rounded, color: AppTheme.primary, size: 48),
           const SizedBox(height: 16),
-          const Text(
-            'You are a Premium Member',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.premiumMemberTitle,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            'Enjoy all advanced security features without limits.',
+            l10n.premiumMemberDesc,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
           if (profile.protectionExpiry != null)
             Text(
-              'Expires on: ${profile.protectionExpiry!.day}/${profile.protectionExpiry!.month}/${profile.protectionExpiry!.year}',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+              '${l10n.expiresOn}: ${profile.protectionExpiry!.day}/${profile.protectionExpiry!.month}/${profile.protectionExpiry!.year}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primary,
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildPremiumHeader(BuildContext context) {
+  Widget _buildPremiumHeader(BuildContext context, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Protect Your Phone with\nUltimate Security',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        Text(
+          l10n.protectUltimateTitle,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 12),
         Text(
-          'Join thousands of users who trust PhoneGuard to recover their stolen devices.',
+          l10n.joinThousandsDesc,
           style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
         ),
       ],
     );
   }
 
-  Widget _buildFeaturesList(BuildContext context) {
+  Widget _buildFeaturesList(BuildContext context, AppLocalizations l10n) {
     final features = [
-      {'icon': Icons.security_rounded, 'title': 'Permanent Protection', 'desc': 'Always-on remote security. No more watching ads to extend protection.'},
-      {'icon': Icons.camera_front_rounded, 'title': 'Intrusion Detection', 'desc': 'Unlock silent selfie capture when someone tries to unlock your phone.'},
-      {'icon': Icons.ads_click_rounded, 'title': 'Ad-Free Experience', 'desc': 'Remove all banner and rewarded advertisements from the app.'},
-      {'icon': Icons.history_rounded, 'title': 'Unlimited Logs', 'desc': 'Full history of all security incidents and location updates.'},
+      {
+        'icon': Icons.security_rounded,
+        'title': l10n.permanentProtectionTitle,
+        'desc': l10n.permanentProtectionDesc,
+      },
+      {
+        'icon': Icons.camera_front_rounded,
+        'title': l10n.intrusionDetectionTitle,
+        'desc': l10n.intrusionDetectionDesc,
+      },
+      {
+        'icon': Icons.ads_click_rounded,
+        'title': l10n.adFreeTitle,
+        'desc': l10n.adFreeDesc,
+      },
+      {
+        'icon': Icons.history_rounded,
+        'title': l10n.unlimitedLogsTitle,
+        'desc': l10n.unlimitedLogsDesc,
+      },
     ];
 
     return Column(
-      children: features.map((f) => Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(f['icon'] as IconData, color: Colors.blue, size: 24),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      children: features
+          .map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Row(
                 children: [
-                  Text(f['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(f['desc'] as String, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(f['icon'] as IconData, color: Colors.blue, size: 24),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          f['title'] as String,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          f['desc'] as String,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 
-  Widget _buildPricingSection(BuildContext context, SubscriptionProvider provider) {
+  Widget _buildPricingSection(
+    BuildContext context,
+    SubscriptionProvider provider,
+    AppLocalizations l10n,
+  ) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -180,7 +230,7 @@ class SubscriptionScreen extends StatelessWidget {
     if (provider.products.isEmpty) {
       return Center(
         child: Text(
-          provider.errorMessage ?? 'Products not available. Check your internet or Play Store account.',
+          provider.errorMessage ?? l10n.productsNotAvailable,
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.red),
         ),
@@ -194,7 +244,10 @@ class SubscriptionScreen extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isYearly ? AppTheme.primary : Colors.grey.shade300, width: isYearly ? 2 : 1),
+            border: Border.all(
+              color: isYearly ? AppTheme.primary : Colors.grey.shade300,
+              width: isYearly ? 2 : 1,
+            ),
           ),
           child: InkWell(
             onTap: () => provider.buySubscription(product),
@@ -209,19 +262,45 @@ class SubscriptionScreen extends StatelessWidget {
                       children: [
                         if (isYearly)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
-                            child: const Text('BEST VALUE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              l10n.bestValue,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         const SizedBox(height: 4),
-                        Text(product.title.replaceAll('(PhoneGuard)', ''), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        Text(isYearly ? 'Billed annually' : 'Billed monthly', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                        Text(
+                          product.title.replaceAll('(PhoneGuard)', ''),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          isYearly ? l10n.billedAnnually : l10n.billedMonthly,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
                   Text(
                     product.price,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.primary,
+                    ),
                   ),
                 ],
               ),
@@ -232,11 +311,18 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRestoreButton(BuildContext context, SubscriptionProvider provider) {
+  Widget _buildRestoreButton(
+    BuildContext context,
+    SubscriptionProvider provider,
+    AppLocalizations l10n,
+  ) {
     return Center(
       child: TextButton(
         onPressed: () => provider.restorePurchases(),
-        child: const Text('Restore Purchase', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+        child: Text(
+          l10n.restorePurchase,
+          style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

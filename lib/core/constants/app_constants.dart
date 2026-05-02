@@ -37,6 +37,8 @@ class AppConstants {
   static const String methodOpenAccessibilitySettings = 'openAccessibilitySettings';
   static const String methodOpenAppInfo = 'openAppInfo';
   static const String methodOpenBatteryOptimizationSettings = 'openBatteryOptimizationSettings';
+  static const String methodIsNotificationListenerEnabled = 'isNotificationListenerEnabled';
+  static const String methodOpenNotificationListenerSettings = 'openNotificationListenerSettings';
 
   // Commands
   static const String cmdLocation = 'location';
