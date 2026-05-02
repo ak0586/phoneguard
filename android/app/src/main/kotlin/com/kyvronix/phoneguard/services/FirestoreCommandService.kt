@@ -9,6 +9,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.FieldValue
 import com.kyvronix.phoneguard.sms.CommandParser
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 class FirestoreCommandService : Service() {
     private val CHANNEL_ID = "FirestoreCmdChannel"
@@ -80,37 +83,43 @@ class FirestoreCommandService : Service() {
                     if (action != null) {
                         Log.d(TAG, "Received pending command: $action")
                         
-                        // Execute command
-                        val result = CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
+                        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                // Execute command (suspendable)
+                                val result = CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
 
-                        if (result == com.kyvronix.phoneguard.sms.CommandStatus.EXPIRED) {
-                            Log.w(TAG, "Command BLOCKED: Protection EXPIRED")
-                            val resultData = hashMapOf<String, Any>(
-                                "action" to action,
-                                "status" to "expired",
-                                "message" to "PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands",
-                                "at" to FieldValue.serverTimestamp()
-                            )
-                            docRef.update(
-                                "commandResult", resultData,
-                                "pendingCommand", FieldValue.delete()
-                            )
-                            return@addSnapshotListener
+                                if (result == com.kyvronix.phoneguard.sms.CommandStatus.EXPIRED) {
+                                    Log.w(TAG, "Command BLOCKED: Protection EXPIRED")
+                                    val resultData = hashMapOf<String, Any>(
+                                        "action" to action,
+                                        "status" to "expired",
+                                        "message" to "PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands",
+                                        "at" to FieldValue.serverTimestamp()
+                                    )
+                                    docRef.update(
+                                        "commandResult", resultData,
+                                        "pendingCommand", FieldValue.delete()
+                                    )
+                                } else {
+                                    // Sync state to Firestore
+                                    com.kyvronix.phoneguard.utils.StateSyncManager.syncState(this@FirestoreCommandService, "WEB_COMMAND_$action")
+
+                                    // Write result and clear pending command
+                                    val resultData = hashMapOf<String, Any>(
+                                        "action" to action,
+                                        "status" to "executed",
+                                        "at" to FieldValue.serverTimestamp()
+                                    )
+                                    docRef.update(
+                                        "commandResult", resultData,
+                                        "pendingCommand", FieldValue.delete()
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Command execution failed", e)
+                                docRef.update("pendingCommand", FieldValue.delete())
+                            }
                         }
-
-                        // Sync state to Firestore
-                        com.kyvronix.phoneguard.utils.StateSyncManager.syncState(this, "WEB_COMMAND_$action")
-
-                        // Write result and clear pending command
-                        val resultData = hashMapOf<String, Any>(
-                            "action" to action,
-                            "status" to "executed",
-                            "at" to FieldValue.serverTimestamp()
-                        )
-                        docRef.update(
-                            "commandResult", resultData,
-                            "pendingCommand", FieldValue.delete()
-                        )
                     }
                 }
             }

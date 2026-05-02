@@ -78,9 +78,10 @@ class HiveDataSource {
 
   // ─── Activity Logs ───────────────────────────────────────────────────────
 
-  List<ActivityLog> loadLogs() {
+  Future<List<ActivityLog>> loadLogs() async {
     // We read logs from SharedPreferences as the source of truth
     // because the Android background service appends to them directly.
+    await _prefs.reload();
     final raw = _prefs.getString(AppConstants.keyActivityLogs);
     if (raw == null) return [];
 

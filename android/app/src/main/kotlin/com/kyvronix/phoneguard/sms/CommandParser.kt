@@ -34,7 +34,7 @@ class CommandParser(private val context: Context) {
         private const val TAG = "CommandParser"
     }
 
-    fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
+    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
@@ -142,11 +142,8 @@ class CommandParser(private val context: Context) {
 
             Log.d(TAG, "Resolved action='$action' sendLocation=$sendLocation startAlarm=$startAlarm enableTracking=$enableTracking lockDevice=$lockDevice stopAlarmOnTrigger=$stopAlarmOnTrigger")
 
-            CoroutineScope(Dispatchers.Main).launch {
-                kotlinx.coroutines.delay(1000)
-
-                try {
-                    when (action) {
+            try {
+                when (action) {
                         "location" -> {
                             val result = LocationManager(context).getCurrentLocation()
                             if (result != null) {
@@ -235,8 +232,8 @@ class CommandParser(private val context: Context) {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error executing action: $action", e)
+                    logActivity(sender, action ?: "unknown", "Error: ${e.message}", false)
                 }
-            }
             return CommandStatus.EXECUTED
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse settings", e)

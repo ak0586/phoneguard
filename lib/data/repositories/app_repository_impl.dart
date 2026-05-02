@@ -21,14 +21,14 @@ class AppRepositoryImpl implements AppRepository {
 
   @override
   Future<void> addLog(ActivityLog log) async {
-    final logs = _dataSource.loadLogs();
+    final logs = await _dataSource.loadLogs();
     logs.insert(0, log); // newest first
     await _dataSource.saveLogs(logs);
   }
 
   @override
   Future<void> removeLog(String id) async {
-    final logs = _dataSource.loadLogs();
+    final logs = await _dataSource.loadLogs();
     logs.removeWhere((log) => log.id == id);
     await _dataSource.saveLogs(logs);
   }
