@@ -89,7 +89,7 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
             }
         }
         contentResolver.registerContentObserver(
-            Uri.parse("content://sms/inbox"),
+            Uri.parse("content://sms"),
             true,
             smsObserver!!
         )
@@ -104,7 +104,7 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                     arrayOf("_id", "address", "body", "date"),
                     null,
                     null,
-                    "date DESC LIMIT 1"
+                    "_id DESC LIMIT 1"
                 ) ?: return@launch
 
                 cursor.use {
