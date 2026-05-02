@@ -101,10 +101,10 @@ class AuthProvider extends ChangeNotifier {
             }
 
             final p = await SharedPreferences.getInstance();
-            await p.setBool('flutter.is_premium', profile.isPremium);
-            await p.setString('flutter.created_at', profile.createdAt.toIso8601String());
+            await p.setBool('is_premium', profile.isPremium);
+            await p.setString('created_at', profile.createdAt.toIso8601String());
             if (profile.protectionExpiry != null) {
-              await p.setString('flutter.protection_expiry', profile.protectionExpiry!.toIso8601String());
+              await p.setString('protection_expiry', profile.protectionExpiry!.toIso8601String());
             }
           }
           onProfileChanged?.call(profile);

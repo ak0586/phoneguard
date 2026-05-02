@@ -272,12 +272,12 @@ class CommandParser(private val context: Context) {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             
             // 1. Premium Check
-            val isPremium = prefs.getBoolean("flutter.flutter.is_premium", false)
+            val isPremium = prefs.getBoolean("flutter.is_premium", false)
             Log.d(TAG, "isProtectionActive: [1] isPremium=$isPremium")
             if (isPremium) return true
             
             // 2. 3-day Free Trial
-            val createdAtStr = prefs.getString("flutter.flutter.created_at", null)
+            val createdAtStr = prefs.getString("flutter.created_at", null)
             if (createdAtStr != null) {
                 Log.d(TAG, "isProtectionActive: [2] Found createdAt='$createdAtStr'")
                 val parseTargets = listOf(createdAtStr, createdAtStr.take(19))
@@ -311,7 +311,7 @@ class CommandParser(private val context: Context) {
             }
 
             // 3. Ad-extended expiry
-            val expiryStr = prefs.getString("flutter.flutter.protection_expiry", null)
+            val expiryStr = prefs.getString("flutter.protection_expiry", null)
             if (expiryStr != null) {
                 Log.d(TAG, "isProtectionActive: [3] Found expiryStr='$expiryStr'")
                 val datePart = expiryStr.take(19)

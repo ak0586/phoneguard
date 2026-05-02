@@ -397,13 +397,13 @@ class AppProvider extends ChangeNotifier {
       final prefs = await _repository.getPrefs(); // Need to ensure repository has getPrefs or use SharedPreferences directly
       
       // 1. Check for Detecting SIM Change
-      final lastSim = prefs.getString('flutter.lastSimNumber') ?? '';
+      final lastSim = prefs.getString('lastSimNumber') ?? '';
       if (lastSim.isNotEmpty) {
         debugPrint('Last SIM detected: $lastSim');
       }
       
       // 2. Check for Shutdown detection
-      final wasShutdown = prefs.getBool('flutter.last_shutdown_detected') ?? false;
+      final wasShutdown = prefs.getBool('last_shutdown_detected') ?? false;
       if (wasShutdown) {
         await addLog(
           sender: 'System', 
@@ -411,7 +411,7 @@ class AppProvider extends ChangeNotifier {
           result: 'Device was shut down or restarted.',
           success: true,
         );
-        await prefs.remove('flutter.last_shutdown_detected');
+        await prefs.remove('last_shutdown_detected');
       }
     } catch (e) {
       debugPrint('Error checking native events: $e');

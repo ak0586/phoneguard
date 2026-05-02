@@ -49,7 +49,7 @@ class FirestoreCommandService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "Service started")
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val uid = prefs.getString("flutter.flutter.user_uid", null)
+        val uid = prefs.getString("flutter.user_uid", null)
 
         if (uid != null) {
             startListening(uid)
