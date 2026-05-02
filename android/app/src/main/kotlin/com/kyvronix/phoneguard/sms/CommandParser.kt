@@ -36,34 +36,13 @@ class CommandParser(private val context: Context) {
 
     fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        // NOTE: Flutter's SharedPreferences plugin stores keys with a "flutter." prefix.
-        // So Dart key "protection_expiry" → stored as "flutter.protection_expiry".
-        // Keys manually written from Kotlin (e.g., user_uid) use "flutter.user_uid" directly.
-
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
             Log.w(TAG, "No app_settings found in SharedPreferences")
             return CommandStatus.IGNORED
         }
 
-        // 🛡️ SECURITY ENFORCEMENT: Check if the user has active protection
-        if (!isProtectionActive()) {
-            val expiredMsg = "⚠️ PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands"
-            Log.w(TAG, "Command received but protection is EXPIRED. Sender: $sender")
-            
-            if (sender != "WEB_DASHBOARD") {
-                SmsSender.sendSmsWithSim(context, sender, expiredMsg, subscriptionId)
-            }
-            return CommandStatus.EXPIRED
-        }
-
-        Log.d(TAG, "SMS from=$sender body='$message'")
-
-        try {
-            startForegroundServiceCompat(Intent(context, RecoveryService::class.java))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start RecoveryService", e)
-        }
+        Log.d(TAG, "Processing command from=$sender body='$message'")
 
         try {
             val settings = JSONObject(appSettingsJson)
@@ -73,60 +52,76 @@ class CommandParser(private val context: Context) {
 
             val isRemoteCommand = sender == "WEB_DASHBOARD"
             var action = "default"
+            var matchedTrustedNumber: String? = null
             
-            if (isRemoteCommand) {
-                // message is formatted as "REMOTE_ACTION <action>"
-                action = message.removePrefix("REMOTE_ACTION ").trim().lowercase()
-                Log.d(TAG, "  ✅ Authenticated remote command authorized: action='$action'")
-            } else {
+            // 1. VALIDATION PHASE (Trigger & Trusted Number)
+            if (!isRemoteCommand) {
+                // Check Keyword
                 val messageLower = message.trim().lowercase()
                 val triggerLower = triggerKeyword.trim().lowercase()
 
-                Log.d(TAG, "Keyword check: messageLower='$messageLower' triggerLower='$triggerLower'")
                 if (!messageLower.startsWith(triggerLower)) {
-                    Log.d(TAG, "  ❌ Keyword not matched ('$messageLower' doesn't start with '$triggerLower'), ignoring SMS")
+                    Log.d(TAG, "  ❌ Keyword not matched, ignoring SMS")
                     return CommandStatus.IGNORED
                 }
                 Log.d(TAG, "  ✅ Keyword matched")
 
+                // Check Trusted Number
                 val senderNorm = normalizeNumber(sender)
-                Log.d(TAG, "Number matching: senderRaw='$sender' senderNorm='$senderNorm'")
-                if (senderNorm.isEmpty()) return CommandStatus.IGNORED
-
                 val trustedNumbersArray = settings.optJSONArray("trustedNumbers") ?: JSONArray()
-                var matchedTrustedNumber: String? = null
 
                 for (i in 0 until trustedNumbersArray.length()) {
                     val trustedObj = trustedNumbersArray.optJSONObject(i) ?: continue
-                    val storedNumber = trustedObj.optString("phoneNumber", "")
-                    val storedNorm = normalizeNumber(storedNumber)
-                    val matched = numbersMatch(senderNorm, storedNorm)
-                    Log.d(TAG, "  Comparing stored='$storedNumber' norm='$storedNorm' → matched=$matched")
-                    if (matched) {
-                        matchedTrustedNumber = storedNumber
-                        Log.d(TAG, "  ✅ Trusted match found: '$storedNumber'")
+                    val trustedNum = trustedObj.optString("phoneNumber", "")
+                    if (numbersMatch(senderNorm, normalizeNumber(trustedNum))) {
+                        matchedTrustedNumber = trustedNum
                         break
                     }
                 }
 
                 if (matchedTrustedNumber == null) {
-                    Log.d(TAG, "  ❌ Sender $senderNorm is not in trusted numbers")
+                    Log.d(TAG, "  ❌ Number $senderNorm not in trusted list, ignoring SMS")
                     return CommandStatus.IGNORED
                 }
+                Log.d(TAG, "  ✅ Trusted number matched")
+            } else {
+                // Remote Dashboard Command
+                action = message.removePrefix("REMOTE_ACTION ").trim().lowercase()
+                Log.d(TAG, "  ✅ Remote dashboard command authorized: action='$action'")
+            }
+
+            // 2. PROTECTION ENFORCEMENT PHASE
+            // Only happens for valid triggers from trusted numbers (or authenticated dashboard)
+            if (!isProtectionActive()) {
+                val expiredMsg = "⚠️ PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands"
+                Log.w(TAG, "Valid trigger received but protection is EXPIRED. Sender: $sender")
                 
-                // IMPORTANT: use lowercase lengths so casing differences don't mis-slice
+                if (!isRemoteCommand) {
+                    SmsSender.sendSmsWithSim(context, sender, expiredMsg, subscriptionId)
+                }
+                return CommandStatus.EXPIRED
+            }
+
+            // 3. SERVICE START PHASE
+            try {
+                startForegroundServiceCompat(Intent(context, RecoveryService::class.java))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start RecoveryService", e)
+            }
+
+            // 4. ACTION PARSING PHASE (Specific to SMS)
+            if (!isRemoteCommand) {
+                val messageLower = message.trim().lowercase()
+                val triggerLower = triggerKeyword.trim().lowercase()
                 val remainder = messageLower.substring(triggerLower.length).trim()
                 val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
-                Log.d(TAG, "Action parsing: remainder='$remainder' parts=$parts isPinEnabled=$isPinEnabled")
-
+                
                 var receivedPin = ""
-
                 if (isPinEnabled) {
                     receivedPin = parts.getOrNull(0) ?: ""
                     action = parts.getOrNull(1)?.lowercase() ?: "default"
                 } else {
                     action = parts.getOrNull(0)?.lowercase() ?: "default"
-                    receivedPin = ""
                 }
 
                 if (isPinEnabled && action != "default" && action != "stop") {
@@ -137,6 +132,7 @@ class CommandParser(private val context: Context) {
                 }
             }
 
+            // 5. DEFAULT SETTINGS EXTRACTION
             val defaultActions = settings.optJSONObject("defaultActions") ?: JSONObject()
             val sendLocation = defaultActions.optBoolean("sendLocation", true)
             val startAlarm = defaultActions.optBoolean("startAlarm", true)
