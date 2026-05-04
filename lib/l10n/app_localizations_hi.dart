@@ -143,11 +143,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationAccess => 'लोकेशन एक्सेस';
 
   @override
-  String get locationAccessDesc => 'मैप पर अपने फोन को ढूंढने के लिए जरूरी है।';
+  String get locationAccessDesc =>
+      'डिवाइस को ट्रैक करने और रिकवर करने के लिए आवश्यक है, भले ही ऐप बंद हो या उपयोग में न हो।';
 
   @override
   String get locationAccessInstr =>
-      'इसे सेटिंग्स -> प्राइवेसी -> ऐप परमिशन में जाकर \"Allow all the time\" सेट करें।';
+      'इसे सेटिंग्स -> प्राइवेसी -> ऐप परमिशन में जाकर \"Allow all the time\" सेट करें ताकि रिकवरी 24/7 काम कर सके।';
 
   @override
   String get trustedNumbersDesc => 'उन नंबरों को सेट करें जो कमांड भेज सकें।';
@@ -198,13 +199,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get smsAccess => 'SMS एक्सेस';
 
   @override
-  String get smsAccessDesc => 'रिकवरी कमांड प्राप्त करें और भेजें';
+  String get smsAccessDesc =>
+      'स्क्रीन लॉक होने पर भी रिकवरी कमांड प्राप्त करने और संसाधित करने के लिए आवश्यक है।';
 
   @override
-  String get locationAccessTitle => 'लोकेशन';
+  String get locationAccessTitle => 'बैकग्राउंड लोकेशन';
 
   @override
-  String get locationAccessSubtitle => 'रिकवरी के लिए GPS निर्देशांक';
+  String get locationAccessSubtitle =>
+      'ऐप बंद होने पर भी रिकवरी के लिए लोकेशन डेटा एकत्र करता है।';
 
   @override
   String get phoneState => 'फोन की स्थिति';
@@ -213,10 +216,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get phoneStateDesc => 'SIM कार्ड परिवर्तन का पता लगाना';
 
   @override
-  String get cameraAccess => 'कैमरा';
+  String get cameraAccess => 'सुरक्षा कैमरा';
 
   @override
-  String get cameraAccessDesc => 'घुसपैठियों की सेल्फी लें';
+  String get cameraAccessDesc =>
+      'स्क्रीन बंद होने या ऐप छोटा होने पर भी घुसपैठियों की तस्वीरें लेता है।';
 
   @override
   String get contactsAccess => 'संपर्क';
@@ -703,4 +707,21 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get productsNotAvailable =>
       'उत्पाद उपलब्ध नहीं हैं। अपना इंटरनेट या प्ले स्टोर खाता जांचें।';
+
+  @override
+  String get locationDisclosureTitle => 'बैकग्राउंड लोकेशन उपयोग';
+
+  @override
+  String get locationDisclosureDesc =>
+      'PhoneGuard आपके डिवाइस को ट्रैक करने और रिकवरी सुविधाओं को सक्षम करने के लिए लोकेशन डेटा एकत्र करता है, भले ही ऐप बंद हो या उपयोग में न हो।\n\nयह डेटा केवल रिकवरी उद्देश्यों के लिए उपयोग किया जाता है और सुरक्षित रूप से आपके निजी डैशबोर्ड पर भेजा जाता है।';
+
+  @override
+  String get cameraDisclosureTitle => 'सुरक्षा कैमरा उपयोग';
+
+  @override
+  String get cameraDisclosureDesc =>
+      'PhoneGuard आपके डिवाइस तक पहुँचने का प्रयास करने वाले अनधिकृत उपयोगकर्ताओं की तस्वीरें लेने के लिए कैमरे का उपयोग करता है। यह सुविधा स्क्रीन बंद होने पर भी काम करती है ताकि आपको घुसपैठ के सबूत मिल सकें।';
+
+  @override
+  String get iUnderstand => 'मैं समझता हूँ';
 }

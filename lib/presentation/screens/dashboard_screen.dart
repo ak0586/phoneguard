@@ -12,7 +12,7 @@ import 'package:lost_phone_finder/presentation/widgets/device_admin_status_card.
 import 'package:lost_phone_finder/presentation/widgets/permissions_card.dart';
 import 'package:lost_phone_finder/presentation/widgets/active_actions_card.dart';
 import 'package:lost_phone_finder/presentation/widgets/native_ad_widget.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart' hide AppState;
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
 import 'package:lost_phone_finder/presentation/widgets/onboarding_popup.dart';
 
@@ -89,6 +89,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Consumer2<AuthProvider, AppProvider>(
         builder: (context, auth, app, _) {
+          // 1. Show global loader during initialization
+          if (auth.isInitializing || app.state == AppState.loading) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          // 2. Handle Critical Overlays
           if (app.isUpdateRequired)
             return _buildForceUpdateOverlay(context, app);
           if (auth.hasDeviceConflict)
@@ -705,12 +715,30 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            l10n.accountConflictDesc,
+            auth.profile?.deviceModel != null 
+              ? "Your account is currently protecting another device (${auth.profile!.deviceModel}).\n\nWould you like to switch protection to this device instead?"
+              : l10n.accountConflictDesc,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 16),
+            style: const TextStyle(color: Colors.grey, fontSize: 15, height: 1.5),
           ),
           const SizedBox(height: 48),
           ElevatedButton(
+            onPressed: () => auth.setAsPrimaryDevice(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 0,
+            ),
+            child: auth.isLoading 
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('USE THIS DEVICE', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
             onPressed: () {
               auth.signOut();
               Navigator.pushNamedAndRemoveUntil(
@@ -719,15 +747,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+            style: TextButton.styleFrom(
               minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
             ),
-            child: Text(l10n.logout.toUpperCase()),
+            child: Text(l10n.logout.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

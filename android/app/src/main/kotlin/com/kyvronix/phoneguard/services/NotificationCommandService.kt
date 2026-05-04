@@ -45,10 +45,28 @@ class NotificationCommandService : NotificationListenerService() {
         if (!TARGET_PACKAGES.contains(packageName)) return
 
         val extras = sbn.notification.extras ?: return
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: return
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: return
+        var title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: return
+        var text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+
+        // Handle MessagingStyle (RCS, WhatsApp, etc.)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            val messages = extras.get(Notification.EXTRA_MESSAGES) as? Array<*>
+            if (messages != null && messages.isNotEmpty()) {
+                val lastMessage = messages.last() as? Bundle
+                if (lastMessage != null) {
+                    val messageText = lastMessage.getCharSequence("text")?.toString()
+                    val senderName = lastMessage.getCharSequence("sender")?.toString()
+                    if (messageText != null) {
+                        text = messageText
+                        if (senderName != null) title = senderName
+                    }
+                }
+            }
+        }
         
-        Log.d(TAG, "New notification from $packageName: $title - $text")
+        if (text.isEmpty()) return
+        
+        Log.d(TAG, "PHONEGUARD_DEBUG 🔔 New notification from $packageName: $title - $text")
 
         scope.launch {
             handleIncomingNotification(sbn, title, text)

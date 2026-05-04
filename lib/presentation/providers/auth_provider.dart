@@ -318,7 +318,20 @@ class AuthProvider extends ChangeNotifier {
     if (_user == null || _localDeviceId == null) return;
     _setLoading(true);
     try {
-      await _authService.updateUserProfile(_user!.uid, {'currentDeviceId': _localDeviceId});
+      final deviceInfo = DeviceInfoPlugin();
+      String model = 'Unknown Device';
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        model = '${androidInfo.manufacturer} ${androidInfo.model}';
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        model = iosInfo.name;
+      }
+
+      await _authService.updateUserProfile(_user!.uid, {
+        'currentDeviceId': _localDeviceId,
+        'deviceModel': model,
+      });
       _deviceConflict = false;
       notifyListeners();
     } catch (e) {

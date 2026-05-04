@@ -353,13 +353,13 @@ abstract class AppLocalizations {
   /// No description provided for @locationAccessDesc.
   ///
   /// In en, this message translates to:
-  /// **'Necessary to find your phone on the map.'**
+  /// **'Required to track and find your device on a map even when the app is closed or not in use.'**
   String get locationAccessDesc;
 
   /// No description provided for @locationAccessInstr.
   ///
   /// In en, this message translates to:
-  /// **'Set this to \"Allow all the time\" in Settings -> Privacy -> App Permissions.'**
+  /// **'Set this to \"Allow all the time\" in Settings -> Privacy -> App Permissions to ensure recovery works 24/7.'**
   String get locationAccessInstr;
 
   /// No description provided for @trustedNumbersDesc.
@@ -449,19 +449,19 @@ abstract class AppLocalizations {
   /// No description provided for @smsAccessDesc.
   ///
   /// In en, this message translates to:
-  /// **'Receive & send recovery commands'**
+  /// **'Required to receive and process recovery commands even when the device is locked.'**
   String get smsAccessDesc;
 
   /// No description provided for @locationAccessTitle.
   ///
   /// In en, this message translates to:
-  /// **'Location'**
+  /// **'Background Location'**
   String get locationAccessTitle;
 
   /// No description provided for @locationAccessSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'GPS coordinates for recovery'**
+  /// **'Collects location data to enable tracking even when the app is closed or not in use.'**
   String get locationAccessSubtitle;
 
   /// No description provided for @phoneState.
@@ -479,13 +479,13 @@ abstract class AppLocalizations {
   /// No description provided for @cameraAccess.
   ///
   /// In en, this message translates to:
-  /// **'Camera'**
+  /// **'Security Camera'**
   String get cameraAccess;
 
   /// No description provided for @cameraAccessDesc.
   ///
   /// In en, this message translates to:
-  /// **'Capture intruder selfies'**
+  /// **'Captures photos of intruders even when the screen is off or the app is minimized.'**
   String get cameraAccessDesc;
 
   /// No description provided for @contactsAccess.
@@ -1381,6 +1381,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Products not available. Check your internet or Play Store account.'**
   String get productsNotAvailable;
+
+  /// No description provided for @locationDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background Location Usage'**
+  String get locationDisclosureTitle;
+
+  /// No description provided for @locationDisclosureDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'PhoneGuard collects location data to enable device tracking and recovery features even when the app is closed or not in use.\n\nThis data is only used for recovery purposes and is sent securely to your private dashboard.'**
+  String get locationDisclosureDesc;
+
+  /// No description provided for @cameraDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Camera Usage'**
+  String get cameraDisclosureTitle;
+
+  /// No description provided for @cameraDisclosureDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works even when the screen is off to provide you with evidence of intrusion.'**
+  String get cameraDisclosureDesc;
+
+  /// No description provided for @iUnderstand.
+  ///
+  /// In en, this message translates to:
+  /// **'I UNDERSTAND'**
+  String get iUnderstand;
 }
 
 class _AppLocalizationsDelegate

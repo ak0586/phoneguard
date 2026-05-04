@@ -81,7 +81,7 @@ class CommandParser(private val context: Context) {
                 val triggerLower = triggerKeyword.trim().lowercase()
 
                 Log.d(TAG, "PHONEGUARD_DEBUG [1] Keyword check: message='$messageLower' trigger='$triggerLower'")
-                if (!messageLower.startsWith(triggerLower)) {
+                if (!messageLower.contains(triggerLower)) {
                     Log.d(TAG, "PHONEGUARD_DEBUG [1] ❌ Keyword NOT matched, ignoring")
                     return CommandStatus.IGNORED
                 }
@@ -136,7 +136,11 @@ class CommandParser(private val context: Context) {
             if (!isRemoteCommand) {
                 val messageLower = message.trim().lowercase()
                 val triggerLower = triggerKeyword.trim().lowercase()
-                val remainder = messageLower.substring(triggerLower.length).trim()
+                
+                // Extract everything AFTER the first occurrence of the trigger keyword
+                val keywordIndex = messageLower.indexOf(triggerLower)
+                val remainder = messageLower.substring(keywordIndex + triggerLower.length).trim()
+                
                 val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
                 
                 var receivedPin = ""

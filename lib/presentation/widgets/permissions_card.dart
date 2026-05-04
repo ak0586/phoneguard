@@ -59,18 +59,18 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
 
   Future<void> _requestAll() async {
     setState(() => _requesting = true);
+    final l10n = AppLocalizations.of(context)!;
 
     final permissions = [
       Permission.sms,
-      Permission.location,
       Permission.phone,
-      Permission.camera,
       Permission.contacts,
       Permission.notification,
     ];
 
     bool anyPermanentlyDenied = false;
 
+    // 1. Request basic permissions first
     for (final permission in permissions) {
       final status = await permission.status;
       if (status.isPermanentlyDenied) {
@@ -82,18 +82,41 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
       }
     }
 
-    // locationAlways must be requested AFTER location is granted
+    // 2. Camera Disclosure & Request
+    final cameraStatus = await Permission.camera.status;
+    if (!cameraStatus.isGranted && !cameraStatus.isPermanentlyDenied) {
+      final proceed = await _showDisclosure(
+        l10n.cameraDisclosureTitle,
+        l10n.cameraDisclosureDesc,
+      );
+      if (proceed) await Permission.camera.request();
+    }
+
+    // 3. Location Disclosure & Request (Foreground)
     final locationStatus = await Permission.location.status;
-    if (locationStatus.isGranted) {
+    if (!locationStatus.isGranted && !locationStatus.isPermanentlyDenied) {
+      final proceed = await _showDisclosure(
+        l10n.locationDisclosureTitle,
+        l10n.locationDisclosureDesc,
+      );
+      if (proceed) await Permission.location.request();
+    }
+
+    // 4. Background Location (Critical for Google)
+    if (await Permission.location.isGranted) {
       final always = await Permission.locationAlways.status;
       if (!always.isGranted && !always.isPermanentlyDenied) {
-        await Permission.locationAlways.request();
+        // Show disclosure AGAIN specifically for "All the time"
+        final proceed = await _showDisclosure(
+          l10n.locationDisclosureTitle,
+          l10n.locationDisclosureDesc + "\n\nPlease select \"Allow all the time\" in the next screen.",
+        );
+        if (proceed) await Permission.locationAlways.request();
       }
     }
 
     await _checkPermissions();
     setState(() => _requesting = false);
-
     if (!mounted) return;
 
     if (anyPermanentlyDenied) {
@@ -236,6 +259,42 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
         ],
       ),
     );
+  }
+
+  Future<bool> _showDisclosure(String title, String content) async {
+    final l10n = AppLocalizations.of(context)!;
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                const Icon(Icons.privacy_tip_outlined, color: Colors.blue),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title)),
+              ],
+            ),
+            content: Text(
+              content,
+              style: const TextStyle(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel, style: const TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(l10n.iUnderstand),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Widget _permRow(Permission p, IconData icon, String title, String subtitle) {

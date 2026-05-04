@@ -141,11 +141,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationAccess => 'Location Access';
 
   @override
-  String get locationAccessDesc => 'Necessary to find your phone on the map.';
+  String get locationAccessDesc =>
+      'Required to track and find your device on a map even when the app is closed or not in use.';
 
   @override
   String get locationAccessInstr =>
-      'Set this to \"Allow all the time\" in Settings -> Privacy -> App Permissions.';
+      'Set this to \"Allow all the time\" in Settings -> Privacy -> App Permissions to ensure recovery works 24/7.';
 
   @override
   String get trustedNumbersDesc => 'Set numbers that can send commands.';
@@ -196,13 +197,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smsAccess => 'SMS Access';
 
   @override
-  String get smsAccessDesc => 'Receive & send recovery commands';
+  String get smsAccessDesc =>
+      'Required to receive and process recovery commands even when the device is locked.';
 
   @override
-  String get locationAccessTitle => 'Location';
+  String get locationAccessTitle => 'Background Location';
 
   @override
-  String get locationAccessSubtitle => 'GPS coordinates for recovery';
+  String get locationAccessSubtitle =>
+      'Collects location data to enable tracking even when the app is closed or not in use.';
 
   @override
   String get phoneState => 'Phone State';
@@ -211,10 +214,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phoneStateDesc => 'SIM change detection';
 
   @override
-  String get cameraAccess => 'Camera';
+  String get cameraAccess => 'Security Camera';
 
   @override
-  String get cameraAccessDesc => 'Capture intruder selfies';
+  String get cameraAccessDesc =>
+      'Captures photos of intruders even when the screen is off or the app is minimized.';
 
   @override
   String get contactsAccess => 'Contacts';
@@ -696,4 +700,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get productsNotAvailable =>
       'Products not available. Check your internet or Play Store account.';
+
+  @override
+  String get locationDisclosureTitle => 'Background Location Usage';
+
+  @override
+  String get locationDisclosureDesc =>
+      'PhoneGuard collects location data to enable device tracking and recovery features even when the app is closed or not in use.\n\nThis data is only used for recovery purposes and is sent securely to your private dashboard.';
+
+  @override
+  String get cameraDisclosureTitle => 'Security Camera Usage';
+
+  @override
+  String get cameraDisclosureDesc =>
+      'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works even when the screen is off to provide you with evidence of intrusion.';
+
+  @override
+  String get iUnderstand => 'I UNDERSTAND';
 }

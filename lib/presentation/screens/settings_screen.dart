@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/native_ad_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -37,7 +38,26 @@ class SettingsScreen extends StatelessWidget {
                       title: Text(l10n.intrusionSelfie),
                       subtitle: Text(l10n.intrusionSelfieDesc),
                       value: settings.intrusionSelfieEnabled,
-                      onChanged: (val) => provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val)),
+                      onChanged: (val) async {
+                        if (val) {
+                          final status = await Permission.camera.status;
+                          if (!status.isGranted) {
+                            final proceed = await _showDisclosure(
+                              context,
+                              l10n.cameraDisclosureTitle,
+                              l10n.cameraDisclosureDesc,
+                            );
+                            if (proceed) {
+                              final result = await Permission.camera.request();
+                              if (result.isGranted) {
+                                provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: true));
+                              }
+                            }
+                            return;
+                          }
+                        }
+                        provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val));
+                      },
                       secondary: const Icon(Icons.camera_front_rounded, color: Colors.blue),
                     ),
                     const Divider(indent: 70),
@@ -247,5 +267,40 @@ class SettingsScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
+  }
+  Future<bool> _showDisclosure(BuildContext context, String title, String content) async {
+    final l10n = AppLocalizations.of(context)!;
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                const Icon(Icons.privacy_tip_outlined, color: Colors.blue),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title)),
+              ],
+            ),
+            content: Text(
+              content,
+              style: const TextStyle(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(l10n.iUnderstand.toUpperCase()),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }
