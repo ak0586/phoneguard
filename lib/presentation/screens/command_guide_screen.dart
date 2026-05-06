@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/auth_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../widgets/native_ad_widget.dart';
 import '../../core/theme/app_theme.dart';
@@ -12,11 +13,13 @@ class CommandGuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, provider, _) {
+    return Consumer2<AppProvider, AuthProvider>(
+      builder: (context, provider, auth, _) {
         final keyword = provider.settings.triggerKeyword.isEmpty
             ? 'trigger'
             : provider.settings.triggerKeyword;
+        final isPremium = auth.profile?.isPremium ?? false;
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Command Guide'),
@@ -31,8 +34,10 @@ class CommandGuideScreen extends StatelessWidget {
             ),
             children: [
               _buildIntro(context),
-              const NativeAdWidget(templateType: TemplateType.small),
-              const SizedBox(height: 24),
+              if (!isPremium) ...[
+                const NativeAdWidget(templateType: TemplateType.small),
+                const SizedBox(height: 24),
+              ],
               _buildFormatCard(context, keyword),
               const SizedBox(height: 24),
               const Text(
@@ -46,8 +51,10 @@ class CommandGuideScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               ..._commands.map((cmd) => _CommandCard(cmd: cmd)),
-              const SizedBox(height: 24),
-              const NativeAdWidget(templateType: TemplateType.medium),
+              if (!isPremium) ...[
+                const SizedBox(height: 24),
+                const NativeAdWidget(templateType: TemplateType.medium),
+              ],
               const SizedBox(height: 24),
               const Text(
                 'EXAMPLE SMS MESSAGES',
@@ -315,10 +322,10 @@ class _CodeBlock extends StatelessWidget {
               child: Text(
                 text,
                 style: TextStyle(
-                  color: Theme.of(context).primaryColor,
+                  color: isDark ? Colors.white : Theme.of(context).primaryColor,
                   fontFamily: 'monospace',
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

@@ -10,11 +10,11 @@ class DefaultActions {
   final bool lockDevice;
 
   const DefaultActions({
-    this.sendLocation = false,
+    this.sendLocation = true,
     this.startAlarm = false,
-    this.enableTracking = false,
+    this.enableTracking = true,
     this.stopAlarmOnTrigger = false,
-    this.lockDevice = false,
+    this.lockDevice = true,
   });
 
   DefaultActions copyWith({
@@ -43,10 +43,10 @@ class DefaultActions {
 
   factory DefaultActions.fromMap(Map<String, dynamic> map) => DefaultActions(
     sendLocation: map['sendLocation'] as bool? ?? true,
-    startAlarm: map['startAlarm'] as bool? ?? true,
-    enableTracking: map['enableTracking'] as bool? ?? false,
+    startAlarm: map['startAlarm'] as bool? ?? false,
+    enableTracking: map['enableTracking'] as bool? ?? true,
     stopAlarmOnTrigger: map['stopAlarmOnTrigger'] as bool? ?? false,
-    lockDevice: map['lockDevice'] as bool? ?? false,
+    lockDevice: map['lockDevice'] as bool? ?? true,
   );
 }
 

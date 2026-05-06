@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "425497703312-4ub5vfgspui839fceng2gg6n5ruqqi27.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kyvronix.phoneguard",
+            "certificate_hash": "a77d874aac4eb290c815199c32d7448ab81d92a7"
+          }
+        },
+        {
           "client_id": "425497703312-j4kqfunldufncui6ugq29gb4oet10aja.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

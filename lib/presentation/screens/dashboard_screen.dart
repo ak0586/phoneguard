@@ -124,8 +124,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                       _buildQuickActionsGrid(context, l10n, isDarkMode),
                       const SizedBox(height: 20),
                       const PermissionsCard(),
-                      const SizedBox(height: 20),
-                      const NativeAdWidget(),
+                      if (auth.profile?.isPremium != true) ...[
+                        const SizedBox(height: 20),
+                        const NativeAdWidget(),
+                      ],
                     ]),
                   ),
                 ),

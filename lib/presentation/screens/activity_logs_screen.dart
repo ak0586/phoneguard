@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/native_ad_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../domain/models/activity_log.dart';
@@ -32,18 +33,22 @@ class ActivityLogsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<AppProvider, AuthProvider>(
+        builder: (context, provider, auth, _) {
           final logs = provider.logs;
-          if (logs.isEmpty) return _buildEmptyState(context);
+          final isPremium = auth.profile?.isPremium ?? false;
 
-          // Build item list with ads interspersed
+          if (logs.isEmpty) return _buildEmptyState(context, isPremium);
+
+          // Build item list with ads interspersed ONLY for non-premium users
           final items = <dynamic>[];
           for (int i = 0; i < logs.length; i++) {
             items.add(logs[i]);
-            // Insert an ad after the 1st log and then every 5 logs
-            if (i == 0 || (i > 0 && (i + 1) % 5 == 0)) {
-              items.add('ad');
+            if (!isPremium) {
+              // Insert an ad after the 1st log and then every 5 logs
+              if (i == 0 || (i > 0 && (i + 1) % 5 == 0)) {
+                items.add('ad');
+              }
             }
           }
 
@@ -63,7 +68,7 @@ class ActivityLogsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, bool isPremium) {
     final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
@@ -85,11 +90,13 @@ class ActivityLogsScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
-          const SizedBox(height: 32),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
-            child: NativeAdWidget(templateType: TemplateType.medium),
-          ),
+          if (!isPremium) ...[
+            const SizedBox(height: 32),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: NativeAdWidget(templateType: TemplateType.medium),
+            ),
+          ],
         ],
       ),
     );

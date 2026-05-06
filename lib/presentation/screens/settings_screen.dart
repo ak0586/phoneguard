@@ -12,7 +12,6 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -22,9 +21,10 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<AppProvider, AuthProvider>(
+        builder: (context, provider, auth, _) {
           final settings = provider.settings;
+          final isPremium = auth.profile?.isPremium ?? false;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
@@ -179,8 +179,10 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const NativeAdWidget(templateType: TemplateType.medium),
-              const SizedBox(height: 40),
+              if (!isPremium) ...[
+                const NativeAdWidget(templateType: TemplateType.medium),
+                const SizedBox(height: 40),
+              ],
             ],
           );
         },
@@ -204,103 +206,69 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: isDarkMode ? null : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+        border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
       ),
       child: child,
     );
   }
 
-  void _confirmClearLogs(BuildContext context, AppProvider provider) {
+  Future<void> _confirmClearLogs(BuildContext context, AppProvider provider) async {
     final l10n = AppLocalizations.of(context)!;
-    showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: Text(l10n.clearLogsConfirm),
-        content: Text(l10n.clearLocalLogsDesc),
+        content: Text(l10n.clearLogsDesc),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel.toUpperCase())),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
-            onPressed: () {
-              provider.clearLogs();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.logsClearedMsg)));
-            },
-            child: Text(l10n.clear.toUpperCase(), style: const TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.clear, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+
+    if (confirmed == true) {
+      await provider.clearLogs();
+    }
   }
 
-  void _confirmDeactivation(BuildContext context, AppProvider provider) {
+  Future<void> _confirmDeactivation(BuildContext context, AppProvider provider) async {
     final l10n = AppLocalizations.of(context)!;
-    showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.deactivateProtection, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.deactivateWarning,
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Text(l10n.areYouSureProceed),
-          ],
-        ),
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deactivateProtection),
+        content: Text(l10n.deactivateWarning),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              provider.deactivateDeviceAdmin();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.deactivate.toUpperCase(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.deactivate, style: const TextStyle(color: Colors.red)),
           ),
         ],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
+
+    if (confirmed == true) {
+      provider.deactivateDeviceAdmin();
+    }
   }
+
   Future<bool> _showDisclosure(BuildContext context, String title, String content) async {
     final l10n = AppLocalizations.of(context)!;
     return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                const Icon(Icons.privacy_tip_outlined, color: Colors.blue),
-                const SizedBox(width: 10),
-                Expanded(child: Text(title)),
-              ],
-            ),
-            content: Text(
-              content,
-              style: const TextStyle(fontSize: 14),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text(l10n.iUnderstand.toUpperCase()),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.iUnderstand)),
+        ],
+      ),
+    ) ?? false;
   }
 }

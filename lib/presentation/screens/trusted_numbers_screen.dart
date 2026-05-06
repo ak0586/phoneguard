@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone_utils.dart';
 import '../../domain/models/trusted_number.dart';
@@ -28,12 +29,14 @@ class TrustedNumbersScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<AppProvider, AuthProvider>(
+        builder: (context, provider, auth, _) {
           final numbers = provider.trustedNumbers;
+          final isPremium = auth.profile?.isPremium ?? false;
+          
           return Column(
             children: [
-              const NativeAdWidget(templateType: TemplateType.small),
+              if (!isPremium) const NativeAdWidget(templateType: TemplateType.small),
               _buildHeader(context, numbers.length),
               if (numbers.isEmpty)
                 _buildEmptyState(context)

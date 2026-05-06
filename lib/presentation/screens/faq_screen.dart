@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../widgets/native_ad_widget.dart';
+import '../providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 
 class FaqScreen extends StatefulWidget {
@@ -23,6 +25,8 @@ class _FaqScreenState extends State<FaqScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final auth = Provider.of<AuthProvider>(context);
+    final isPremium = auth.profile?.isPremium ?? false;
     final isHi = l10n.localeName == 'hi';
 
     final allFaqs = _getFaqs(context, isHi);
@@ -48,7 +52,7 @@ class _FaqScreenState extends State<FaqScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_searchQuery.isEmpty) _buildSupportCard(context, l10n),
-                    if (_searchQuery.isEmpty) const NativeAdWidget(templateType: TemplateType.medium),
+                    if (_searchQuery.isEmpty && !isPremium) const NativeAdWidget(templateType: TemplateType.medium),
                     if (_searchQuery.isEmpty) const SizedBox(height: 32),
                     
                     if (filteredFaqs.isEmpty)
