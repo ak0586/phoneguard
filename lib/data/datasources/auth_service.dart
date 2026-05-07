@@ -251,6 +251,13 @@ class AuthService {
     });
   }
 
+  /// Delete a specific intrusion photo
+  Future<void> deleteIntrusionPhoto(String uid, Map<String, dynamic> photo) async {
+    await _usersCollection.doc(uid).update({
+      'intrusionPhotos': FieldValue.arrayRemove([photo]),
+    });
+  }
+
   /// Delete account with password re-authentication
   Future<void> deleteAccount(String password) async {
     final user = _auth.currentUser;

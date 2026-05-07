@@ -123,10 +123,16 @@ class IntrusionCameraService : LifecycleService() {
             }
 
             val baos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 40, baos)
+            val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Bitmap.CompressFormat.WEBP_LOSSY
+            } else {
+                @Suppress("DEPRECATION")
+                Bitmap.CompressFormat.WEBP
+            }
+            bitmap.compress(format, 60, baos)
             val imageBytes = baos.toByteArray()
             val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
-            val dataUrl = "data:image/jpeg;base64,$base64Image"
+            val dataUrl = "data:image/webp;base64,$base64Image"
 
             val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             val uid = prefs.getString("flutter.user_uid", null)
@@ -214,26 +220,45 @@ class IntrusionCameraService : LifecycleService() {
 
     private fun saveToFirestore(uid: String, photoUrl: String, lat: Double?, lng: Double?) {
         val db = FirebaseFirestore.getInstance()
-        val photoEntry = hashMapOf(
+        val userRef = db.collection("users").document(uid)
+        
+        val photoEntry = hashMapOf<String, Any?>(
             "url" to photoUrl,
             "timestamp" to com.google.firebase.Timestamp.now(),
             "latitude" to lat,
             "longitude" to lng
         )
 
-        // Using set with merge to ensure the document and field are created if they don't exist
-        db.collection("users").document(uid)
-            .set(mapOf("intrusionPhotos" to FieldValue.arrayUnion(photoEntry)), com.google.firebase.firestore.SetOptions.merge())
-            .addOnSuccessListener {
-                Log.d(TAG, "Firestore updated with new photo and location")
-                logActivityLocally("Security Camera", "Intrusion selfie captured", true)
-                stopSelf()
+        userRef.get().addOnSuccessListener { document ->
+            val existingPhotos = document.get("intrusionPhotos") as? MutableList<Map<String, Any?>> ?: mutableListOf()
+            
+            // Add new photo
+            existingPhotos.add(photoEntry)
+            
+            // Enforce limit of 5 photos (FIFO - oldest first)
+            val updatedPhotos = if (existingPhotos.size > 5) {
+                existingPhotos.takeLast(5)
+            } else {
+                existingPhotos
             }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Failed to update Firestore: ${e.message}")
-                logActivityLocally("Security Camera", "Photo capture failed: ${e.message}", false)
-                stopSelf()
-            }
+
+            userRef.update("intrusionPhotos", updatedPhotos)
+                .addOnSuccessListener {
+                    Log.d(TAG, "Firestore updated with new photo (Limit enforced: 5 max)")
+                    logActivityLocally("Security Camera", "Intrusion selfie captured", true)
+                    stopSelf()
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Failed to update Firestore: ${e.message}")
+                    logActivityLocally("Security Camera", "Photo capture failed: ${e.message}", false)
+                    stopSelf()
+                }
+        }.addOnFailureListener { e ->
+            Log.e(TAG, "Failed to fetch document to enforce limit: ${e.message}")
+            // Fallback: Just try to add it anyway if document fetch fails
+            userRef.set(mapOf("intrusionPhotos" to FieldValue.arrayUnion(photoEntry)), com.google.firebase.firestore.SetOptions.merge())
+                .addOnCompleteListener { stopSelf() }
+        }
     }
 
     private fun logActivityLocally(command: String, result: String, success: Boolean) {
