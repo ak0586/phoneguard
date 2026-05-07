@@ -15,6 +15,14 @@ class SubscriptionProvider extends ChangeNotifier {
   
   bool _isLoading = true;
   String? _errorMessage;
+  PurchaseDetails? _latestPurchase;
+
+  PurchaseDetails? get latestPurchase => _latestPurchase;
+
+  void clearLatestPurchase() {
+    _latestPurchase = null;
+    notifyListeners();
+  }
 
   SubscriptionProvider(this.authProvider) {
     _init();
@@ -27,6 +35,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   static const String monthlyId = 'pg_monthly_premium';
   static const String yearlyId = 'pg_yearly_premium';
+  static const String lifetimeId = 'pg_lifetime_premium';
 
   void _init() {
     final purchaseUpdated = _iap.purchaseStream;
@@ -48,14 +57,14 @@ class SubscriptionProvider extends ChangeNotifier {
     try {
       _isAvailable = await _iap.isAvailable();
       if (_isAvailable) {
-        const Set<String> kIds = {monthlyId, yearlyId};
+        const Set<String> kIds = {monthlyId, yearlyId, lifetimeId};
         final response = await _iap.queryProductDetails(kIds);
         
         if (response.error != null) {
           _errorMessage = response.error!.message;
         } else {
           _products = response.productDetails;
-          // Sort by price or ID
+          // Sort by price
           _products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice));
         }
       } else {
@@ -79,6 +88,9 @@ class SubscriptionProvider extends ChangeNotifier {
           _errorMessage = purchase.error?.message ?? 'Unknown purchase error';
         } else if (purchase.status == PurchaseStatus.purchased || purchase.status == PurchaseStatus.restored) {
           await _deliverEntitlement(purchase);
+          if (purchase.status == PurchaseStatus.purchased) {
+            _latestPurchase = purchase;
+          }
         }
 
         if (purchase.pendingCompletePurchase) {
@@ -94,12 +106,21 @@ class SubscriptionProvider extends ChangeNotifier {
     final uid = authProvider.user?.uid;
     if (uid == null) return;
 
-    final String tier = purchase.productID == yearlyId ? 'yearly' : 'monthly';
-    final int days = purchase.productID == yearlyId ? 365 : 30;
+    String tier = 'monthly';
+    DateTime expiry;
+
+    if (purchase.productID == lifetimeId) {
+      tier = 'lifetime';
+      expiry = DateTime.now().add(const Duration(days: 36500)); // 100 years
+    } else if (purchase.productID == yearlyId) {
+      tier = 'yearly';
+      expiry = DateTime.now().add(const Duration(days: 365));
+    } else {
+      tier = 'monthly';
+      expiry = DateTime.now().add(const Duration(days: 30));
+    }
 
     try {
-      final expiry = DateTime.now().add(Duration(days: days));
-      
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'subscriptionType': tier,
         'subscriptionStatus': 'active',

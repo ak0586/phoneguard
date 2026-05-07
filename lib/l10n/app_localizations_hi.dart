@@ -724,4 +724,52 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get iUnderstand => 'मैं समझता हूँ';
+
+  @override
+  String get paymentReceipt => 'भुगतान रसीद';
+
+  @override
+  String get paymentSuccessful => 'भुगतान सफल रहा';
+
+  @override
+  String get thankYouForUpgrade =>
+      'PhoneGuard Premium में अपग्रेड करने के लिए धन्यवाद। आपका डिवाइस अब पूरी तरह सुरक्षित है।';
+
+  @override
+  String get totalAmount => 'कुल राशि';
+
+  @override
+  String get orderId => 'ऑर्डर आईडी';
+
+  @override
+  String get plan => 'प्लान';
+
+  @override
+  String get date => 'दिनांक';
+
+  @override
+  String get account => 'अकाउंट';
+
+  @override
+  String get validUntil => 'वैधता';
+
+  @override
+  String get lifetime => 'आजीवन';
+
+  @override
+  String get receiptSupportInfo =>
+      'Google Play द्वारा एक पुष्टिकरण ईमेल भेजा गया है। कृपया भविष्य के किसी भी सहयोग के लिए अपनी ऑर्डर आईडी सुरक्षित रखें।';
+
+  @override
+  String get done => 'पूर्ण';
+
+  @override
+  String get deletePhotoConfirm => 'फोटो हटाएं?';
+
+  @override
+  String get deletePhotoDesc =>
+      'क्या आप वाकई इस घुसपैठ अलर्ट को हटाना चाहते हैं? यह कार्रवाई वापस नहीं ली जा सकती।';
+
+  @override
+  String get delete => 'हटाएं';
 }

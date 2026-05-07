@@ -222,5 +222,20 @@
   "locationDisclosureDesc": "PhoneGuard collects location data to enable device tracking and recovery features even when the app is closed or not in use.\n\nThis data is only used for recovery purposes and is sent securely to your private dashboard.",
   "cameraDisclosureTitle": "Security Camera Usage",
   "cameraDisclosureDesc": "PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works even when the screen is off to provide you with evidence of intrusion.",
-  "iUnderstand": "I UNDERSTAND"
+  "iUnderstand": "I UNDERSTAND",
+  "paymentReceipt": "Payment Receipt",
+  "paymentSuccessful": "Payment Successful",
+  "thankYouForUpgrade": "Thank you for upgrading to PhoneGuard Premium. Your device is now fully protected.",
+  "totalAmount": "Total Amount",
+  "orderId": "Order ID",
+  "plan": "Plan",
+  "date": "Date",
+  "account": "Account",
+  "validUntil": "Valid Until",
+  "lifetime": "Lifetime",
+  "receiptSupportInfo": "A confirmation email has been sent by Google Play. Please keep your Order ID for any future support.",
+  "done": "Done",
+  "deletePhotoConfirm": "Delete Photo?",
+  "deletePhotoDesc": "Are you sure you want to delete this intrusion alert? This action cannot be undone.",
+  "delete": "Delete"
 }

@@ -5,6 +5,7 @@ import '../providers/subscription_provider.dart';
 import '../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import 'subscription_receipt_screen.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -17,6 +18,36 @@ class SubscriptionScreen extends StatelessWidget {
     final isPremium = profile?.isPremium ?? false;
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Handle successful purchase and show receipt
+    if (subProvider.latestPurchase != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final purchase = subProvider.latestPurchase!;
+        final product = subProvider.products.firstWhere(
+          (p) => p.id == purchase.productID,
+          orElse: () => subProvider.products.first,
+        );
+        
+        final expiryDate = purchase.productID == SubscriptionProvider.lifetimeId
+            ? DateTime.now().add(const Duration(days: 36500))
+            : (purchase.productID == SubscriptionProvider.yearlyId
+                ? DateTime.now().add(const Duration(days: 365))
+                : DateTime.now().add(const Duration(days: 30)));
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SubscriptionReceiptScreen(
+              orderId: purchase.purchaseID ?? 'N/A',
+              productName: product.title.split('(').first.trim(),
+              amount: product.price,
+              purchaseDate: DateTime.now(),
+              expiryDate: expiryDate,
+              userEmail: authProvider.user?.email ?? 'N/A',
+            ),
+          ),
+        ).then((_) => subProvider.clearLatestPurchase());
+      });
+    }
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0A0A0F) : const Color(0xFFF8F9FE),
@@ -280,9 +311,15 @@ class SubscriptionScreen extends StatelessWidget {
       );
     }
 
-    // Sort products so yearly is first or has special treatment
+    // Custom order: Monthly -> Yearly -> Lifetime
     final sortedProducts = provider.products.toList();
-    sortedProducts.sort((a, b) => b.id.contains('yearly') ? 1 : -1);
+    int getOrder(String id) {
+      if (id.contains('monthly')) return 1;
+      if (id.contains('yearly')) return 2;
+      if (id.contains('lifetime')) return 3;
+      return 4;
+    }
+    sortedProducts.sort((a, b) => getOrder(a.id).compareTo(getOrder(b.id)));
 
     return Column(
       children: sortedProducts.map((product) {
@@ -392,132 +429,168 @@ class _SubscriptionOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLifetime = product.id.contains('lifetime');
+    final rawTitle = product.title.toLowerCase();
     
-    // Clean up the title - remove everything in parentheses
-    String cleanTitle = product.title.split('(').first.trim();
-    if (cleanTitle.toLowerCase().contains('monthly')) {
-      cleanTitle = 'Monthly Plan';
-    } else if (cleanTitle.toLowerCase().contains('yearly')) {
-      cleanTitle = 'Yearly Plan';
+    // Clean up the title
+    // Use the actual title from Play Console, but remove the app name suffix in parentheses
+    String cleanTitle = product.title;
+    if (product.title.contains('(')) {
+      // Usually "Plan Name (App Name)" - we want the Plan Name
+      final parts = product.title.split('(');
+      if (parts.length > 1) {
+        cleanTitle = parts[0].trim();
+      }
+    }
+    
+    IconData planIcon = Icons.calendar_month_rounded;
+    if (rawTitle.contains('monthly')) {
+      planIcon = Icons.calendar_today_rounded;
+    } else if (rawTitle.contains('yearly')) {
+      planIcon = Icons.event_available_rounded;
+    } else if (rawTitle.contains('lifetime')) {
+      planIcon = Icons.all_inclusive_rounded;
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        boxShadow: isYearly ? [
+        boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ] : [],
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          if (isYearly)
+            BoxShadow(
+              color: AppTheme.primary.withOpacity(0.15),
+              blurRadius: 25,
+              offset: const Offset(0, 8),
+            ),
+        ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: isDark ? const Color(0xFF1C1C26) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
-          child: Ink(
-            padding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isYearly 
-                  ? (isDark ? const Color(0xFF1A1A23) : Colors.white)
-                  : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isYearly ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black12),
-                width: isYearly ? 2.5 : 1,
+                color: isYearly 
+                    ? AppTheme.primary.withOpacity(0.3) 
+                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+                width: 1.5,
               ),
+              gradient: isYearly ? LinearGradient(
+                colors: isDark 
+                    ? [const Color(0xFF251A1A), const Color(0xFF1C1C26)]
+                    : [const Color(0xFFFFF5F5), Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ) : null,
             ),
             child: Row(
               children: [
+                // Icon Section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (isYearly || isLifetime) 
+                        ? AppTheme.primary.withOpacity(0.1) 
+                        : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    planIcon, 
+                    color: (isYearly || isLifetime) ? AppTheme.primary : Colors.grey,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Content Section
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isYearly) ...[
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                l10n.bestValue.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.success,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                '2 MONTHS FREE',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                      ],
                       Text(
                         cleanTitle,
-                        style: TextStyle(
+                        maxLines: 2,
+                        style: const TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          color: isYearly ? AppTheme.primary : Theme.of(context).colorScheme.onSurface,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (isYearly) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF43A047), // Solid Green
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '2 MONTHS FREE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
-                        isYearly ? l10n.billedAnnually : l10n.billedMonthly,
+                        isYearly 
+                            ? l10n.billedAnnually 
+                            : (product.id.contains('lifetime') 
+                                ? 'Pay Once, Own Forever' 
+                                : l10n.billedMonthly),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      if (isYearly) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '~${product.currencySymbol}${((product.rawPrice) / 12).round()}/month',
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
+                
+                // Price Section
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       product.price,
-                      style: TextStyle(
-                        fontSize: 26,
+                      style: const TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: isYearly ? AppTheme.primary : Theme.of(context).colorScheme.onSurface,
-                        letterSpacing: -1,
+                        color: AppTheme.primary,
                       ),
                     ),
-                    if (isYearly)
-                      Text(
-                        '~₹54/month', // Optional: Show monthly breakdown for yearly
-                        style: TextStyle(
-                          color: AppTheme.success.withOpacity(0.8),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                   ],
                 ),
               ],

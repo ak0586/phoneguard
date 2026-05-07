@@ -69,10 +69,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   elevation: 0,
                   type: BottomNavigationBarType.fixed,
                   selectedItemColor: primaryColor,
-                  unselectedItemColor: isDark ? Colors.white38 : Colors.black38,
-                  selectedFontSize: 10,
-                  unselectedFontSize: 10,
-                  showUnselectedLabels: false,
+                  unselectedItemColor: isDark ? const Color(0xFFCCCCCC) : Colors.black54,
+                  selectedFontSize: 12,
+                  unselectedFontSize: 11,
+                  showUnselectedLabels: true,
+                  selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5),
                   iconSize: 22,
                   items: [
                     BottomNavigationBarItem(

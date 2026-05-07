@@ -717,4 +717,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get iUnderstand => 'I UNDERSTAND';
+
+  @override
+  String get paymentReceipt => 'Payment Receipt';
+
+  @override
+  String get paymentSuccessful => 'Payment Successful';
+
+  @override
+  String get thankYouForUpgrade =>
+      'Thank you for upgrading to PhoneGuard Premium. Your device is now fully protected.';
+
+  @override
+  String get totalAmount => 'Total Amount';
+
+  @override
+  String get orderId => 'Order ID';
+
+  @override
+  String get plan => 'Plan';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get account => 'Account';
+
+  @override
+  String get validUntil => 'Valid Until';
+
+  @override
+  String get lifetime => 'Lifetime';
+
+  @override
+  String get receiptSupportInfo =>
+      'A confirmation email has been sent by Google Play. Please keep your Order ID for any future support.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get deletePhotoConfirm => 'Delete Photo?';
+
+  @override
+  String get deletePhotoDesc =>
+      'Are you sure you want to delete this intrusion alert? This action cannot be undone.';
+
+  @override
+  String get delete => 'Delete';
 }

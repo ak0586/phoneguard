@@ -177,12 +177,22 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
-        selectedItemColor: accent,
-        unselectedItemColor: Colors.white60,
-        selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        selectedItemColor: primary,
+        unselectedItemColor: Color(0xFFAAAAAB), // Brighter grey for unselected
+        selectedLabelStyle: TextStyle(
+          fontSize: 12, 
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 11, 
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+        selectedIconTheme: IconThemeData(size: 28, color: primary),
+        unselectedIconTheme: IconThemeData(size: 24, color: Color(0xFFAAAAAB)),
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
+        elevation: 12,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,

@@ -1411,6 +1411,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I UNDERSTAND'**
   String get iUnderstand;
+
+  /// No description provided for @paymentReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Receipt'**
+  String get paymentReceipt;
+
+  /// No description provided for @paymentSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Successful'**
+  String get paymentSuccessful;
+
+  /// No description provided for @thankYouForUpgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for upgrading to PhoneGuard Premium. Your device is now fully protected.'**
+  String get thankYouForUpgrade;
+
+  /// No description provided for @totalAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Amount'**
+  String get totalAmount;
+
+  /// No description provided for @orderId.
+  ///
+  /// In en, this message translates to:
+  /// **'Order ID'**
+  String get orderId;
+
+  /// No description provided for @plan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get plan;
+
+  /// No description provided for @date.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get date;
+
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @validUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid Until'**
+  String get validUntil;
+
+  /// No description provided for @lifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime'**
+  String get lifetime;
+
+  /// No description provided for @receiptSupportInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'A confirmation email has been sent by Google Play. Please keep your Order ID for any future support.'**
+  String get receiptSupportInfo;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @deletePhotoConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Photo?'**
+  String get deletePhotoConfirm;
+
+  /// No description provided for @deletePhotoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this intrusion alert? This action cannot be undone.'**
+  String get deletePhotoDesc;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
 }
 
 class _AppLocalizationsDelegate
