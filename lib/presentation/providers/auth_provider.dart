@@ -102,13 +102,20 @@ class AuthProvider extends ChangeNotifier {
             _cacheProfile(profile);
             
             _localDeviceId ??= await _getOrCreateDeviceId();
+            final currentModel = await _getDeviceModel();
             
+            // Conflict if ID mismatch AND Model mismatch
+            // (If ID is different but Model is same, it might be a reinstall, so we update ID)
             if (profile.currentDeviceId == null) {
               await setAsPrimaryDevice();
-            } else if (profile.currentDeviceId != _localDeviceId) {
+            } else if (profile.currentDeviceId != _localDeviceId && profile.deviceModel != currentModel) {
               _deviceConflict = true;
             } else {
               _deviceConflict = false;
+              // Silently update ID if model matches but ID changed (reinstall scenario)
+              if (profile.currentDeviceId != _localDeviceId) {
+                 _authService.updateUserProfile(profile.uid, {'currentDeviceId': _localDeviceId});
+              }
             }
 
             final p = await SharedPreferences.getInstance();
@@ -350,6 +357,18 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('local_device_id', id);
     }
     return id;
+  }
+
+  Future<String> _getDeviceModel() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      return '${androidInfo.manufacturer} ${androidInfo.model}';
+    } else if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.name;
+    }
+    return 'Unknown';
   }
 
   Future<void> extendProtection(int hours) async {

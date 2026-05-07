@@ -55,9 +55,9 @@ class PhoneUtils {
     'ZW': '+263',
   };
 
-  /// Normalizes a phone number by stripping spaces and dashes
+  /// Normalizes a phone number by stripping everything except digits and +
   static String normalize(String number) {
-    return number.replaceAll(RegExp(r'[\s\-()]'), '');
+    return number.replaceAll(RegExp(r'[^\d+]'), '');
   }
 
   /// Formats number with country code if missing

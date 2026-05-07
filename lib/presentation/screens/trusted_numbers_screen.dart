@@ -220,27 +220,57 @@ class TrustedNumbersScreen extends StatelessWidget {
     try {
       if (await Permission.contacts.request().isGranted) {
         final pickedId = await FlutterContacts.native.showPicker();
+        debugPrint('Picker: pickedId=$pickedId');
+
         if (pickedId != null) {
-          final fullContact = await FlutterContacts.get(pickedId);
-          if (fullContact != null && fullContact.phones.isNotEmpty) {
-            final phone = fullContact.phones.first.number;
-            final name = fullContact.displayName ?? 'Unknown';
-            
+          final contact = await FlutterContacts.get(
+            pickedId,
+            properties: {ContactProperty.phone, ContactProperty.name},
+          );
+          debugPrint('Picker: contact=$contact, phones=${contact?.phones}');
+
+          if (contact != null && contact.phones.isNotEmpty) {
+            final rawPhone = contact.phones.first.number;
+            final phone = PhoneUtils.normalize(rawPhone);
+            final name = (contact.displayName?.isNotEmpty ?? false) ? contact.displayName! : 'Unknown';
+            debugPrint('Picker: Raw=$rawPhone, Normalized=$phone, Name=$name');
+
             if (context.mounted) {
               final provider = context.read<AppProvider>();
               final messenger = ScaffoldMessenger.of(context);
+
               await provider.addTrustedNumber(name, phone);
-              messenger.showSnackBar(
-                SnackBar(content: Text('✓ Added $name')),
-              );
+
+              if (provider.errorMessage != null) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('✕ ${provider.errorMessage}'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+                provider.clearError();
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('✓ Added $name')),
+                );
+              }
             }
+          } else if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('✕ This contact has no phone number.')),
+            );
           }
         }
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✕ Contacts permission denied.')),
+        );
       }
     } catch (e) {
+      debugPrint('Picker Error: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not access contacts: $e')),
+          SnackBar(content: Text('✕ Error: $e')),
         );
       }
     }
@@ -501,17 +531,19 @@ class _NumberDialogState extends State<_NumberDialog> {
                   try {
                     if (await Permission.contacts.request().isGranted) {
                       final pickedId = await FlutterContacts.native.showPicker();
-                      if (pickedId != null) {
-                        final fullContact = await FlutterContacts.get(pickedId);
-                        if (!mounted) return;
-                        if (fullContact != null && fullContact.phones.isNotEmpty) {
-                          setState(() {
-                            _phoneCtrl.text = fullContact.phones.first.number;
-                            if (_labelCtrl.text.isEmpty) {
-                              _labelCtrl.text = fullContact.displayName ?? 'Unknown';
-                            }
-                          });
-                        }
+                      if (pickedId == null) return;
+                      final contact = await FlutterContacts.get(
+                        pickedId!,
+                        properties: {ContactProperty.phone, ContactProperty.name},
+                      );
+                      if (!mounted) return;
+                      if (contact != null && contact.phones.isNotEmpty) {
+                        setState(() {
+                          _phoneCtrl.text = PhoneUtils.normalize(contact.phones.first.number);
+                          if (_labelCtrl.text.isEmpty) {
+                            _labelCtrl.text = (contact.displayName?.isNotEmpty ?? false) ? contact.displayName! : 'Unknown';
+                          }
+                        });
                       }
                     }
                   } catch (e) {

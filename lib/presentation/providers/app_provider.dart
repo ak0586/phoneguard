@@ -173,8 +173,10 @@ class AppProvider extends ChangeNotifier {
   // ─── Trusted Numbers ─────────────────────────────────────────────────────
 
   Future<void> addTrustedNumber(String label, String phoneNumber) async {
+    debugPrint('AppProvider: Adding trusted number: $label ($phoneNumber)');
     if (!PhoneUtils.isValid(phoneNumber)) {
-      _errorMessage = 'Invalid phone number format';
+      debugPrint('AppProvider: Invalid number format detected: $phoneNumber');
+      _errorMessage = 'Invalid format: $phoneNumber';
       notifyListeners();
       return;
     }
@@ -190,7 +192,9 @@ class AppProvider extends ChangeNotifier {
       addedAt: DateTime.now(),
     );
     final updated = List<TrustedNumber>.from(trustedNumbers)..add(number);
+    debugPrint('AppProvider: List size before: ${trustedNumbers.length}, after: ${updated.length}');
     await updateSettings(_settings.copyWith(trustedNumbers: updated));
+    debugPrint('AppProvider: Settings updated. Current list size in provider: ${trustedNumbers.length}');
   }
 
   Future<void> updateTrustedNumber(TrustedNumber updated) async {
