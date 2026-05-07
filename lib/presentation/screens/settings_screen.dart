@@ -6,9 +6,33 @@ import '../widgets/native_ad_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
+import '../../domain/models/app_settings.dart';
+import '../../domain/models/trusted_number.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late TextEditingController _keywordController;
+  bool _isEditingKeyword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    _keywordController = TextEditingController(text: provider.settings.triggerKeyword);
+  }
+
+  @override
+  void dispose() {
+    _keywordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,10 +40,9 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: true,
-        title: Text(l10n.settingsTitle),
+        title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w900)),
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        centerTitle: true,
       ),
       body: Consumer2<AppProvider, AuthProvider>(
         builder: (context, provider, auth, _) {
@@ -27,145 +50,206 @@ class SettingsScreen extends StatelessWidget {
           final isPremium = auth.profile?.isPremium ?? false;
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
             children: [
-              _buildSectionHeader(l10n.securityIntrusion),
+              // ─── Trigger Keyword Section ──────────────────────────────────
+              _buildSectionHeader('TRIGGER KEYWORD'),
+              _buildSettingCard(
+                context,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'This word triggers all security actions via SMS',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _keywordController,
+                              enabled: _isEditingKeyword,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppTheme.primary),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                filled: true,
+                                fillColor: Theme.of(context).brightness == Brightness.dark 
+                                    ? Colors.white.withOpacity(0.05) 
+                                    : Colors.grey.withOpacity(0.05),
+                              ),
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: () {
+                              if (_isEditingKeyword) {
+                                provider.setTriggerKeyword(_keywordController.text);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Keyword Updated!'), behavior: SnackBarBehavior.floating),
+                                );
+                              }
+                              setState(() => _isEditingKeyword = !_isEditingKeyword);
+                            },
+                            icon: Icon(_isEditingKeyword ? Icons.check_rounded : Icons.edit_rounded),
+                            style: IconButton.styleFrom(
+                              backgroundColor: _isEditingKeyword ? Colors.green : AppTheme.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              // ─── Trusted Contacts Section ──────────────────────────────────
+              _buildSectionHeader('TRUSTED CONTACTS'),
               _buildSettingCard(
                 context,
                 child: Column(
                   children: [
-                    SwitchListTile(
-                      title: Text(l10n.intrusionSelfie),
-                      subtitle: Text(l10n.intrusionSelfieDesc),
-                      value: settings.intrusionSelfieEnabled,
-                      onChanged: (val) async {
-                        if (val) {
-                          final status = await Permission.camera.status;
-                          if (!status.isGranted) {
-                            final proceed = await _showDisclosure(
-                              context,
-                              l10n.cameraDisclosureTitle,
-                              l10n.cameraDisclosureDesc,
-                            );
-                            if (proceed) {
-                              final result = await Permission.camera.request();
-                              if (result.isGranted) {
-                                provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: true));
-                              }
-                            }
-                            return;
-                          }
-                        }
-                        provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val));
-                      },
-                      secondary: const Icon(Icons.camera_front_rounded, color: Colors.blue),
-                    ),
-                    const Divider(indent: 70),
-                    ListTile(
-                      leading: const Icon(Icons.pin_rounded, color: Colors.orange),
-                      title: Text(l10n.intrusionThreshold),
-                      subtitle: Text(l10n.failedAttempts(settings.intrusionThreshold)),
-                      trailing: DropdownButton<int>(
-                        value: settings.intrusionThreshold,
-                        underline: const SizedBox(),
-                        items: [1, 2, 3, 5].map((i) => DropdownMenuItem(value: i, child: Text(l10n.attemptsCount(i)))).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            provider.updateSettings(settings.copyWith(intrusionThreshold: val));
-                          }
-                        },
-                      ),
-                    ),
-                    const Divider(indent: 70),
-                    SwitchListTile(
-                      title: Text(l10n.simChangeAlert),
-                      subtitle: Text(l10n.simChangeAlertDesc),
-                      value: settings.simChangeAlertEnabled,
-                      onChanged: (val) => provider.updateSettings(settings.copyWith(simChangeAlertEnabled: val)),
-                      secondary: const Icon(Icons.sd_card_alert_rounded, color: Colors.redAccent),
-                    ),
-                    const Divider(indent: 70),
+                    if (provider.trustedNumbers.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text('No trusted numbers added yet.', style: TextStyle(color: Colors.grey)),
+                      )
+                    else
+                      ...provider.trustedNumbers.take(2).map((n) => ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppTheme.primary.withOpacity(0.1),
+                              child: const Icon(Icons.person_rounded, color: AppTheme.primary, size: 20),
+                            ),
+                            title: Text(n.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text(n.phoneNumber),
+                          )),
+                    const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.people_alt_rounded, color: Colors.green),
-                      title: const Text('Trusted Numbers'),
-                      subtitle: Text(l10n.trustedNumbersSettingsDesc),
+                      title: const Text('Manage Trusted Numbers', style: TextStyle(fontWeight: FontWeight.bold)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => Navigator.pushNamed(context, '/trusted-numbers'),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
-              _buildSectionHeader(l10n.notifications),
+              // ─── Automatic Responses Section ────────────────────────────────
+              _buildSectionHeader('AUTOMATIC RESPONSES'),
               _buildSettingCard(
                 context,
                 child: Column(
                   children: [
-                    SwitchListTile(
-                      title: Text(l10n.silentBypass),
-                      subtitle: Text(l10n.silentBypassDesc),
-                      value: settings.silentBypassEnabled,
-                      onChanged: (val) => provider.updateSettings(settings.copyWith(silentBypassEnabled: val)),
-                      secondary: const Icon(Icons.volume_up_rounded, color: Colors.green),
+                    _buildToggleTile(
+                      icon: Icons.location_on_rounded,
+                      color: Colors.blue,
+                      title: 'Send GPS Location',
+                      value: settings.defaultActions.sendLocation,
+                      onChanged: (v) => provider.setDefaultActions(settings.defaultActions.copyWith(sendLocation: v)),
                     ),
                     const Divider(indent: 70),
+                    _buildToggleTile(
+                      icon: Icons.volume_up_rounded,
+                      color: AppTheme.primary,
+                      title: 'Start Loud Alarm',
+                      value: settings.defaultActions.startAlarm,
+                      onChanged: (v) => provider.setDefaultActions(settings.defaultActions.copyWith(startAlarm: v)),
+                    ),
+                    const Divider(indent: 70),
+                    _buildToggleTile(
+                      icon: Icons.track_changes_rounded,
+                      color: Colors.green,
+                      title: 'Live Tracking',
+                      subtitle: 'Sends GPS every 3 mins',
+                      value: settings.defaultActions.enableTracking,
+                      onChanged: (v) async {
+                        if (v) {
+                          final loc = await Permission.location.request();
+                          final sms = await Permission.sms.request();
+                          if (!loc.isGranted || !sms.isGranted) return;
+                        }
+                        provider.setDefaultActions(settings.defaultActions.copyWith(enableTracking: v));
+                      },
+                    ),
+                    const Divider(indent: 70),
+                    _buildToggleTile(
+                      icon: Icons.lock_rounded,
+                      color: Colors.orange,
+                      title: 'Lock Device Screen',
+                      value: settings.defaultActions.lockDevice,
+                      onChanged: (v) async {
+                        if (v && !provider.isDeviceAdminActive) {
+                          await provider.requestDeviceAdmin();
+                          if (!provider.isDeviceAdminActive) return;
+                        }
+                        provider.setDefaultActions(settings.defaultActions.copyWith(lockDevice: v));
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              // ─── Advanced Protection Section ───────────────────────────────
+              _buildSectionHeader('ADVANCED PROTECTION'),
+              _buildSettingCard(
+                context,
+                child: Column(
+                  children: [
+                    _buildToggleTile(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      color: provider.isNotificationListenerEnabled ? Colors.green : Colors.blueGrey,
+                      title: 'RCS / Chat Protection',
+                      subtitle: provider.isNotificationListenerEnabled ? 'Active' : 'Enable to process WhatsApp/RCS',
+                      value: provider.isNotificationListenerEnabled,
+                      onChanged: (val) => provider.openNotificationListenerSettings(),
+                    ),
+                    const Divider(indent: 70),
+                    _buildToggleTile(
+                      icon: Icons.camera_front_rounded,
+                      color: Colors.indigo,
+                      title: l10n.intrusionSelfie,
+                      subtitle: l10n.intrusionSelfieDesc,
+                      value: settings.intrusionSelfieEnabled,
+                      onChanged: (val) async {
+                        if (val) {
+                          final status = await Permission.camera.request();
+                          if (!status.isGranted) return;
+                        }
+                        provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val));
+                      },
+                    ),
+                    const Divider(indent: 70),
+                    _buildToggleTile(
+                      icon: Icons.sd_card_alert_rounded,
+                      color: Colors.redAccent,
+                      title: l10n.simChangeAlert,
+                      value: settings.simChangeAlertEnabled,
+                      onChanged: (val) => provider.updateSettings(settings.copyWith(simChangeAlertEnabled: val)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              // ─── Technical & System Section ───────────────────────────────
+              _buildSectionHeader('TECHNICAL & SYSTEM'),
+              _buildSettingCard(
+                context,
+                child: Column(
+                  children: [
                     ListTile(
                       leading: Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        color: provider.isNotificationListenerEnabled ? Colors.green : Colors.red,
+                        Icons.admin_panel_settings_rounded, 
+                        color: provider.isDeviceAdminActive ? Colors.green : Colors.red,
                       ),
-                      title: Text(l10n.chatProtectionTitle),
-                      subtitle: Text(
-                        provider.isNotificationListenerEnabled 
-                          ? l10n.chatActiveDesc
-                          : l10n.chatInactiveDesc,
-                      ),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => provider.openNotificationListenerSettings(),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader(l10n.privacyData),
-              _buildSettingCard(
-                context,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.security_rounded, color: Colors.teal),
-                      title: Text(l10n.appPermissionsTitle),
-                      subtitle: Text(l10n.appPermissionsDesc),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => provider.openAppInfo(),
-                    ),
-                    const Divider(indent: 70),
-                    ListTile(
-                      leading: const Icon(Icons.delete_sweep_rounded, color: Colors.grey),
-                      title: Text(l10n.clearLocalLogsTitle),
-                      subtitle: Text(l10n.clearLocalLogsDesc),
-                      onTap: () => _confirmClearLogs(context, provider),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader(l10n.technical),
-              _buildSettingCard(
-                context,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.battery_saver_rounded, color: Colors.amber),
-                      title: Text(l10n.batteryOptimizationTitle),
-                      subtitle: Text(l10n.batteryOptimizationDesc),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => provider.openBatteryOptimizationSettings(),
-                    ),
-                    const Divider(indent: 70),
-                    ListTile(
-                      leading: Icon(Icons.admin_panel_settings_rounded, color: provider.isDeviceAdminActive ? Colors.green : Colors.red),
-                      title: Text(l10n.deviceAdminTitle),
+                      title: Text(l10n.deviceAdminTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(provider.isDeviceAdminActive ? l10n.deviceAdminActive : l10n.deviceAdminInactive),
                       onTap: () {
                         if (provider.isDeviceAdminActive) {
@@ -175,9 +259,16 @@ class SettingsScreen extends StatelessWidget {
                         }
                       },
                     ),
+                    const Divider(indent: 70),
+                    ListTile(
+                      leading: const Icon(Icons.battery_saver_rounded, color: Colors.amber),
+                      title: Text(l10n.batteryOptimizationTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      onTap: () => provider.openBatteryOptimizationSettings(),
+                    ),
                   ],
                 ),
               ),
+              
               const SizedBox(height: 24),
               if (!isPremium) ...[
                 const NativeAdWidget(templateType: TemplateType.medium),
@@ -195,7 +286,12 @@ class SettingsScreen extends StatelessWidget {
       padding: const EdgeInsets.only(left: 8, bottom: 8),
       child: Text(
         title,
-        style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+        style: const TextStyle(
+          color: Colors.grey, 
+          fontSize: 11, 
+          fontWeight: FontWeight.w900, 
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
@@ -206,32 +302,36 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
+        border: Border.all(
+          color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+        ),
       ),
       child: child,
     );
   }
 
-  Future<void> _confirmClearLogs(BuildContext context, AppProvider provider) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.clearLogsConfirm),
-        content: Text(l10n.clearLogsDesc),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.clear, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
+  Widget _buildToggleTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12)) : null,
+      value: value,
+      onChanged: onChanged,
+      secondary: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
       ),
     );
-
-    if (confirmed == true) {
-      await provider.clearLogs();
-    }
   }
 
   Future<void> _confirmDeactivation(BuildContext context, AppProvider provider) async {
@@ -254,21 +354,5 @@ class SettingsScreen extends StatelessWidget {
     if (confirmed == true) {
       provider.deactivateDeviceAdmin();
     }
-  }
-
-  Future<bool> _showDisclosure(BuildContext context, String title, String content) async {
-    final l10n = AppLocalizations.of(context)!;
-    return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.iUnderstand)),
-        ],
-      ),
-    ) ?? false;
   }
 }

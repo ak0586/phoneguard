@@ -4,6 +4,7 @@ import '../widgets/native_ad_widget.dart';
 import '../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class FaqScreen extends StatefulWidget {
   const FaqScreen({super.key});
@@ -15,6 +16,22 @@ class FaqScreen extends StatefulWidget {
 class _FaqScreenState extends State<FaqScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${info.version}+${info.buildNumber}';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -77,7 +94,7 @@ class _FaqScreenState extends State<FaqScreen> {
                     const SizedBox(height: 40),
                     Center(
                       child: Text(
-                        'PhoneGuard v1.0.0',
+                        'PhoneGuard v$_appVersion',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                           fontSize: 12,

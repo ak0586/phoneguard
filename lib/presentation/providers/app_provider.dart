@@ -7,6 +7,7 @@ import '../../domain/models/trusted_number.dart';
 import '../../domain/models/activity_log.dart';
 import '../../domain/repositories/app_repository.dart';
 import '../../data/datasources/native_service.dart';
+import '../../data/datasources/auth_service.dart';
 import '../../core/utils/phone_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,6 +19,7 @@ enum AppState { idle, loading, error }
 class AppProvider extends ChangeNotifier {
   final AppRepository _repository;
   final NativeService _nativeService;
+  final AuthService _authService;
   final Uuid _uuid = const Uuid();
 
   AppSettings _settings = const AppSettings();
@@ -36,7 +38,7 @@ class AppProvider extends ChangeNotifier {
   bool _isNotificationListenerEnabled = false;
   bool _disposed = false;
 
-  AppProvider(this._repository, this._nativeService);
+  AppProvider(this._repository, this._nativeService, this._authService);
 
   // ─── Getters ─────────────────────────────────────────────────────────────
 
@@ -66,11 +68,31 @@ class AppProvider extends ChangeNotifier {
       await refreshActiveActions();
       await _checkNativeEvents(); // New: Check for SIM change/Shutdown
       await _checkVersionUpdate(); // New: Force update check
+      
+      // Sync Remote Logs if authenticated
+      await _syncRemoteLogsOnStart();
+
       _startPolling();
       _state = AppState.idle;
     } catch (e) {
       _state = AppState.error;
       _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  /// Clears all local state when user logs out
+  Future<void> reset() async {
+    _state = AppState.loading;
+    notifyListeners();
+    try {
+      _settings = const AppSettings();
+      _logs = [];
+      await _repository.saveSettings(_settings);
+      await _repository.clearLogs();
+      _state = AppState.idle;
+    } catch (e) {
+      _state = AppState.error;
     }
     notifyListeners();
   }
@@ -81,6 +103,37 @@ class AppProvider extends ChangeNotifier {
       const Duration(seconds: 5),
       (_) => refreshActiveActions(),
     );
+  }
+
+  Future<void> _syncRemoteLogsOnStart() async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+
+    try {
+      final remoteLogsData = await _authService.fetchRemoteLogs(user.uid);
+      if (remoteLogsData.isNotEmpty) {
+        final remoteLogs = remoteLogsData.map((m) => ActivityLog.fromMap(m)).toList();
+        
+        // Merge with local logs, avoiding duplicates by ID
+        final localIds = _logs.map((l) => l.id).toSet();
+        bool changed = false;
+        
+        for (var log in remoteLogs) {
+          if (!localIds.contains(log.id)) {
+            _logs.add(log);
+            await _repository.addLog(log);
+            changed = true;
+          }
+        }
+        
+        if (changed) {
+          _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error syncing remote logs: $e');
+    }
   }
 
   @override
@@ -118,14 +171,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> syncTrustedNumbers(List<TrustedNumber> firestoreNumbers) async {
-    if (firestoreNumbers.isEmpty) return;
-    
     final localNumbers = _settings.trustedNumbers;
-    // Simple check: if local is empty, or there's a mismatch in IDs, sync them
     final localIds = localNumbers.map((n) => n.id).toSet();
     final firestoreIds = firestoreNumbers.map((n) => n.id).toSet();
     
-    if (localNumbers.isEmpty || !localIds.containsAll(firestoreIds) || !firestoreIds.containsAll(localIds)) {
+    // Sync if counts differ OR any ID mismatch
+    if (localNumbers.length != firestoreNumbers.length || !localIds.containsAll(firestoreIds) || !firestoreIds.containsAll(localIds)) {
       _settings = _settings.copyWith(trustedNumbers: firestoreNumbers);
       await _repository.saveSettings(_settings);
       notifyListeners();
@@ -141,15 +192,16 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> syncTriggerKeyword(String keyword) async {
-    if (keyword.isEmpty || keyword == _settings.triggerKeyword) return;
+    if (keyword == _settings.triggerKeyword) return;
     _settings = _settings.copyWith(triggerKeyword: keyword);
     await _repository.saveSettings(_settings);
     notifyListeners();
   }
 
+  // PIN feature is now deprecated and disabled to simplify UX
   Future<void> setPinEnabled(bool enabled, {String? pin}) async {
     await updateSettings(
-      _settings.copyWith(isPinEnabled: enabled, pin: pin ?? _settings.pin),
+      _settings.copyWith(isPinEnabled: false),
     );
   }
 
@@ -233,18 +285,39 @@ class AppProvider extends ChangeNotifier {
     );
     await _repository.addLog(log);
     _logs = await _repository.getLogs();
+    
+    // Upload to Firestore if authenticated
+    final user = _authService.currentUser;
+    if (user != null) {
+      _authService.uploadLog(user.uid, log.toMap()).catchError((e) => debugPrint('Error uploading log: $e'));
+    }
+    
     notifyListeners();
   }
 
   Future<void> removeLog(String id) async {
     await _repository.removeLog(id);
     _logs = await _repository.getLogs();
+    
+    // Remove from Firestore if authenticated
+    final user = _authService.currentUser;
+    if (user != null) {
+      _authService.deleteRemoteLog(user.uid, id).catchError((e) => debugPrint('Error deleting remote log: $e'));
+    }
+    
     notifyListeners();
   }
 
   Future<void> clearLogs() async {
     await _repository.clearLogs();
     _logs = [];
+    
+    // Clear from Firestore if authenticated
+    final user = _authService.currentUser;
+    if (user != null) {
+      _authService.clearRemoteLogs(user.uid).catchError((e) => debugPrint('Error clearing remote logs: $e'));
+    }
+    
     notifyListeners();
   }
 
@@ -391,9 +464,21 @@ class AppProvider extends ChangeNotifier {
       }
       
       if (_logs.length != logs.length) {
+        // Find new logs that aren't uploaded yet
+        final oldIds = _logs.map((l) => l.id).toSet();
+        final newLogs = logs.where((l) => !oldIds.contains(l.id)).toList();
+        
         _logs = logs;
         _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         changed = true;
+        
+        // Upload new logs (likely from background service)
+        final user = _authService.currentUser;
+        if (user != null && newLogs.isNotEmpty) {
+          for (var log in newLogs) {
+            _authService.uploadLog(user.uid, log.toMap()).catchError((e) => debugPrint('Error uploading auto log: $e'));
+          }
+        }
       }
 
       if (changed) {

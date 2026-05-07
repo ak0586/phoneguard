@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dashboard_screen.dart';
 import 'activity_logs_screen.dart';
-import 'mandatory_setup_guide_screen.dart';
 import 'subscription_screen.dart';
-import 'settings_screen.dart';
+import 'command_guide_screen.dart';
 import '../widgets/app_drawer.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -19,13 +19,28 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${info.version}+${info.buildNumber}';
+      });
+    }
+  }
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const ActivityLogsScreen(),
-    const MandatorySetupGuideScreen(),
     const SubscriptionScreen(),
-    const SettingsScreen(),
+    const CommandGuideScreen(),
+    const ActivityLogsScreen(),
   ];
 
   @override
@@ -35,15 +50,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isHi = context.watch<AppProvider>().settings.languageCode == 'hi';
 
     return Scaffold(
-      drawer: const AppDrawer(
-        appVersion: '1.0.0+1',
-      ), // Match the version from dashboard
+      drawer: AppDrawer(
+        appVersion: _appVersion,
+      ),
       body: IndexedStack(index: _currentIndex, children: _screens),
-      extendBody:
-          true, // Allows the body to be seen through the floating nav bar
+      extendBody: true,
       bottomNavigationBar: SafeArea(
         child: Container(
-          height: 70, // Fixed height that fits standard bottom bars
+          height: 70,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 2),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
@@ -78,28 +92,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   iconSize: 22,
                   items: [
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.shield_rounded),
+                      icon: const Icon(Icons.home_rounded),
                       activeIcon: _GlowIcon(
-                        icon: Icons.shield_rounded,
+                        icon: Icons.home_rounded,
                         color: primaryColor,
                       ),
-                      label: isHi ? 'सुरक्षा' : 'Security',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.receipt_long_rounded),
-                      activeIcon: _GlowIcon(
-                        icon: Icons.receipt_long_rounded,
-                        color: primaryColor,
-                      ),
-                      label: isHi ? 'लॉग्स' : 'Logs',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.menu_book_rounded),
-                      activeIcon: _GlowIcon(
-                        icon: Icons.menu_book_rounded,
-                        color: primaryColor,
-                      ),
-                      label: isHi ? 'गाइड' : 'Guide',
+                      label: isHi ? 'होम' : 'Home',
                     ),
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.stars_rounded),
@@ -110,12 +108,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       label: isHi ? 'प्रीमियम' : 'Premium',
                     ),
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.settings_rounded),
+                      icon: const Icon(Icons.menu_book_rounded),
                       activeIcon: _GlowIcon(
-                        icon: Icons.settings_rounded,
+                        icon: Icons.menu_book_rounded,
                         color: primaryColor,
                       ),
-                      label: isHi ? 'सेटिंग्स' : 'Settings',
+                      label: isHi ? 'गाइड' : 'Guide',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.receipt_long_rounded),
+                      activeIcon: _GlowIcon(
+                        icon: Icons.receipt_long_rounded,
+                        color: primaryColor,
+                      ),
+                      label: isHi ? 'लॉग्स' : 'Logs',
                     ),
                   ],
                 ),

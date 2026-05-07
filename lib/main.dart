@@ -24,11 +24,9 @@ import 'presentation/screens/activity_logs_screen.dart';
 import 'presentation/screens/command_guide_screen.dart';
 import 'presentation/screens/faq_screen.dart';
 import 'presentation/screens/dashboard_screen.dart';
-import 'presentation/screens/default_actions_screen.dart';
 import 'presentation/screens/privacy_policy_screen.dart';
 import 'presentation/screens/profile_screen.dart';
 import 'presentation/screens/edit_profile_screen.dart';
-import 'presentation/screens/setup_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/trusted_numbers_screen.dart';
 import 'presentation/screens/settings_screen.dart';
@@ -74,10 +72,15 @@ void main() async {
           create: (_) => AuthProvider(authService),
         ),
         ChangeNotifierProxyProvider<AuthProvider, AppProvider>(
-          create: (_) => AppProvider(appRepository, nativeService)..init(),
+          create: (_) => AppProvider(appRepository, nativeService, authService)..init(),
           update: (_, auth, app) {
-            if (app == null) return AppProvider(appRepository, nativeService);
+            if (app == null) return AppProvider(appRepository, nativeService, authService);
             
+            // Reset if user logged out
+            if (!auth.isAuthenticated && app.trustedNumbers.isNotEmpty) {
+              app.reset();
+            }
+
             // Sync App -> Auth
             app.onTrustedNumbersChanged = (numbers) {
               if (auth.isAuthenticated) auth.updateTrustedNumbers(numbers);
@@ -89,10 +92,8 @@ void main() async {
             // Sync Auth -> App
             auth.onProfileChanged = (profile) {
               if (profile != null) {
-                if (profile.trustedNumbers.isNotEmpty) {
-                  app.syncTrustedNumbers(profile.trustedNumbers);
-                }
-                if (profile.triggerKeyword != null && profile.triggerKeyword!.isNotEmpty) {
+                app.syncTrustedNumbers(profile.trustedNumbers);
+                if (profile.triggerKeyword != null) {
                   app.syncTriggerKeyword(profile.triggerKeyword!);
                 }
               }
@@ -149,9 +150,7 @@ class LostPhoneApp extends StatelessWidget {
             '/dashboard': (context) => const MainNavigationScreen(),
             '/profile': (context) => const ProfileScreen(),
             '/edit-profile': (context) => const EditProfileScreen(),
-            '/setup': (context) => const SetupScreen(),
             '/trusted-numbers': (context) => const TrustedNumbersScreen(),
-            '/default-actions': (context) => const DefaultActionsScreen(),
             '/command-guide': (context) => const CommandGuideScreen(),
             '/activity-logs': (context) => const ActivityLogsScreen(),
             '/privacy-policy': (context) => const PrivacyPolicyScreen(),

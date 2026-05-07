@@ -92,10 +92,10 @@ class AppDrawer extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'PhoneGuard: Finder',
+                        'PhoneGuard: Lost Phone Finder',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
-                          fontSize: 20,
+                          fontSize: 18,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -112,6 +112,19 @@ class AppDrawer extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // MAIN MENU
+                _buildDrawerSectionTitle('MAIN MENU'),
+                _DrawerCardTile(
+                  icon: Icons.home_rounded,
+                  label: isHi ? 'होम' : 'Home',
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Since it's the first tab in the nav, we just pop the drawer
+                  },
+                ),
+                const SizedBox(height: 12),
 
                 // REMOTE ACCESS
                 _buildDrawerSectionTitle(l10n.remoteAccess),

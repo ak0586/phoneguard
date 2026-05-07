@@ -258,6 +258,41 @@ class AuthService {
     });
   }
 
+  // ─── Activity Logs ───────────────────────────────────────────────────────
+
+  /// Upload a single log to Firestore
+  Future<void> uploadLog(String uid, Map<String, dynamic> logData) async {
+    final logId = logData['id'] as String;
+    await _usersCollection.doc(uid).collection('activity_logs').doc(logId).set(logData);
+  }
+
+  /// Fetch latest logs from Firestore
+  Future<List<Map<String, dynamic>>> fetchRemoteLogs(String uid, {int limit = 50}) async {
+    final snapshot = await _usersCollection
+        .doc(uid)
+        .collection('activity_logs')
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .get();
+    
+    return snapshot.docs.map((doc) => doc.data()).toList();
+  }
+
+  /// Delete a single log from Firestore
+  Future<void> deleteRemoteLog(String uid, String logId) async {
+    await _usersCollection.doc(uid).collection('activity_logs').doc(logId).delete();
+  }
+
+  /// Clear all logs in Firestore
+  Future<void> clearRemoteLogs(String uid) async {
+    final logs = await _usersCollection.doc(uid).collection('activity_logs').get();
+    final batch = _firestore.batch();
+    for (var doc in logs.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   /// Delete account with password re-authentication
   Future<void> deleteAccount(String password) async {
     final user = _auth.currentUser;

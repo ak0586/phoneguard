@@ -68,7 +68,6 @@ class CommandGuideScreen extends StatelessWidget {
               const SizedBox(height: 12),
               ..._buildExamples(keyword).map((ex) => _ExampleCard(example: ex)),
               const SizedBox(height: 24),
-              _buildPinInfo(context, keyword),
               const SizedBox(height: 24),
             ],
           ),
@@ -146,10 +145,8 @@ class CommandGuideScreen extends StatelessWidget {
           const SizedBox(height: 8),
           _CodeBlock(text: '$keyword command'),
           const SizedBox(height: 8),
-          _CodeBlock(text: '$keyword PIN command'),
-          const SizedBox(height: 12),
           const Text(
-            'Separate trigger, PIN, and commands with spaces. Include PIN after the trigger if PIN security is enabled.',
+            'Simply send your trigger keyword followed by a command.',
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
@@ -157,39 +154,6 @@ class CommandGuideScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPinInfo(BuildContext context, String keyword) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.warning.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.lock_rounded, color: AppTheme.warning, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'PIN-Protected Commands',
-                style: TextStyle(
-                  color: AppTheme.warning,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'When PIN is enabled, the PIN must come immediately after the trigger keyword:\n\n$keyword 4821 location \n\nIf the PIN is missing or wrong, the command is silently ignored.',
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
 
   static final _commands = [
     _Cmd(
@@ -256,11 +220,6 @@ class CommandGuideScreen extends StatelessWidget {
       title: 'All default actions',
       sms: keyword,
       actions: ['Runs all enabled default actions'],
-    ),
-    _Example(
-      title: 'With PIN enabled',
-      sms: '$keyword 4821 location',
-      actions: ['Verifies PIN 4821', 'Executes location command'],
     ),
   ];
 }

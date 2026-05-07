@@ -19,6 +19,7 @@ class IntrusionAlertsCard extends StatefulWidget {
 
 class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
   int _currentIndex = 0;
+  bool _isCollapsed = false;
 
   void _showLargeImage(BuildContext context, Map<String, dynamic> photo, String? userName) {
     final url = photo['url'] as String?;
@@ -176,100 +177,113 @@ class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
                                 ),
                           ),
                           Text(
-                            'Incident: $dateStr',
+                            _isCollapsed 
+                                ? '${photos.length} detections • Last: $dateStr'
+                                : 'Incident: $dateStr',
                             style: const TextStyle(fontSize: 11, color: Colors.grey),
                           ),
                         ],
                       ),
                     ),
+                    IconButton(
+                      icon: Icon(
+                        _isCollapsed ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                        color: Colors.grey,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _isCollapsed = !_isCollapsed),
+                      tooltip: _isCollapsed ? 'Show details' : 'Hide details',
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _showLargeImage(context, currentPhoto, userName),
-                      child: Container(
-                        width: double.infinity,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: url != null 
-                            ? (url.startsWith('data:image') 
-                                ? Image.memory(base64Decode(url.split(',').last), fit: BoxFit.cover)
-                                : Image.network(url, fit: BoxFit.cover))
-                            : Container(color: Colors.grey[300], child: const Icon(Icons.person, size: 50)),
-                        ),
-                      ),
-                    ),
-                    
-                    // Single Image Delete Button
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 20),
-                          onPressed: () => _confirmDelete(context, user.uid, currentPhoto),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          tooltip: 'Delete this photo',
+                if (!_isCollapsed) ...[
+                  const SizedBox(height: 16),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _showLargeImage(context, currentPhoto, userName),
+                        child: Container(
+                          width: double.infinity,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: url != null 
+                              ? (url.startsWith('data:image') 
+                                  ? Image.memory(base64Decode(url.split(',').last), fit: BoxFit.cover)
+                                  : Image.network(url, fit: BoxFit.cover))
+                              : Container(color: Colors.grey[300], child: const Icon(Icons.person, size: 50)),
+                          ),
                         ),
                       ),
-                    ),
-                    
-                    // Navigation Overlay
-                    if (photos.length > 1) ...[
+                      
+                      // Single Image Delete Button
                       Positioned(
-                        left: 8,
-                        child: _NavButton(
-                          icon: Icons.chevron_left_rounded,
-                          onPressed: _currentIndex < photos.length - 1 
-                            ? () => setState(() => _currentIndex++) 
-                            : null,
+                        top: 10,
+                        right: 10,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.white, size: 20),
+                            onPressed: () => _confirmDelete(context, user.uid, currentPhoto),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            tooltip: 'Delete this photo',
+                          ),
                         ),
                       ),
-                      Positioned(
-                        right: 8,
-                        child: _NavButton(
-                          icon: Icons.chevron_right_rounded,
-                          onPressed: _currentIndex > 0 
-                            ? () => setState(() => _currentIndex--) 
-                            : null,
+                      
+                      // Navigation Overlay
+                      if (photos.length > 1) ...[
+                        Positioned(
+                          left: 8,
+                          child: _NavButton(
+                            icon: Icons.chevron_left_rounded,
+                            onPressed: _currentIndex < photos.length - 1 
+                              ? () => setState(() => _currentIndex++) 
+                              : null,
+                          ),
                         ),
-                      ),
+                        Positioned(
+                          right: 8,
+                          child: _NavButton(
+                            icon: Icons.chevron_right_rounded,
+                            onPressed: _currentIndex > 0 
+                              ? () => setState(() => _currentIndex--) 
+                              : null,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(photos.length, (index) {
-                    return Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _currentIndex == index 
-                          ? AppTheme.error 
-                          : Colors.grey.withOpacity(0.3),
-                      ),
-                    );
-                  }),
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(photos.length, (index) {
+                      return Container(
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _currentIndex == index 
+                            ? AppTheme.error 
+                            : Colors.grey.withOpacity(0.3),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
               ],
             ),
           ),

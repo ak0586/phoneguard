@@ -92,9 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           // 1. Show global loader during initialization
           if (auth.isInitializing || app.state == AppState.loading) {
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -121,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const SizedBox(height: 20),
                       const DeviceAdminStatusCard(),
                       const SizedBox(height: 24),
-                      _buildQuickActionsGrid(context, l10n, isDarkMode),
+                      _buildSecurityHubCard(context, isDarkMode),
                       const SizedBox(height: 20),
                       const PermissionsCard(),
                       if (auth.profile?.isPremium != true) ...[
@@ -220,372 +218,59 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildQuickActionsGrid(
-    BuildContext context,
-    AppLocalizations l10n,
-    bool isDark,
-  ) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.1,
-      children: [
-        _buildActionCard(
-          context,
-          l10n.setupSecurity,
-          Icons.security_rounded,
-          Colors.blue,
-          () => Navigator.pushNamed(context, '/setup'),
-          isDark,
-        ),
-        _buildActionCard(
-          context,
-          l10n.trustedNumbers,
-          Icons.contacts_rounded,
-          Colors.green,
-          () => Navigator.pushNamed(context, '/trusted-numbers'),
-          isDark,
-        ),
-        _buildActionCard(
-          context,
-          l10n.defaultActions,
-          Icons.settings_suggest_rounded,
-          Colors.orange,
-          () => Navigator.pushNamed(context, '/default-actions'),
-          isDark,
-        ),
-        _buildActionCard(
-          context,
-          l10n.commandGuide,
-          Icons.menu_book_rounded,
-          Colors.purple,
-          () => Navigator.pushNamed(context, '/command-guide'),
-          isDark,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-    bool isDark,
-  ) {
+  Widget _buildSecurityHubCard(BuildContext context, bool isDark) {
     return InkWell(
-      onTap: onTap,
+      onTap: () => Navigator.pushNamed(context, '/settings'),
       borderRadius: BorderRadius.circular(24),
       child: Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
+          gradient: LinearGradient(
+            colors: isDark
+                ? [
+                    Colors.blue.shade900.withOpacity(0.4),
+                    Colors.indigo.shade900.withOpacity(0.4),
+                  ]
+                : [Colors.blue.shade50, Colors.indigo.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: color.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1.5),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: Colors.blue.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 28),
+              child: const Icon(
+                Icons.admin_panel_settings_rounded,
+                color: Colors.blue,
+                size: 32,
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer(
-    BuildContext context,
-    AppLocalizations l10n,
-    bool isDarkMode,
-  ) {
-    final auth = context.read<AuthProvider>();
-    final provider = context.read<AppProvider>();
-    final isDark = provider.settings.isDarkMode;
-    final isHi = provider.settings.languageCode == 'hi';
-
-    return Drawer(
-      width: MediaQuery.of(context).size.width * 0.8,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.05),
-                    border: Border(
-                      bottom: BorderSide(color: Colors.blue.withOpacity(0.1)),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'PhoneGuard: Finder',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const Text(
-                        'Premium Security Suite',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 1. REMOTE ACCESS
-                _buildDrawerSectionTitle('REMOTE ACCESS'),
-                _DrawerCardTile(
-                  icon: Icons.dashboard_rounded,
-                  label: 'Web Dashboard',
-                  color: Colors.indigo,
-                  onTap: () => _launchURL(
-                    'https://phoneguard-web-dashboard.vercel.app/',
-                  ),
-                  trailing: const Icon(
-                    Icons.open_in_new_rounded,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.indigo.withOpacity(0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'REMOTE CONTROL URL',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SelectableText(
-                          'phoneguard-web-dashboard.vercel.app',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDarkMode ? Colors.white70 : Colors.black87,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 2. SUPPORT
-                _buildDrawerSectionTitle('SUPPORT & HELP'),
-                _DrawerCardTile(
-                  icon: Icons.help_outline_rounded,
-                  label: 'Help & FAQ',
-                  color: const Color(0xFF4CAF50),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/faq');
-                  },
-                ),
-                _DrawerCardTile(
-                  icon: Icons.email_rounded,
-                  label: 'Contact Support',
-                  color: Colors.teal,
-                  onTap: () => _launchURL('mailto:support@kyvronix.com'),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 3. PREFERENCES
-                _buildDrawerSectionTitle('PREFERENCES'),
-                _DrawerCardTile(
-                  icon: isDark
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded,
-                  label: isDark ? 'Light Mode' : 'Dark Mode',
-                  color: Colors.orange,
-                  trailing: Switch(
-                    value: isDark,
-                    activeColor: Colors.orange,
-                    onChanged: (val) => provider.setThemeMode(isDark: val),
-                  ),
-                ),
-                _DrawerCardTile(
-                  icon: Icons.language_rounded,
-                  label: isHi ? 'English' : 'हिंदी (Hindi)',
-                  color: Colors.blueGrey,
-                  onTap: () => provider.setLanguageCode(isHi ? 'en' : 'hi'),
-                  trailing: const Icon(
-                    Icons.translate_rounded,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 4. LEGAL & ABOUT
-                _buildDrawerSectionTitle('ABOUT'),
-                _DrawerCardTile(
-                  icon: Icons.privacy_tip_rounded,
-                  label: l10n.privacyPolicy,
-                  color: const Color(0xFF2196F3),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/privacy-policy');
-                  },
-                ),
-                _DrawerCardTile(
-                  icon: Icons.share_rounded,
-                  label: 'Share App',
-                  color: Colors.pink,
-                  onTap: () => Share.share(
-                    'Protect your phone with PhoneGuard! Download now: https://phoneguard-web-dashboard.vercel.app/',
-                  ),
-                ),
-                _DrawerCardTile(
-                  icon: Icons.star_rounded,
-                  label: 'Rate & Review',
-                  color: Colors.amber,
-                  onTap: () => _launchURL(
-                    'https://play.google.com/store/apps/details?id=com.kyvronix.phoneguard',
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-            child: _DrawerCardTile(
-              icon: Icons.logout_rounded,
-              label: 'Logout',
-              color: Colors.redAccent,
-              onTap: () {
-                Navigator.pop(context);
-                _showLogoutDialog(context, auth);
-              },
-            ),
-          ),
-          SafeArea(
-            top: false,
-            bottom: false, // Allow it to sit lower
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 50),
+            const SizedBox(width: 16),
+            const Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'PhoneGuard v$_appVersion (Stable)',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    'Security Control Center (Settings)',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
-                    'Made with ❤️ by Kyvronix',
-                    style: TextStyle(
-                      color: Colors.grey.withOpacity(0.5),
-                      fontSize: 10,
-                    ),
+                    'Setup trigger keyword, trusted numbers & default actions',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawerSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Colors.grey.shade500,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
+            const Icon(Icons.chevron_right_rounded, color: Colors.blue),
+          ],
         ),
       ),
     );
@@ -611,7 +296,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
+            child: Text(
+              l10n.cancel.toUpperCase(),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -624,7 +312,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             },
             child: Text(
               l10n.logout.toUpperCase(),
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -717,11 +408,15 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            auth.profile?.deviceModel != null 
-              ? "Your account is currently protecting another device (${auth.profile!.deviceModel}).\n\nWould you like to switch protection to this device instead?"
-              : l10n.accountConflictDesc,
+            auth.profile?.deviceModel != null
+                ? "Your account is currently protecting another device (${auth.profile!.deviceModel}).\n\nWould you like to switch protection to this device instead?"
+                : l10n.accountConflictDesc,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 15, height: 1.5),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 15,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 48),
           ElevatedButton(
@@ -735,9 +430,19 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               elevation: 0,
             ),
-            child: auth.isLoading 
-              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('USE THIS DEVICE', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: auth.isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'USE THIS DEVICE',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -752,7 +457,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: TextButton.styleFrom(
               minimumSize: const Size(double.infinity, 56),
             ),
-            child: Text(l10n.logout.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: Text(
+              l10n.logout.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

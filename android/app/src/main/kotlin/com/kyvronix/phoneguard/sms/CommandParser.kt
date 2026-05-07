@@ -143,20 +143,8 @@ class CommandParser(private val context: Context) {
                 
                 val parts = remainder.split(Regex("\\s+")).filter { it.isNotEmpty() }
                 
-                var receivedPin = ""
-                if (isPinEnabled) {
-                    receivedPin = parts.getOrNull(0) ?: ""
-                    action = parts.getOrNull(1)?.lowercase() ?: "default"
-                } else {
-                    action = parts.getOrNull(0)?.lowercase() ?: "default"
-                }
-
-                if (isPinEnabled && action != "default" && action != "stop") {
-                    if (receivedPin != pin) {
-                        SmsSender.sendSmsWithSim(context, sender, "❌ Invalid PIN", subscriptionId)
-                        return CommandStatus.IGNORED
-                    }
-                }
+                // PIN feature removed to simplify user experience
+                action = parts.getOrNull(0)?.lowercase() ?: "default"
             }
 
             // 5. DEFAULT SETTINGS EXTRACTION
