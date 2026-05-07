@@ -177,10 +177,12 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
-        selectedItemColor: primary,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: accent,
+        unselectedItemColor: Colors.white60,
+        selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         type: BottomNavigationBarType.fixed,
-        elevation: 0,
+        elevation: 8,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,

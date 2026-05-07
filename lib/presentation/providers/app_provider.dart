@@ -449,7 +449,7 @@ class AppProvider extends ChangeNotifier {
       // 1. Fetch from Firestore (system_config/app_version)
       final doc = await FirebaseFirestore.instance.collection('system_config').doc('app_version').get();
       if (doc.exists) {
-        _minRequiredVersion = doc.data()?['min_required_version'] ?? '1.0.0';
+        _minRequiredVersion = doc.data()?['min_required_version'] ?? '1.0.5';
         _playStoreUrl = doc.data()?['play_store_url'] ?? _playStoreUrl;
       }
 
