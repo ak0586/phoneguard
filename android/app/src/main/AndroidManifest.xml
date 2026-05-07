@@ -133,8 +133,6 @@
                 android:value="recovery" />
         </service>
             
-        <service android:name=".security.PanicButtonDetector"
-            android:exported="false" />
             
         <service android:name="com.baseflow.geolocator.GeolocatorLocationService"
             android:enabled="true"

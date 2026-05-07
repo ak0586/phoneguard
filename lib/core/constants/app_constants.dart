@@ -8,8 +8,6 @@ class AppConstants {
   // SharedPreferences keys
   static const String keyTrustedNumbers = 'trusted_numbers';
   static const String keyTriggerKeyword = 'trigger_keyword';
-  static const String keyPin = 'pin';
-  static const String keyPinEnabled = 'pin_enabled';
   static const String keyStealthMode = 'stealth_mode';
   static const String keySecretDialCode = 'secret_dial_code';
   static const String keyActivityLogs = 'activity_logs';
@@ -25,8 +23,6 @@ class AppConstants {
   // Platform channel methods
   static const String methodStartAlarm = 'startAlarm';
   static const String methodStopAlarm = 'stopAlarm';
-  static const String methodAddLog = 'addLog';
-  static const String methodGetLogs = 'getLogs';
   static const String methodRequestDeviceAdmin = 'requestDeviceAdmin';
   static const String methodDeactivateDeviceAdmin = 'deactivateDeviceAdmin';
   static const String methodIsDeviceAdminActive = 'isDeviceAdminActive';
