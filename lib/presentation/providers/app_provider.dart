@@ -11,6 +11,7 @@ import '../../data/datasources/auth_service.dart';
 import '../../core/utils/phone_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 enum AppState { idle, loading, error }
 
@@ -36,9 +37,49 @@ class AppProvider extends ChangeNotifier {
   void Function(List<TrustedNumber>)? onTrustedNumbersChanged;
   void Function(String)? onTriggerKeywordChanged;
   bool _isNotificationListenerEnabled = false;
+  bool _isIntrusionCardCollapsed = false;
+  bool _isPermissionsCardCollapsed = false;
+  bool _sessionUpsellShown = false;
   bool _disposed = false;
+  
+  // Rating logic state
+  int _sessionCount = 0;
+  int _actionCount = 0;
+  bool _hasRated = false;
+  DateTime? _lastRatingRequest;
 
   AppProvider(this._repository, this._nativeService, this._authService);
+
+  void setIntrusionCardCollapsed(bool collapsed) {
+    _isIntrusionCardCollapsed = collapsed;
+    notifyListeners();
+  }
+
+  void setSessionUpsellShown(bool shown) {
+    _sessionUpsellShown = shown;
+    notifyListeners();
+  }
+
+  Future<bool> canShowAdPaywallToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastShown = prefs.getString('last_ad_paywall_date') ?? '';
+    final today = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD
+    return lastShown != today;
+  }
+
+  Future<void> markAdPaywallShownToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    await prefs.setString('last_ad_paywall_date', today);
+    notifyListeners();
+  }
+
+  void setPermissionsCardCollapsed(bool collapsed) {
+    _isPermissionsCardCollapsed = collapsed;
+    notifyListeners();
+  }
+
+  // ─── Actions ─────────────────────────────────────────────────────────────
 
   // ─── Getters ─────────────────────────────────────────────────────────────
 
@@ -53,6 +94,9 @@ class AppProvider extends ChangeNotifier {
   bool get isUpdateRequired => _isUpdateRequired;
   String get playStoreUrl => _playStoreUrl;
   bool get isNotificationListenerEnabled => _isNotificationListenerEnabled;
+  bool get isIntrusionCardCollapsed => _isIntrusionCardCollapsed;
+  bool get isPermissionsCardCollapsed => _isPermissionsCardCollapsed;
+  bool get sessionUpsellShown => _sessionUpsellShown;
   bool get isProtectionActive => trustedNumbers.isNotEmpty;
   DefaultActions get defaultActions => _settings.defaultActions;
 
@@ -71,6 +115,9 @@ class AppProvider extends ChangeNotifier {
       
       // Sync Remote Logs if authenticated
       await _syncRemoteLogsOnStart();
+      
+      // Load and increment session count
+      await _initRatingLogic();
 
       _startPolling();
       _state = AppState.idle;
@@ -247,6 +294,9 @@ class AppProvider extends ChangeNotifier {
     debugPrint('AppProvider: List size before: ${trustedNumbers.length}, after: ${updated.length}');
     await updateSettings(_settings.copyWith(trustedNumbers: updated));
     debugPrint('AppProvider: Settings updated. Current list size in provider: ${trustedNumbers.length}');
+    
+    // Increment action count for rating logic
+    await incrementActionCount();
   }
 
   Future<void> updateTrustedNumber(TrustedNumber updated) async {
@@ -290,6 +340,11 @@ class AppProvider extends ChangeNotifier {
     final user = _authService.currentUser;
     if (user != null) {
       _authService.uploadLog(user.uid, log.toMap()).catchError((e) => debugPrint('Error uploading log: $e'));
+    }
+
+    // Increment action count for rating logic (only for successful security commands)
+    if (success && command != 'System') {
+      await incrementActionCount();
     }
     
     notifyListeners();
@@ -547,6 +602,62 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error checking version: $e');
+    }
+  }
+
+  Future<void> _initRatingLogic() async {
+    final prefs = await SharedPreferences.getInstance();
+    _sessionCount = prefs.getInt('rating_session_count') ?? 0;
+    _actionCount = prefs.getInt('rating_action_count') ?? 0;
+    _hasRated = prefs.getBool('rating_has_rated') ?? false;
+    final lastReq = prefs.getString('rating_last_request_date');
+    if (lastReq != null) _lastRatingRequest = DateTime.tryParse(lastReq);
+
+    // Increment session count
+    _sessionCount++;
+    await prefs.setInt('rating_session_count', _sessionCount);
+    notifyListeners();
+  }
+
+  Future<void> incrementActionCount() async {
+    _actionCount++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('rating_action_count', _actionCount);
+    notifyListeners();
+  }
+
+  Future<void> markRated() async {
+    _hasRated = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('rating_has_rated', true);
+    notifyListeners();
+  }
+
+  Future<void> markRatingRequested() async {
+    _lastRatingRequest = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('rating_last_request_date', _lastRatingRequest!.toIso8601String());
+    notifyListeners();
+  }
+
+  bool canShowRatingDialog() {
+    if (_hasRated) return false;
+    
+    // Cooldown check (7 days)
+    if (_lastRatingRequest != null) {
+      final daysSinceLast = DateTime.now().difference(_lastRatingRequest!).inDays;
+      if (daysSinceLast < 7) return false;
+    }
+
+    // Qualification check: 5 sessions AND 3 successful actions
+    return _sessionCount >= 5 && _actionCount >= 3;
+  }
+
+  Future<void> requestReview() async {
+    final InAppReview inAppReview = InAppReview.instance;
+    if (await inAppReview.isAvailable()) {
+      await inAppReview.requestReview();
+      await markRated();
     }
   }
 

@@ -34,8 +34,9 @@ import 'presentation/screens/mandatory_setup_guide_screen.dart';
 import 'presentation/widgets/app_lock_wrapper.dart';
 import 'data/datasources/ad_service.dart';
 import 'presentation/providers/subscription_provider.dart';
-import 'presentation/screens/subscription_screen.dart';
+import 'presentation/screens/paywall_screen.dart';
 import 'presentation/screens/main_navigation_screen.dart';
+import 'presentation/screens/app_features_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -156,8 +157,9 @@ class LostPhoneApp extends StatelessWidget {
             '/privacy-policy': (context) => const PrivacyPolicyScreen(),
             '/faq': (context) => const FaqScreen(),
             '/settings': (context) => const SettingsScreen(),
-            '/subscription': (context) => const SubscriptionScreen(),
+            '/subscription': (context) => const PaywallScreen(),
             '/setup-guide': (context) => const MandatorySetupGuideScreen(),
+            '/features': (context) => const AppFeaturesScreen(),
           },
           debugShowCheckedModeBanner: false,
         );

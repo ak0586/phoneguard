@@ -183,76 +183,111 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
                 ),
               ),
               if (_statuses.values.every((s) => s.isGranted))
-                const Icon(Icons.verified_user_rounded, color: Colors.green, size: 16),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_user_rounded, color: Colors.green, size: 16),
+                    const SizedBox(width: 8),
+                    Consumer<AppProvider>(
+                      builder: (context, provider, _) {
+                        return IconButton(
+                          onPressed: () => provider.setPermissionsCardCollapsed(!provider.isPermissionsCardCollapsed),
+                          icon: Icon(
+                            provider.isPermissionsCardCollapsed ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
             ],
           ),
-          const SizedBox(height: 16),
-          _permRow(
-            Permission.sms,
-            Icons.sms_rounded,
-            l10n.smsAccess,
-            l10n.smsAccessDesc,
-          ),
-          _permRow(
-            Permission.location,
-            Icons.location_on_rounded,
-            l10n.locationAccessTitle,
-            l10n.locationAccessSubtitle,
-          ),
-          _permRow(
-            Permission.phone,
-            Icons.phone_android_rounded,
-            l10n.phoneState,
-            l10n.phoneStateDesc,
-          ),
-          _permRow(
-            Permission.camera,
-            Icons.camera_alt_rounded,
-            l10n.cameraAccess,
-            l10n.cameraAccessDesc,
-          ),
-          _permRow(
-            Permission.contacts,
-            Icons.contacts_rounded,
-            l10n.contactsAccess,
-            l10n.contactsAccessDesc,
-          ),
-          const SizedBox(height: 16),
           Consumer<AppProvider>(
             builder: (context, provider, _) {
-              final allGranted = _statuses.values.isNotEmpty && _statuses.values.every((s) => s.isGranted);
-              final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-              
-              return AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
-                opacity: allGranted ? 0.5 : 1.0,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: (_requesting || allGranted) ? null : _requestAll,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      disabledForegroundColor: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+              final isCollapsed = provider.isPermissionsCardCollapsed && _statuses.values.every((s) => s.isGranted);
+              return AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    _permRow(
+                      Permission.sms,
+                      Icons.sms_rounded,
+                      l10n.smsAccess,
+                      l10n.smsAccessDesc,
                     ),
-                    icon: _requesting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            allGranted ? Icons.verified_rounded : Icons.lock_open_rounded,
-                            size: 18,
+                    _permRow(
+                      Permission.location,
+                      Icons.location_on_rounded,
+                      l10n.locationAccessTitle,
+                      l10n.locationAccessSubtitle,
+                    ),
+                    _permRow(
+                      Permission.phone,
+                      Icons.phone_android_rounded,
+                      l10n.phoneState,
+                      l10n.phoneStateDesc,
+                    ),
+                    _permRow(
+                      Permission.camera,
+                      Icons.camera_alt_rounded,
+                      l10n.cameraAccess,
+                      l10n.cameraAccessDesc,
+                    ),
+                    _permRow(
+                      Permission.contacts,
+                      Icons.contacts_rounded,
+                      l10n.contactsAccess,
+                      l10n.contactsAccessDesc,
+                    ),
+                    const SizedBox(height: 16),
+                    Consumer<AppProvider>(
+                      builder: (context, provider, _) {
+                        final allGranted = _statuses.values.isNotEmpty && _statuses.values.every((s) => s.isGranted);
+                        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                        
+                        return AnimatedOpacity(
+                          duration: const Duration(milliseconds: 300),
+                          opacity: allGranted ? 0.5 : 1.0,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: (_requesting || allGranted) ? null : _requestAll,
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                disabledForegroundColor: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                              ),
+                              icon: _requesting
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : Icon(
+                                      allGranted ? Icons.verified_rounded : Icons.lock_open_rounded,
+                                      size: 18,
+                                    ),
+                              label: Text(
+                                _requesting 
+                                    ? l10n.checking 
+                                    : (allGranted ? l10n.allPermsGranted : l10n.checkGrantPerms),
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
                           ),
-                    label: Text(
-                      _requesting 
-                          ? l10n.checking 
-                          : (allGranted ? l10n.allPermsGranted : l10n.checkGrantPerms),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                        );
+                      },
                     ),
-                  ),
+                  ],
                 ),
+                crossFadeState: isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                duration: const Duration(milliseconds: 300),
               );
             },
           ),

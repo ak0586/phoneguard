@@ -6,9 +6,10 @@ import '../providers/auth_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dashboard_screen.dart';
 import 'activity_logs_screen.dart';
-import 'subscription_screen.dart';
+import 'paywall_screen.dart';
 import 'command_guide_screen.dart';
 import '../widgets/app_drawer.dart';
+import '../../core/theme/app_theme.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -38,7 +39,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const SubscriptionScreen(),
+    const PaywallScreen(showCloseButton: false),
     const CommandGuideScreen(),
     const ActivityLogsScreen(),
   ];
@@ -82,7 +83,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   type: BottomNavigationBarType.fixed,
-                  selectedItemColor: primaryColor,
+                  selectedItemColor: AppTheme.success,
                   unselectedItemColor: isDark ? const Color(0xFFCCCCCC) : Colors.black54,
                   selectedFontSize: 12,
                   unselectedFontSize: 11,
@@ -95,7 +96,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       icon: const Icon(Icons.home_rounded),
                       activeIcon: _GlowIcon(
                         icon: Icons.home_rounded,
-                        color: primaryColor,
+                        color: AppTheme.success,
                       ),
                       label: isHi ? 'होम' : 'Home',
                     ),
@@ -111,7 +112,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       icon: const Icon(Icons.menu_book_rounded),
                       activeIcon: _GlowIcon(
                         icon: Icons.menu_book_rounded,
-                        color: primaryColor,
+                        color: AppTheme.success,
                       ),
                       label: isHi ? 'गाइड' : 'Guide',
                     ),
@@ -119,7 +120,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       icon: const Icon(Icons.receipt_long_rounded),
                       activeIcon: _GlowIcon(
                         icon: Icons.receipt_long_rounded,
-                        color: primaryColor,
+                        color: AppTheme.success,
                       ),
                       label: isHi ? 'लॉग्स' : 'Logs',
                     ),

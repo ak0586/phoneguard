@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/auth_provider.dart';
+import '../providers/app_provider.dart';
 import '../../data/datasources/auth_service.dart';
 import 'package:lost_phone_finder/core/theme/app_theme.dart';
 import 'package:share_plus/share_plus.dart';
@@ -17,9 +18,11 @@ class IntrusionAlertsCard extends StatefulWidget {
   State<IntrusionAlertsCard> createState() => _IntrusionAlertsCardState();
 }
 
-class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
+class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> with AutomaticKeepAliveClientMixin {
   int _currentIndex = 0;
-  bool _isCollapsed = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _showLargeImage(BuildContext context, Map<String, dynamic> photo, String? userName) {
     final url = photo['url'] as String?;
@@ -116,7 +119,9 @@ class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAlive
     final authProvider = Provider.of<AuthProvider>(context);
+    final appProvider = Provider.of<AppProvider>(context);
     final user = authProvider.user;
     final userName = authProvider.profile?.name;
 
@@ -177,7 +182,7 @@ class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
                                 ),
                           ),
                           Text(
-                            _isCollapsed 
+                            appProvider.isIntrusionCardCollapsed 
                                 ? '${photos.length} detections • Last: $dateStr'
                                 : 'Incident: $dateStr',
                             style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -187,16 +192,16 @@ class _IntrusionAlertsCardState extends State<IntrusionAlertsCard> {
                     ),
                     IconButton(
                       icon: Icon(
-                        _isCollapsed ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                        appProvider.isIntrusionCardCollapsed ? Icons.visibility_rounded : Icons.visibility_off_rounded,
                         color: Colors.grey,
                         size: 20,
                       ),
-                      onPressed: () => setState(() => _isCollapsed = !_isCollapsed),
-                      tooltip: _isCollapsed ? 'Show details' : 'Hide details',
+                      onPressed: () => appProvider.setIntrusionCardCollapsed(!appProvider.isIntrusionCardCollapsed),
+                      tooltip: appProvider.isIntrusionCardCollapsed ? 'Show details' : 'Hide details',
                     ),
                   ],
                 ),
-                if (!_isCollapsed) ...[
+                if (!appProvider.isIntrusionCardCollapsed) ...[
                   const SizedBox(height: 16),
                   Stack(
                     alignment: Alignment.center,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../../core/utils/phone_utils.dart';
 
@@ -19,6 +21,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _mobileController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  File? _profileImage;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 500,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
@@ -28,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _passwordController.text.trim(),
         _nameController.text.trim(),
         _mobileController.text.trim(),
+        profileImage: _profileImage,
       );
 
       if (!mounted) return;
@@ -87,30 +106,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Align(
                     alignment: Alignment.center,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00E5FF).withOpacity(0.3),
-                            blurRadius: 30,
-                            spreadRadius: 2,
-                          ),
-                          BoxShadow(
-                            color: const Color(0xFFD500F9).withOpacity(0.2),
-                            blurRadius: 40,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00E5FF).withOpacity(0.3),
+                              blurRadius: 30,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: _profileImage != null
+                              ? Image.file(_profileImage!, fit: BoxFit.cover)
+                              : Stack(
+                                  children: [
+                                    Center(
+                                      child: Icon(
+                                        Icons.person_add_rounded,
+                                        size: 40,
+                                        color: Colors.white.withOpacity(0.5),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      left: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        color: Colors.black54,
+                                        child: const Text(
+                                          'PICK',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                         ),
                       ),
                     ),

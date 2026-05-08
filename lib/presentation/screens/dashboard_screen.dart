@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,6 +16,8 @@ import 'package:lost_phone_finder/presentation/widgets/native_ad_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' hide AppState;
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
 import 'package:lost_phone_finder/presentation/widgets/onboarding_popup.dart';
+import 'package:lost_phone_finder/presentation/screens/paywall_screen.dart';
+import 'package:lost_phone_finder/presentation/widgets/rating_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -41,6 +44,26 @@ class _DashboardScreenState extends State<DashboardScreen>
       // Show onboarding if not done
       if (!appProvider.settings.onboardingDone) {
         OnboardingPopup.show(context);
+      } else {
+        // Show subscription upsell if non-premium and not shown this session
+        final authProvider = context.read<AuthProvider>();
+        if (authProvider.profile?.isPremium != true && !appProvider.sessionUpsellShown) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const PaywallScreen()),
+              );
+              appProvider.setSessionUpsellShown(true);
+            }
+          });
+        } else {
+          // Check for rating dialog if upsell not shown
+          Future.delayed(const Duration(seconds: 8), () {
+            if (mounted && appProvider.canShowRatingDialog()) {
+              _showRatingDialog(context, appProvider);
+            }
+          });
+        }
       }
     });
   }
@@ -111,6 +134,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      if (auth.profile?.isPremium != true) ...[
+                        _buildPremiumBanner(context, isDarkMode),
+                        const SizedBox(height: 20),
+                      ],
                       const ProtectionStatusCard(),
                       const SizedBox(height: 20),
                       const ActiveActionsCard(),
@@ -121,6 +148,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const SizedBox(height: 24),
                       _buildSecurityHubCard(context, isDarkMode),
                       const SizedBox(height: 20),
+                      _buildWebDashboardCard(context, isDarkMode, l10n),
+                      const SizedBox(height: 24),
                       const PermissionsCard(),
                       if (auth.profile?.isPremium != true) ...[
                         const SizedBox(height: 20),
@@ -200,7 +229,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                   radius: 18,
                   backgroundColor: Colors.blue.withOpacity(0.1),
                   backgroundImage: auth.profile?.photoUrl != null
-                      ? NetworkImage(auth.profile!.photoUrl!)
+                      ? (auth.profile!.photoUrl!.startsWith('data:image')
+                          ? MemoryImage(base64Decode(auth.profile!.photoUrl!.split(',').last))
+                          : NetworkImage(auth.profile!.photoUrl!) as ImageProvider)
                       : null,
                   child: auth.profile?.photoUrl == null
                       ? const Icon(
@@ -215,6 +246,64 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWebDashboardCard(BuildContext context, bool isDark, AppLocalizations l10n) {
+    return InkWell(
+      onTap: () => _launchURL('https://phoneguard-web-dashboard.vercel.app/'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [
+                    Colors.indigo.shade900.withOpacity(0.4),
+                    Colors.purple.shade900.withOpacity(0.4),
+                  ]
+                : [Colors.indigo.shade50, Colors.purple.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.indigo.withOpacity(0.3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.dashboard_rounded,
+                color: Colors.indigo,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.webDashboard,
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Remote control your phone from any browser',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new_rounded, color: Colors.indigo, size: 20),
+          ],
+        ),
+      ),
     );
   }
 
@@ -258,7 +347,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Security Control Center (Settings)',
+                    'Security Control Center & Settings',
                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
                   ),
                   SizedBox(height: 4),
@@ -319,6 +408,84 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showRatingDialog(BuildContext context, AppProvider app) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RatingDialog(
+        onRateNow: () {
+          Navigator.pop(context);
+          app.requestReview();
+        },
+        onLater: () {
+          Navigator.pop(context);
+          app.markRatingRequested();
+        },
+      ),
+    );
+  }
+
+  Widget _buildPremiumBanner(BuildContext context, bool isDark) {
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const PaywallScreen()),
+      ),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.amber.shade700,
+              const Color(0xFF0D1B2A), // Midnight blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.stars_rounded, color: Colors.white, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upgrade to Lifetime Protection',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    'Zero Ads • Permanent Security • Web Dashboard',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 20),
+          ],
+        ),
       ),
     );
   }

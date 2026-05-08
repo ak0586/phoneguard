@@ -4,14 +4,33 @@
 
 ---
 
+## 🖼️ Visual Experience (Premium Features)
+
+<p align="center">
+  <img src="assets/readme_assets/feature_remote_location.png" width="24%" />
+  <img src="assets/readme_assets/feature_intruder_selfie.png" width="24%" />
+  <img src="assets/readme_assets/feature_remote_lock.png" width="24%" />
+  <img src="assets/readme_assets/feature_loud_alarm.png" width="24%" />
+</p>
+<p align="center">
+  <img src="assets/readme_assets/feature_sim_swap.png" width="24%" />
+  <img src="assets/readme_assets/feature_web_dashboard.png" width="24%" />
+  <img src="assets/readme_assets/feature_uninstall_protection.png" width="24%" />
+  <img src="assets/readme_assets/download_now_cta.png" width="24%" />
+</p>
+
+---
+
 ## 📋 Table of Contents
+- [Visual Experience](#-visual-experience-premium-features)
 - [Core Features](#-core-features)
+- [Intrusion Detection System](#-intrusion-detection-system-ids)
 - [SMS Remote Control](#-sms-remote-control--command-system)
-- [Smart Location Tracking](#-smart-location-tracking-3-tier-gps-fallback)
+- [Smart Location Tracking](#-smart-location-tracking--3-tier-gps-fallback)
 - [Native Background Security](#-native-background-security)
 - [Trusted Number Management](#-trusted-number-management)
 - [Protection & Subscription System](#-protection--subscription-system)
-- [Stealth Mode](#-stealth-mode)
+- [Intelligent Growth Engine](#-intelligent-growth-engine)
 - [Device Security](#-device-security)
 - [Dashboard & Activity Logs](#-dashboard--activity-logs)
 - [Architecture](#-architecture)
@@ -47,6 +66,23 @@ PhoneGuard doesn't just find your phone; it identifies the thief.
 - **Silent & Stealthy**: No camera animation or shutter sound on the device.
 - **Offline-First Sync**: Even without internet, the app saves the intruder's photo locally. As soon as the device connects to any network, the photo is automatically uploaded to your dashboard.
 
+### 🛠️ Technical Deep-Dive: Stealth Camera Capture
+The app uses a hidden native `TextureView` in a background service to silently capture the intruder without launching the UI.
+
+```kotlin
+// security/IntrusionCameraService.kt
+private fun takeSilentPhoto() {
+    val manager = getSystemService(CAMERA_SERVICE) as CameraManager
+    manager.openCamera(frontCameraId, object : CameraDevice.StateCallback() {
+        override fun onOpened(camera: CameraDevice) {
+            val captureRequest = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            captureRequest.addTarget(imageReader.surface)
+            cameraSession.capture(captureRequest.build(), null, null)
+        }
+    }, null)
+}
+```
+
 ### Evidence & Gallery
 - **Large Gallery View**: View intruder selfies in high definition on both the mobile app (with pinch-to-zoom) and the web dashboard.
 - **Location Metadata**: Every photo is tagged with the exact GPS coordinates and network IP at the time of the capture.
@@ -64,7 +100,7 @@ PhoneGuard listens for SMS commands **silently** in the background without any v
 
 ### Command Format
 ```
-<trigger_keyword> [pin] [action]
+<trigger_keyword> [action]
 ```
 
 ### Examples
@@ -76,11 +112,10 @@ PhoneGuard listens for SMS commands **silently** in the background without any v
 | `miss you phone stop` | Stops alarm and tracking |
 | `miss you phone lock` | Remotely locks the device |
 | `miss you phone tracking` | Starts live location tracking |
-| `miss you phone 1234 location` | PIN-protected location request |
+
 
 ### Security Layers
 - ✅ Only **Trusted Numbers** can trigger commands
-- ✅ Optional **PIN code** for extra verification
 - ✅ **Protection eligibility check** before every command (trial / ad / subscription)
 - ✅ **Dual-layer SMS detection** — works even when a messaging app is open and intercepts the broadcast
 
@@ -89,6 +124,23 @@ PhoneGuard uses **two independent systems** to detect incoming trigger messages:
 
 1. **`SmsReceiver` (Priority 1000)** — Standard Android broadcast receiver registered at maximum priority, fires first before any other app.
 2. **`ContentObserver` on `content://sms/inbox`** — Watches the SMS database directly at OS level. **Cannot be blocked by `abortBroadcast()`** from messaging apps. Activates automatically when the user has a chat open in their messaging app.
+
+### 🛠️ Technical Deep-Dive: Stealth SMS Interception
+We use a maximum priority receiver to intercept commands before they hit the user's inbox, hiding them from the thief.
+
+```kotlin
+// sms/SmsReceiver.kt
+@Receiver(priority = 1000)
+override fun onReceive(context: Context, intent: Intent) {
+    val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+    for (msg in messages) {
+        if (msg.messageBody.contains(triggerKeyword)) {
+            abortBroadcast() // Intercepts and hides the SMS from the default messaging app!
+            executeSecureCommand(msg.originatingAddress, msg.messageBody)
+        }
+    }
+}
+```
 
 ---
 
@@ -129,6 +181,28 @@ When a location is requested (via SMS trigger, on startup, or on shutdown), Phon
 │  Final: "📍 Location unavailable — GPS & Network   │
 │          both off"                                  │
 └─────────────────────────────────────────────────────┘
+```
+
+### 🛠️ Technical Deep-Dive: Location Fallback Logic
+This recursive strategy ensures a location is always retrieved, degrading gracefully if hardware sensors fail.
+
+```kotlin
+// location/LocationManager.kt
+fun getBestLocation(context: Context) {
+    // Tier 1: High Accuracy GPS
+    requestLocation(Priority.PRIORITY_HIGH_ACCURACY, timeout = 10s) { location ->
+        if (location != null) return@requestLocation sendSms(location)
+        
+        // Tier 2: Network / Cell Tower Fallback
+        requestLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, timeout = 8s) { netLoc ->
+            if (netLoc != null) return@requestLocation sendSms(netLoc)
+            
+            // Tier 3: OS Last Known Cache
+            val lastKnown = fusedLocationClient.lastLocation
+            sendSms(lastKnown ?: "Location Unavailable")
+        }
+    }
+}
 ```
 
 ### When Location is Sent
@@ -182,8 +256,8 @@ All critical security operations run **natively in Kotlin**, completely independ
 - Add numbers directly from the **phone's contact book** (with contact picker)
 - Add numbers **manually** via keyboard for numbers not in contacts
 - **Intelligent number matching** — handles all real-world phone number formats:
-  - `9760638280` ↔ `+919760638280` ✅
-  - `09165939300` ↔ `+919165939300` ✅
+  - `9879564620` ↔ `+919879564620` ✅
+  - `08980540438` ↔ `+918980540438` ✅
   - Local formats (e.g. `0XXXXXXXXXX`) ↔ International formats (`+CC XXXXXXXXXX`) ✅
   - Uses 4-strategy fuzzy matching: exact, suffix, adaptive-last-N, bidirectional suffix
 
@@ -194,13 +268,24 @@ All critical security operations run **natively in Kotlin**, completely independ
 | Plan | Duration | How |
 |------|----------|-----|
 | Free Trial | 3 days | Automatic on first login |
-| Ad-Extended | +8 hours per ad | Watch rewarded ad |
-| Premium (Monthly) | 30 days | In-app subscription |
-| Premium (Yearly) | 365 days | In-app subscription |
+| Ad-Extended | +4 hours per ad | Watch rewarded ad |
+| Premium (Monthly) | 30 days | In-app subscription via Google Play Billing |
+| Premium (Yearly) | 365 days | In-app subscription via Google Play Billing |
+| Premium (Lifetime) | Forever | One-time purchase via Google Play Billing |
 
 - **Live countdown timer** on dashboard — shows `HH:MM:SS` when less than 24 hours remain
 - Protection expiry is stored immediately to SharedPreferences so native background services always have the correct state
 - On expiry, SMS commands return: _"⚠️ PhoneGuard: Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands."_
+
+---
+
+## 📈 Intelligent Growth Engine
+
+PhoneGuard includes a smart **Review Prompt System** designed to maximize positive Play Store feedback by targeting engaged users at moments of high value.
+
+*   **Logic**: Prompts only appear after **5 successful sessions** AND **3 successful security actions** (e.g., successful remote location, alarm triggered, or ad-extension).
+*   **Cooldown**: Implements a strict 7-day cooldown if the user selects "Maybe Later" to prevent user fatigue.
+*   **Frictionless**: Uses the `in_app_review` package to allow rating the app seamlessly without leaving the interface.
 
 ---
 

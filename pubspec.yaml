@@ -2,7 +2,7 @@ name: lost_phone_finder
 description: "Lost Phone Recovery App - Remotely control your lost Android phone via secure SMS commands."
 publish_to: 'none'
 
-version: 1.0.6+7
+version: 1.2.0+8
 
 environment:
   sdk: ^3.10.4
@@ -52,6 +52,10 @@ dependencies:
   share_plus: ^13.1.0
   package_info_plus: ^10.1.0
   in_app_purchase: ^3.2.3
+  image_picker: ^1.2.2
+  firebase_storage: ^13.3.0
+  flutter_image_compress: ^2.4.0
+  in_app_review: ^2.0.11
 
 dev_dependencies:
   flutter_test:

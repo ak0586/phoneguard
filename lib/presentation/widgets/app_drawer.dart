@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_provider.dart';
@@ -59,6 +60,7 @@ class AppDrawer extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: [
                 DrawerHeader(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.05),
                     border: Border(
@@ -67,119 +69,118 @@ class AppDrawer extends StatelessWidget {
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              spreadRadius: 2,
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.blue.withOpacity(0.3), width: 2),
                             ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
+                            child: CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.blue.withOpacity(0.1),
+                              backgroundImage: auth.profile?.photoUrl != null
+                                  ? (auth.profile!.photoUrl!.startsWith('data:image')
+                                      ? MemoryImage(base64Decode(auth.profile!.photoUrl!.split(',').last))
+                                      : NetworkImage(auth.profile!.photoUrl!) as ImageProvider)
+                                  : null,
+                              child: auth.profile?.photoUrl == null
+                                  ? Text(
+                                      auth.user?.displayName?.isNotEmpty == true
+                                          ? auth.user!.displayName![0].toUpperCase()
+                                          : 'U',
+                                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                                    )
+                                  : null,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  auth.user?.displayName ?? 'User Name',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 18,
+                                    letterSpacing: -0.5,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  auth.user?.email ?? 'user@example.com',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'PhoneGuard: Lost Phone Finder',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: -0.5,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: auth.profile?.isPremium == true 
+                              ? Colors.amber.withOpacity(0.15)
+                              : Colors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: auth.profile?.isPremium == true 
+                                ? Colors.amber.withOpacity(0.4)
+                                : Colors.grey.withOpacity(0.2),
+                          ),
                         ),
-                      ),
-                      Text(
-                        l10n.premiumProtection,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              auth.profile?.isPremium == true ? Icons.stars_rounded : Icons.person_outline_rounded,
+                              size: 14,
+                              color: auth.profile?.isPremium == true ? Colors.amber.shade700 : Colors.grey,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              auth.profile?.isPremium == true 
+                                  ? (auth.profile?.subscriptionType?.toUpperCase() ?? 'PREMIUM MEMBER')
+                                  : 'FREE MEMBER',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: auth.profile?.isPremium == true ? Colors.amber.shade800 : Colors.grey,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // MAIN MENU
-                _buildDrawerSectionTitle('MAIN MENU'),
                 _DrawerCardTile(
-                  icon: Icons.home_rounded,
-                  label: isHi ? 'होम' : 'Home',
-                  color: Colors.blue,
+                  icon: Icons.auto_awesome_rounded,
+                  label: isHi ? 'ऐप फीचर्स' : 'App Features',
+                  color: Colors.purple,
                   onTap: () {
                     Navigator.pop(context);
-                    // Since it's the first tab in the nav, we just pop the drawer
+                    Navigator.pushNamed(context, '/features');
                   },
                 ),
-                const SizedBox(height: 12),
-
-                // REMOTE ACCESS
-                _buildDrawerSectionTitle(l10n.remoteAccess),
-                _DrawerCardTile(
-                  icon: Icons.dashboard_rounded,
-                  label: l10n.webDashboard,
-                  color: Colors.indigo,
-                  onTap: () => _launchURL(
-                    'https://phoneguard-web-dashboard.vercel.app/',
-                  ),
-                  trailing: const Icon(
-                    Icons.open_in_new_rounded,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.indigo.withOpacity(0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.remoteControlUrl,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const SelectableText(
-                          'phoneguard-web-dashboard.vercel.app',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 20),
+
+                const SizedBox(height: 12),
 
                 // SUPPORT
                 _buildDrawerSectionTitle(l10n.supportHelp),

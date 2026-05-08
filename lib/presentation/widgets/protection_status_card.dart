@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../../data/datasources/ad_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import '../screens/paywall_screen.dart';
 
 class ProtectionStatusCard extends StatefulWidget {
   const ProtectionStatusCard({super.key});
@@ -72,7 +73,9 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
         bool isTrial = DateTime.now().difference(createdAt).inDays < 3;
 
         bool isProtectionFunctional =
-            isPremium || isTrial || (expiry != null && expiry.isAfter(DateTime.now()));
+            isPremium ||
+            isTrial ||
+            (expiry != null && expiry.isAfter(DateTime.now()));
         bool isActuallyActive = isBasicActive && isProtectionFunctional;
 
         String getRemainingTimeString() {
@@ -127,9 +130,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? statusColor.withOpacity(0.1)
-                    : Colors.white,
+                color: isDarkMode ? statusColor.withOpacity(0.1) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: statusColor.withValues(alpha: isDarkMode ? 0.3 : 0.2),
@@ -141,8 +142,9 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color:
-                          statusColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
+                      color: statusColor.withValues(
+                        alpha: isDarkMode ? 0.2 : 0.15,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(statusIcon, color: statusColor, size: 32),
@@ -157,8 +159,7 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                             Text(
                               statusTitle,
                               style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.5,
@@ -168,13 +169,15 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.success.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                      color: AppTheme.success
-                                          .withOpacity(0.5)),
+                                    color: AppTheme.success.withOpacity(0.5),
+                                  ),
                                 ),
                                 child: Text(
                                   l10n.pro,
@@ -190,118 +193,124 @@ class _ProtectionStatusCardState extends State<ProtectionStatusCard> {
                         ),
                         const SizedBox(height: 4),
                         // Show countdown with monospace font when < 24h
-                        Builder(builder: (_) {
-                          final isLiveCountdown = statusSubtitle
-                              .contains(RegExp(r'\d{2}:\d{2}:\d{2}'));
-                          return Text(
-                            statusSubtitle,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.7),
-                              fontSize: isLiveCountdown ? 14 : 13,
-                              fontWeight: isLiveCountdown
-                                  ? FontWeight.w700
-                                  : FontWeight.normal,
-                              fontFamily:
-                                  isLiveCountdown ? 'monospace' : null,
-                              height: 1.3,
-                              letterSpacing: isLiveCountdown ? 1.0 : 0,
-                            ),
-                          );
-                        }),
+                        Builder(
+                          builder: (_) {
+                            final isLiveCountdown = statusSubtitle.contains(
+                              RegExp(r'\d{2}:\d{2}:\d{2}'),
+                            );
+                            return Text(
+                              statusSubtitle,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
+                                fontSize: isLiveCountdown ? 14 : 13,
+                                fontWeight: isLiveCountdown
+                                    ? FontWeight.w700
+                                    : FontWeight.normal,
+                                fontFamily: isLiveCountdown
+                                    ? 'monospace'
+                                    : null,
+                                height: 1.3,
+                                letterSpacing: isLiveCountdown ? 1.0 : 0,
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            if (isBasicActive && !isPremium) ...[
+            if (isBasicActive && !isPremium && !isTrial) ...[
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (!isTrial)
-                    Expanded(
-                      flex: 3,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (!authProvider.canWatchAd) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.limitReachedMsg),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            return;
-                          }
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (!authProvider.canWatchAd) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.limitReachedMsg),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(l10n.loadingAd),
-                                duration: const Duration(seconds: 1)),
-                          );
-
-                          adService.loadRewardedAd(
-                            onAdLoaded: (ad) {
-                              adService.showRewardedAd(
-                                ad: ad,
-                                onUserEarnedReward: (ad, reward) {
-                                  authProvider.extendProtection(4);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text(l10n.protectionExtendedMsg),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                },
-                                onAdDismissed: () {},
-                              );
-                            },
-                            onAdFailedToLoad: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text(l10n.adFailedMsg)),
-                              );
-                            },
-                          );
-                        },
-                        icon: const Icon(Icons.play_circle_fill),
-                        label: Text((!authProvider.canWatchAd ? l10n.limitReached : (isActuallyActive ? l10n.extend : l10n.reactive)) ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00E5FF),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                    // Check if we should show the beautiful Paywall once today
+                    appProvider.canShowAdPaywallToday().then((canShow) {
+                      if (canShow) {
+                        appProvider.markAdPaywallShownToday();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const PaywallScreen(),
                           ),
-                        ),
-                      ),
-                    ),
-                  if (!isTrial) const SizedBox(width: 12),
-                  Expanded(
-                    flex: 4,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, '/subscription'),
-                      icon: const Icon(Icons.stars_rounded),
-                      label: Text(l10n.goPremium),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
+                        );
+                      } else {
+                        _startAdFlow(context, authProvider, appProvider, adService, l10n);
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.play_circle_fill),
+                  label: Text(
+                    (!authProvider.canWatchAd
+                        ? l10n.limitReached
+                        : (isActuallyActive ? l10n.extend : l10n.reactive)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00E5FF),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ],
         );
+      },
+    );
+  }
+
+  void _startAdFlow(
+    BuildContext context,
+    AuthProvider authProvider,
+    AppProvider appProvider,
+    AdService adService,
+    AppLocalizations l10n,
+  ) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.loadingAd),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    adService.loadRewardedAd(
+      onAdLoaded: (ad) {
+        adService.showRewardedAd(
+          ad: ad,
+          onUserEarnedReward: (ad, reward) {
+            authProvider.extendProtection(4);
+            appProvider.incrementActionCount();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.protectionExtendedMsg),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+          onAdDismissed: () {},
+        );
+      },
+      onAdFailedToLoad: () {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.adFailedMsg)));
       },
     );
   }

@@ -220,7 +220,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get cameraAccessDesc =>
-      'स्क्रीन बंद होने या ऐप छोटा होने पर भी घुसपैठियों की तस्वीरें लेता है।';
+      'गलत अनलॉक प्रयासों पर घुसपैठियों की तस्वीरें लेता है, भले ही ऐप छोटा (minimized) हो।';
 
   @override
   String get contactsAccess => 'संपर्क';
@@ -720,7 +720,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get cameraDisclosureDesc =>
-      'PhoneGuard आपके डिवाइस तक पहुँचने का प्रयास करने वाले अनधिकृत उपयोगकर्ताओं की तस्वीरें लेने के लिए कैमरे का उपयोग करता है। यह सुविधा स्क्रीन बंद होने पर भी काम करती है ताकि आपको घुसपैठ के सबूत मिल सकें।';
+      'PhoneGuard आपके डिवाइस तक पहुँचने का प्रयास करने वाले अनधिकृत उपयोगकर्ताओं की तस्वीरें लेने के लिए कैमरे का उपयोग करता है। यह सुविधा गलत अनलॉक प्रयासों के दौरान काम करती है ताकि आपको घुसपैठ के सबूत मिल सकें, भले ही ऐप छोटा (minimized) हो।';
 
   @override
   String get iUnderstand => 'मैं समझता हूँ';

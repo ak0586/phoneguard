@@ -127,6 +127,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           content: 'रिमोट रिकवरी सक्षम करने के लिए, कुछ डेटा Google Firebase पर सुरक्षित रूप से स्टोर किया जाता है।\n\n'
               '• लोकेशन डेटा: मांग पर प्राप्त लोकेशन आपके वेब डैशबोर्ड पर दिखाई देती है।\n'
               '• घुसपैठिए की फोटो: गलत पिन डालने पर ली गई फोटो आपके निजी क्लाउड स्टोरेज पर अपलोड की जाती हैं।\n'
+              '• प्रोफ़ाइल फोटो: आपकी चुनी गई प्रोफ़ाइल इमेज को आपके अनुभव को व्यक्तिगत बनाने के लिए स्टोर किया जाता है।\n'
               '• डिवाइस की जानकारी: मॉडल और OS वर्जन को डिवाइस की पहचान के लिए स्टोर किया जाता है।\n'
               '• यह डेटा केवल आपको आपके Google अकाउंट के माध्यम से दिखाई देता है।',
         ),
@@ -144,7 +145,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           icon: Icons.camera_alt_rounded,
           color: Color(0xFFE91E63),
           content: 'इनका उपयोग केवल सुरक्षा उद्देश्यों के लिए किया जाता है:\n\n'
-              '• कैमरा: घुसपैठिए की पहचान के लिए "गलत पिन" या "रिमोट कमांड" पर उपयोग किया जाता है।\n'
+              '• कैमरा: घुसपैठिए की पहचान और प्रोफ़ाइल फोटो सेट करने के लिए उपयोग किया जाता है।\n'
               '• लोकेशन: आपके खोए हुए फोन को मैप पर दिखाने के लिए उपयोग किया जाता है।\n'
               '• डेटा ट्रांसफर: यह जानकारी सुरक्षित रूप से आपके निजी डैशबोर्ड पर भेजी जाती है।',
         ),
@@ -184,7 +185,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           color: Color(0xFFFFCA28),
           content: 'To enable remote recovery from the web, certain data is stored securely on Google Firebase.\n\n'
               '• Location Data: Current coordinates are uploaded only when requested via dashboard or SMS.\n'
-              '• Intrusion Photos: Captured photos of unauthorized users are stored in your private cloud storage.\n'
+              '• Media & Profile: Intrusion photos and your selected profile image are stored in your private cloud storage for security and personalization.\n'
               '• Device Metadata: Model and OS version are stored to identify your protected devices.\n'
               '• This data is encrypted and accessible only by you.',
         ),
@@ -202,7 +203,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           icon: Icons.camera_alt_rounded,
           color: Color(0xFFE91E63),
           content: 'Used strictly for security features:\n\n'
-              '• Camera: Captures photos during intrusion attempts or via remote command.\n'
+              '• Camera: Captures photos during intrusion attempts, via remote command, or for setting your profile picture.\n'
               '• Location: Provides GPS coordinates to help you find your lost device.\n'
               '• All captured media and coordinates are sent directly to your private secure dashboard.',
         ),

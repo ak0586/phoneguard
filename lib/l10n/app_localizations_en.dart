@@ -218,7 +218,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraAccessDesc =>
-      'Captures photos of intruders even when the screen is off or the app is minimized.';
+      'Captures photos of intruders on failed unlock attempts, even when the app is minimized.';
 
   @override
   String get contactsAccess => 'Contacts';
@@ -713,7 +713,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraDisclosureDesc =>
-      'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works even when the screen is off to provide you with evidence of intrusion.';
+      'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works during failed unlock attempts to provide you with evidence of intrusion even when the app is minimized.';
 
   @override
   String get iUnderstand => 'I UNDERSTAND';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -40,9 +41,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final status = await Permission.locationWhenInUse.request();
       if (status.isGranted) {
         Position position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+          ),
         );
-        List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
         if (placemarks.isNotEmpty && mounted) {
           final country = placemarks.first.country ?? "Unknown Country";
           await prefs.setString('cached_country_name', country);
@@ -55,7 +61,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         final prefs = await SharedPreferences.getInstance();
-        setState(() => _countryName = prefs.getString('cached_country_name') ?? "Location Unavailable");
+        setState(
+          () => _countryName =
+              prefs.getString('cached_country_name') ?? "Location Unavailable",
+        );
       }
     }
   }
@@ -66,149 +75,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
     final profile = authProvider.profile;
     final l10n = AppLocalizations.of(context)!;
-
-    String? lastSeenStr;
-    if (profile?.lastLatitude != null && profile?.lastLongitude != null) {
-      if (profile!.locationUpdatedAt != null) {
-        lastSeenStr = "${l10n.incidentTime}: ${DateFormat('dd MMM, hh:mm a').format(profile.locationUpdatedAt!)}";
-      }
-    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text(l10n.profileTitle),
+        title: Text(
+          l10n.profileTitle,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(l10n.logout, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  content: Text(l10n.logoutConfirmMsg),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-                      child: Text(l10n.logout.toUpperCase()),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true && context.mounted) {
-                await authProvider.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
-                }
-              }
-            },
+            onPressed: () => _showLogoutDialog(context, authProvider, l10n),
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
+      body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 24),
+              _buildUserHeader(context, user, authProvider, profile),
               const SizedBox(height: 32),
-              Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppTheme.primaryGradient,
-                    boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.4), blurRadius: 15, spreadRadius: 5)],
-                  ),
-                  child: Center(
-                    child: Text(
-                      user?.displayName?.isNotEmpty == true ? user!.displayName![0].toUpperCase() : 'U',
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
+
+              // Subscription Status Card
+              if (profile != null)
+                _buildSubscriptionCard(context, profile, l10n),
               const SizedBox(height: 24),
-              Text(
-                user?.displayName ?? 'No Name',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                authProvider.mobileNumber ?? 'No Mobile Number',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.location_on, color: Colors.redAccent, size: 16),
-                  const SizedBox(width: 4),
-                  Text(_countryName, style: const TextStyle(fontSize: 14, color: Colors.redAccent, fontWeight: FontWeight.w600)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                user?.email ?? 'Unknown User',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-              ),
-              const SizedBox(height: 16),
-              if (profile != null) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      profile.isPremium ? 'Premium Plan' : 'Free Plan',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
-                    ),
-                    if (profile.isPremium) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: AppTheme.success.withOpacity(0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: AppTheme.success.withOpacity(0.5))),
-                        child: const Text('PRO', style: TextStyle(color: AppTheme.success, fontSize: 10, fontWeight: FontWeight.w900)),
-                      ),
-                    ],
-                  ],
-                ),
-                _buildProtectionStatus(profile),
-              ],
-              if (lastSeenStr != null) ...[
-                const SizedBox(height: 16),
-                _buildLocationCard(context, profile, lastSeenStr),
-              ],
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/edit-profile'),
-                icon: const Icon(Icons.edit),
-                label: Text(l10n.editProfile),
-              ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () => _showDeleteAccountDialog(context, authProvider),
-                icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                label: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.redAccent.withOpacity(0.2))),
-                ),
-              ),
-              const SizedBox(height: 24),
+
+              _buildInfoSection(context, l10n, authProvider, user),
+              const SizedBox(height: 32),
+
+              _buildActionButtons(context, l10n, authProvider),
+              const SizedBox(height: 50),
             ],
           ),
         ),
@@ -216,50 +122,362 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProtectionStatus(dynamic profile) {
+  Widget _buildUserHeader(
+    BuildContext context,
+    dynamic user,
+    AuthProvider auth,
+    dynamic profile,
+  ) {
+    return Column(
+      children: [
+        Hero(
+          tag: 'profile_avatar',
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                width: 4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 58,
+              backgroundColor: AppTheme.primary,
+              backgroundImage: profile?.photoUrl != null
+                  ? (profile!.photoUrl!.startsWith('data:image')
+                      ? MemoryImage(base64Decode(profile!.photoUrl!.split(',').last))
+                      : NetworkImage(profile!.photoUrl!) as ImageProvider)
+                  : null,
+              child: profile?.photoUrl == null
+                  ? Text(
+                      user?.displayName?.isNotEmpty == true
+                          ? user!.displayName![0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          user?.displayName ?? 'User Name',
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              color: Colors.red.shade400,
+              size: 16,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              _countryName,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubscriptionCard(
+    BuildContext context,
+    dynamic profile,
+    AppLocalizations l10n,
+  ) {
+    final isPro = profile.isPremium;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isPro
+              ? [Colors.amber.shade700, Colors.orange.shade900]
+              : [Colors.blue.shade700, Colors.indigo.shade900],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: (isPro ? Colors.orange : Colors.blue).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                isPro ? Icons.verified_user_rounded : Icons.shield_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isPro ? 'PRO PROTECTION' : 'FREE PROTECTION',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      isPro
+                          ? 'Lifetime Security Active'
+                          : 'Ad-supported Protection',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isPro)
+                const Icon(Icons.star_rounded, color: Colors.white, size: 24),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildProtectionProgress(context, profile, l10n),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProtectionProgress(
+    BuildContext context,
+    dynamic profile,
+    AppLocalizations l10n,
+  ) {
     final now = DateTime.now();
     final createdAt = profile.createdAt;
     final expiry = profile.protectionExpiry;
     final bool isTrial = now.difference(createdAt).inDays < 3;
-    final l10n = AppLocalizations.of(context)!;
+
     DateTime? activeExpiry;
-    if (profile.isPremium) activeExpiry = expiry;
-    else if (isTrial) activeExpiry = createdAt.add(const Duration(days: 3));
-    else if (expiry != null && expiry.isAfter(now)) activeExpiry = expiry;
+    if (profile.isPremium)
+      activeExpiry = expiry;
+    else if (isTrial)
+      activeExpiry = createdAt.add(const Duration(days: 3));
+    else if (expiry != null && expiry.isAfter(now))
+      activeExpiry = expiry;
 
-    if (activeExpiry == null) return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(l10n.protectionDisabled, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.redAccent)));
-    
-    final diff = activeExpiry.difference(now);
-    if (diff.isNegative) return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(l10n.protectionExpired, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.redAccent)));
-
-    String timeStr = "";
-    Color statusColor = Colors.orange;
-    final days = diff.inDays;
-    if (profile.isPremium) {
-      statusColor = AppTheme.success;
-      timeStr = days >= 1 ? l10n.daysRemaining(days) : "${diff.inHours}h ${diff.inMinutes % 60}m ${l10n.leftLabel}";
-    } else {
-      statusColor = isTrial ? const Color(0xFF00E5FF) : Colors.orange;
-      timeStr = isTrial ? "${l10n.trialLabel}: ${l10n.daysRemaining(days)}" : l10n.daysRemaining(days);
+    if (activeExpiry == null || activeExpiry.isBefore(now)) {
+      return Text(
+        l10n.protectionExpired,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      );
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Text(timeStr, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.w600)),
+    final diff = activeExpiry.difference(now);
+    final days = diff.inDays;
+
+    return Row(
+      children: [
+        const Icon(Icons.timer_outlined, color: Colors.white70, size: 16),
+        const SizedBox(width: 8),
+        Text(
+          days >= 1
+              ? l10n.daysRemaining(days)
+              : "${diff.inHours}h ${diff.inMinutes % 60}m ${l10n.leftLabel}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildLocationCard(BuildContext context, dynamic profile, String lastSeenStr) {
+  Widget _buildInfoSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    AuthProvider auth,
+    dynamic user,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ACCOUNT INFORMATION',
+          style: TextStyle(
+            color: Colors.grey.shade500,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _infoTile(
+          Icons.alternate_email_rounded,
+          'Email Address',
+          user?.email ?? 'Not available',
+        ),
+        _infoTile(
+          Icons.phone_iphone_rounded,
+          'Mobile Number',
+          auth.mobileNumber ?? 'Not provided',
+        ),
+        _infoTile(
+          Icons.calendar_month_rounded,
+          'Joined On',
+          user?.metadata.creationTime != null
+              ? DateFormat('dd MMM yyyy').format(user!.metadata.creationTime!)
+              : 'N/A',
+        ),
+      ],
+    );
+  }
+
+  Widget _infoTile(IconData icon, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).dividerColor)),
-      child: Column(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.03) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.gps_fixed, color: Color(0xFF00E5FF), size: 16), const SizedBox(width: 8), Text(AppLocalizations.of(context)!.exactLastLocation, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1))]),
-          const SizedBox(height: 8),
-          Text('${profile?.lastLatitude?.toStringAsFixed(6)}, ${profile?.lastLongitude?.toStringAsFixed(6)}', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontFamily: 'monospace', fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(lastSeenStr, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), fontSize: 12)),
+          Icon(icon, color: AppTheme.primary, size: 24),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(
+    BuildContext context,
+    AppLocalizations l10n,
+    AuthProvider auth,
+  ) {
+    return Column(
+      children: [
+        ElevatedButton.icon(
+          onPressed: () => Navigator.pushNamed(context, '/edit-profile'),
+          icon: const Icon(Icons.edit_rounded, size: 20),
+          label: Text(l10n.editProfile.toUpperCase()),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 60),
+            backgroundColor: AppTheme.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () => _showDeleteAccountDialog(context, auth),
+          icon: const Icon(
+            Icons.no_accounts_rounded,
+            color: Colors.redAccent,
+            size: 20,
+          ),
+          label: Text(l10n.deleteAccount.toUpperCase()),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(double.infinity, 60),
+            foregroundColor: Colors.redAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLogoutDialog(
+    BuildContext context,
+    AuthProvider auth,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          l10n.logout,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(l10n.logoutConfirmMsg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              l10n.cancel.toUpperCase(),
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              auth.signOut();
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: Text(l10n.logout.toUpperCase()),
+          ),
         ],
       ),
     );
@@ -267,70 +485,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showDeleteAccountDialog(BuildContext context, AuthProvider auth) {
     final passwordController = TextEditingController();
-    bool isObscured = true;
     final l10n = AppLocalizations.of(context)!;
-
     showDialog(
       context: context,
-      barrierDismissible: !auth.isLoading,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-              const SizedBox(width: 12),
-              Text(l10n.deleteAccount, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.deleteAccountDesc),
-              const SizedBox(height: 20),
-              Text(l10n.enterPasswordConfirm, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: passwordController,
-                obscureText: isObscured,
-                decoration: InputDecoration(
-                  hintText: l10n.password,
-                  prefixIcon: const Icon(Icons.lock_outline_rounded),
-                  suffixIcon: IconButton(
-                    icon: Icon(isObscured ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setDialogState(() => isObscured = !isObscured),
-                  ),
-                ),
-              ),
-              if (auth.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(auth.errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: auth.isLoading ? null : () => Navigator.pop(context),
-              child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: auth.isLoading ? null : () async {
-                if (passwordController.text.isEmpty) return;
-                final success = await auth.deleteAccount(passwordController.text);
-                if (success && context.mounted) {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
-                } else {
-                  setDialogState(() {}); // Refresh for error message
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-              child: auth.isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(l10n.deleteAccountConfirm),
+      builder: (context) => AlertDialog(
+        title: Text(
+          l10n.deleteAccount,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.deleteAccountDesc),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(hintText: l10n.password),
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await auth.deleteAccount(passwordController.text);
+              if (success && context.mounted) {
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/auth-wrapper', (route) => false);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: Text(l10n.deleteAccountConfirm),
+          ),
+        ],
       ),
     );
   }

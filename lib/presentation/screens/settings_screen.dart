@@ -87,10 +87,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           IconButton.filled(
                             onPressed: () {
                               if (_isEditingKeyword) {
-                                provider.setTriggerKeyword(_keywordController.text);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Keyword Updated!'), behavior: SnackBarBehavior.floating),
-                                );
+                                final newKeyword = _keywordController.text.trim();
+                                if (newKeyword.isNotEmpty) {
+                                  provider.setTriggerKeyword(newKeyword);
+                                  FocusScope.of(context).unfocus();
+                                  
+                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Row(
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, color: Colors.white),
+                                          SizedBox(width: 12),
+                                          Text('Keyword saved successfully', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: Colors.green.shade800,
+                                      duration: const Duration(seconds: 2),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
                               }
                               setState(() => _isEditingKeyword = !_isEditingKeyword);
                             },

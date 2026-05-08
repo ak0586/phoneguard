@@ -5,102 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy - PhoneGuard: Lost Phone Finder</title>
     <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-main: #3c4043;
+            --text-secondary: #5f6368;
+            --accent-blue: #e8f0fe;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.7;
+            color: var(--text-main);
+            max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px;
-            background-color: #f9f9f9;
+            background-color: var(--bg-body);
         }
         .container {
-            background: #fff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            background: var(--bg-card);
+            padding: 50px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
         }
-        h1 { color: #1a73e8; margin-bottom: 10px; }
-        h2 { color: #202124; margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
-        h3 { color: #1a73e8; margin-top: 20px; }
-        p, li { color: #5f6368; }
-        .last-updated { color: #999; font-size: 0.9em; margin-bottom: 30px; }
-        .contact { background: #e8f0fe; padding: 20px; border-radius: 8px; margin-top: 40px; }
-        .contact strong { color: #1967d2; }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 2px solid #f1f3f4;
+            padding-bottom: 30px;
+        }
+        h1 { color: var(--primary); font-size: 2.5em; margin-bottom: 10px; font-weight: 800; }
+        h2 { color: #202124; margin-top: 40px; font-size: 1.5em; display: flex; align-items: center; }
+        h2::before { content: ""; display: inline-block; width: 4px; height: 24px; background: var(--primary); margin-right: 12px; border-radius: 2px; }
+        h3 { color: var(--primary-dark); margin-top: 25px; font-size: 1.2em; }
+        p, li { color: var(--text-secondary); font-size: 1.05em; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 12px; }
+        .last-updated { color: #70757a; font-size: 0.95em; font-weight: 500; }
+        .permission-card {
+            background: #fdfcfe;
+            border: 1px solid #f1eefd;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+        .contact {
+            background: var(--accent-blue);
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 50px;
+            border: 1px solid #d2e3fc;
+        }
+        .contact strong { color: var(--primary-dark); font-size: 1.1em; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--accent-blue);
+            color: var(--primary);
+            font-size: 0.85em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 25px; }
+            h1 { font-size: 1.8em; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Privacy Policy</h1>
-        <p class="last-updated">Last Updated: May 1, 2026</p>
+        <header>
+            <div class="badge">SECURE & PRIVATE</div>
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Effective Date: May 8, 2026</p>
+        </header>
 
-        <p>PhoneGuard ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use the PhoneGuard mobile application (the "App") and its associated services.</p>
+        <p><strong>PhoneGuard: Lost Phone Finder</strong> ("we," "us," or "our") is dedicated to providing industry-leading anti-theft and device recovery solutions. This Privacy Policy outlines our commitment to transparency regarding the collection, usage, and protection of your data while using the PhoneGuard mobile application (the "App").</p>
 
         <h2>1. Information We Collect</h2>
-        <p>To provide effective lost phone recovery and security services, we collect the following types of information:</p>
+        <p>To provide a functional security suite that can recover your device even without internet, we collect the following:</p>
 
-        <h3>A. Personal Information</h3>
+        <h3>A. Personal Identity Data</h3>
         <ul>
-            <li><strong>Account Data:</strong> Name, email address, and mobile number provided during registration.</li>
-            <li><strong>Trusted Contacts:</strong> Mobile numbers you manually provide to receive security alerts.</li>
+            <li><strong>Account Profile:</strong> We collect your name, email address, and mobile number to synchronize your security settings across devices.</li>
+            <li><strong>Trusted Contacts:</strong> You manually provide mobile numbers of friends or family. These are stored locally and in your private cloud to receive automated emergency alerts.</li>
         </ul>
 
-        <h3>B. Sensitive Device Data</h3>
+        <h3>B. Critical Security Data (High Sensitivity)</h3>
+        <div class="permission-card">
+            <ul>
+                <li><strong>Precise Location Data:</strong> We collect GPS location data (including in the background) to allow you to track your device if it is lost. This is only triggered when you or an authorized command initiates a "Track" request.</li>
+                <li><strong>Intruder Images:</strong> The App captures front-camera photos silently when a failed unlock attempt occurs or via remote command. These are stored securely in your private cloud.</li>
+                <li><strong>SMS Monitoring:</strong> To function without internet, the App monitors incoming SMS for your unique "Trigger Keyword." We do not read, store, or transmit your personal text messages.</li>
+            </ul>
+        </div>
+
+        <h3>C. Payment & Subscription Data</h3>
         <ul>
-            <li><strong>Location Data:</strong> We collect precise and coarse location data, including in the background, to allow you to track your device if it is lost or stolen.</li>
-            <li><strong>Camera Images:</strong> The App captures front-camera selfies only when a failed unlock attempt is detected (Intrusion Detection) or when you remotely trigger a "Capture" command.</li>
-            <li><strong>SMS Data:</strong> The App monitors incoming SMS messages solely to identify and execute your authorized "Trigger Keyword" and commands (e.g., alarm, track, lock). We do not read or store personal messages.</li>
+            <li><strong>Google Play Billing:</strong> We use the official Google Play In-App Billing system to manage premium subscriptions. We do not see or store your credit card details; all payments are processed securely by Google.</li>
         </ul>
 
-        <h3>C. Technical Data</h3>
+        <h2>2. How We Use Your Data</h2>
         <ul>
-            <li><strong>Device Metadata:</strong> Device model, OS version, and unique device identifiers to ensure commands are delivered to the correct hardware.</li>
+            <li><strong>Remote Recovery:</strong> Sending location links to your trusted contacts via SMS.</li>
+            <li><strong>Theft Deterrence:</strong> Triggering remote alarms and system-level screen locks.</li>
+            <li><strong>Evidence Generation:</strong> Providing intruder photos for potential legal or police recovery actions.</li>
+            <li><strong>Account Security:</strong> Verifying your identity during Web Dashboard login.</li>
         </ul>
 
-        <h2>2. How We Use Your Information</h2>
-        <p>We use the collected data exclusively for security purposes:</p>
+        <h2>3. Third-Party Service Integration</h2>
+        <p>We partner with trusted infrastructure providers to ensure your data remains secure:</p>
         <ul>
-            <li><strong>Device Recovery:</strong> To send location coordinates to your trusted contacts.</li>
-            <li><strong>Evidence Collection:</strong> To store intruder photos in your private cloud storage for identification.</li>
-            <li><strong>Service Execution:</strong> To remotely trigger alarms, lock screens, or track devices via SMS.</li>
-            <li><strong>Communication:</strong> To send security alerts and account-related notifications.</li>
+            <li><strong>Google Firebase:</strong> Used for secure authentication, real-time database, and encrypted photo storage.</li>
+            <li><strong>Google AdMob:</strong> Used to display advertisements in the free version. Personalized ads can be disabled in your Google settings.</li>
+            <li><strong>Google Play Billing:</strong> Used for secure transaction processing and subscription management.</li>
+            <li><strong>Firebase Crashlytics:</strong> Used to identify and fix technical bugs for a stable experience.</li>
         </ul>
 
-        <h2>3. Data Sharing and Third Parties</h2>
-        <p>We do not sell your personal data. We share information with service providers only as necessary:</p>
+        <h2>4. Android Permissions Disclosure</h2>
+        <p>Due to the nature of anti-theft software, the following permissions are mandatory for full protection:</p>
         <ul>
-            <li><strong>Google Firebase:</strong> For authentication, real-time database synchronization, and secure photo storage.</li>
-            <li><strong>Google AdMob:</strong> To display advertisements in the free version of the App.</li>
-            <li><strong>Firebase Crashlytics & Analytics:</strong> To monitor App performance and improve user experience.</li>
+            <li><strong>Background Location:</strong> Used to locate your phone even when the app is closed.</li>
+            <li><strong>SMS Receiver:</strong> Used to execute commands like 'Locate' or 'Alarm' via secure SMS.</li>
+            <li><strong>Camera:</strong> Used to capture the 'Intruder Selfie'.</li>
+            <li><strong>Device Administrator:</strong> Used to enable remote screen locking and to <strong>prevent unauthorized uninstallation</strong> by a thief.</li>
+            <li><strong>Phone State:</strong> Used to detect SIM card changes and alert you immediately.</li>
         </ul>
 
-        <h2>4. Data Retention and Deletion</h2>
+        <h2>5. Your Rights & Data Control</h2>
+        <p>You have full control over your data. You may:</p>
         <ul>
-            <li><strong>Retention:</strong> We retain your data only as long as your account is active.</li>
-            <li><strong>Deletion:</strong> You can delete your account and all associated data (including stored photos and location history) at any time through the "Settings" or "Profile" section of the App.</li>
+            <li><strong>Access:</strong> View all stored logs and photos via the Web Dashboard or the App.</li>
+            <li><strong>Delete:</strong> You can permanently delete your account and all associated cloud data at any time through the "Profile" section. This action is irreversible.</li>
+            <li><strong>Opt-Out:</strong> You can disable any specific security feature (like Intruder Selfie) at any time.</li>
         </ul>
 
-        <h2>5. Permissions and Hardware Access</h2>
-        <p>The App requires specific Android permissions to function as a security utility:</p>
-        <ul>
-            <li><strong>Background Location:</strong> Necessary to track and recover the device even when the App is closed or in the background.</li>
-            <li><strong>SMS Receiver:</strong> Necessary to identify and execute remote recovery commands without an internet connection.</li>
-            <li><strong>Camera:</strong> Necessary for Intrusion Detection selfies and remote capture commands.</li>
-            <li><strong>Contacts:</strong> Used solely to allow you to select "Trusted Numbers" from your existing phonebook. We do not store, upload, or share your contact list.</li>
-            <li><strong>Device Administrator:</strong> Necessary to allow you to remotely lock your screen from another device.</li>
-            <li><strong>Phone State:</strong> Necessary to detect SIM card changes and notify your trusted contacts.</li>
-        </ul>
-        <p>We implement robust security measures, including industry-standard encryption for all data transmitted to our servers.</p>
-
-        <h2>6. Children's Privacy</h2>
-        <p>The App is not intended for children under the age of 13. We do not knowingly collect personal information from children.</p>
-
-        <h2>7. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy periodically. We will notify you of any significant changes by posting the new policy in the App.</p>
+        <h2>6. Data Safety Standards</h2>
+        <p>We use industry-standard SSL/TLS encryption for all data in transit. Your intruder photos and location history are stored in a private Firebase instance that only you can access using your authorized Google credentials.</p>
 
         <div class="contact">
-            <strong>Contact Us</strong><br>
-            If you have any questions about this Privacy Policy, please contact us at:<br>
+            <strong>Contact Our Security Team</strong><br>
+            If you have any questions regarding your data or this policy, please reach out to:<br>
             <strong>support@kyvronix.com</strong>
         </div>
     </div>

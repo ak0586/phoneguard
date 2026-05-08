@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraAccessDesc.
   ///
   /// In en, this message translates to:
-  /// **'Captures photos of intruders even when the screen is off or the app is minimized.'**
+  /// **'Captures photos of intruders on failed unlock attempts, even when the app is minimized.'**
   String get cameraAccessDesc;
 
   /// No description provided for @contactsAccess.
@@ -1403,7 +1403,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraDisclosureDesc.
   ///
   /// In en, this message translates to:
-  /// **'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works even when the screen is off to provide you with evidence of intrusion.'**
+  /// **'PhoneGuard uses the camera to capture photos of unauthorized users attempting to access your device. This feature works during failed unlock attempts to provide you with evidence of intrusion even when the app is minimized.'**
   String get cameraDisclosureDesc;
 
   /// No description provided for @iUnderstand.

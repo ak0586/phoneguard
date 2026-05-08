@@ -143,16 +143,27 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> restorePurchases() async {
+  Future<bool> restorePurchases() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    
     try {
       await _iap.restorePurchases();
+      // Wait a few seconds to see if the stream updates the profile
+      await Future.delayed(const Duration(seconds: 3));
+      
+      _isLoading = false;
+      notifyListeners();
+      
+      // Return true if the user is now premium
+      return authProvider.profile?.isPremium ?? false;
     } catch (e) {
       _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
-    _isLoading = false;
-    notifyListeners();
   }
 
   @override

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../../core/utils/phone_utils.dart';
 
@@ -14,6 +17,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _mobileController;
+  File? _newImage;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 500,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _newImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -34,6 +53,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_formKey.currentState!.validate()) {
       try {
         final auth = context.read<AuthProvider>();
+        
+        if (_newImage != null) {
+          await auth.uploadProfileImage(_newImage!);
+        }
+
         await auth.updateAdditionalInfo(
           _nameController.text.trim(),
           _mobileController.text.trim(),
@@ -82,6 +106,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.redAccent, width: 3),
+                        ),
+                        child: CircleAvatar(
+                          radius: 56,
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundImage: _newImage != null
+                              ? FileImage(_newImage!)
+                              : (context.watch<AuthProvider>().profile?.photoUrl != null
+                                  ? (context.read<AuthProvider>().profile!.photoUrl!.startsWith('data:image')
+                                      ? MemoryImage(base64Decode(context.read<AuthProvider>().profile!.photoUrl!.split(',').last))
+                                      : NetworkImage(context.read<AuthProvider>().profile!.photoUrl!))
+                                  : null) as ImageProvider?,
+                          child: (_newImage == null && context.watch<AuthProvider>().profile?.photoUrl == null)
+                              ? Text(
+                                  context.watch<AuthProvider>().user?.displayName?.isNotEmpty == true
+                                      ? context.watch<AuthProvider>().user!.displayName![0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                              : null,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.redAccent,
+                          child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -211,7 +212,7 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(false);
   }
 
-  Future<void> register(String email, String password, String name, String mobile) async {
+  Future<void> register(String email, String password, String name, String mobile, {File? profileImage}) async {
     _setLoading(true);
     _clearError();
     try {
@@ -221,12 +222,28 @@ class AuthProvider extends ChangeNotifier {
 
       final credential = await _authService.registerWithEmailAndPassword(email: email, password: password);
       if (credential.user != null) {
+        String? photoUrl;
+        if (profileImage != null) {
+          final result = await FlutterImageCompress.compressWithFile(
+            profileImage.absolute.path,
+            format: CompressFormat.webp,
+            quality: 70,
+            minWidth: 200,
+            minHeight: 200,
+          );
+          if (result != null) {
+            photoUrl = 'data:image/webp;base64,${base64Encode(result)}';
+            // We store only in Firestore to avoid "photo URL too long" error in Firebase Auth
+          }
+        }
+
         await _authService.updateProfile(displayName: name);
         final profile = UserProfile(
           uid: credential.user!.uid,
           name: name,
           email: email,
           mobile: formattedMobile,
+          photoUrl: photoUrl,
           createdAt: DateTime.now(),
         );
         await _authService.setUserProfile(profile);
@@ -452,6 +469,38 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return false;
     }
+  }
+
+  Future<void> uploadProfileImage(File imageFile) async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+
+    _setLoading(true);
+    _clearError();
+    try {
+      final result = await FlutterImageCompress.compressWithFile(
+        imageFile.absolute.path,
+        format: CompressFormat.webp,
+        quality: 70,
+        minWidth: 200,
+        minHeight: 200,
+      );
+      
+      if (result == null) throw Exception('Compression failed');
+      
+      final base64Image = 'data:image/webp;base64,${base64Encode(result)}';
+      
+      // Update Firestore only (Firebase Auth has a length limit for photoURL)
+      await _authService.updateUserProfile(user.uid, {
+        'photoUrl': base64Image,
+      });
+
+      // Refresh local profile
+      await reloadUser();
+    } catch (e) {
+      _errorMessage = e.toString();
+    }
+    _setLoading(false);
   }
 
   @override
