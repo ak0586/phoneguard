@@ -33,37 +33,44 @@ class CommandParser(private val context: Context) {
     companion object {
         private const val TAG = "CommandParser"
         
-        // Timestamp-based deduplication: same physical SMS always has the same timestamp.
-        // All detection paths (SmsReceiver, ContentObserver, Notification) carrying the
-        // same message will produce the same key → only the first one executes.
-        private const val DEDUPE_WINDOW_MS = 3000L // 3s tolerance for slight clock differences
-        private val lastProcessedCommands = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
+        // Wall-clock deduplication: if the same sender sends the same message within
+        // 15 seconds, all detection paths (SmsReceiver, ContentObserver, Notification)
+        // will produce the same key → only the first one executes.
+        // This works even though each path has a different internal timestamp for the same SMS.
+        private const val DEDUPE_WINDOW_MS = 15_000L // 15 seconds
+        private val lastProcessedCommands = mutableMapOf<String, Long>()
+        private val dedupeLock = Any()  // Dedicated lock object for clean synchronization
         
-        private fun isDuplicate(senderNorm: String, smsTimestamp: Long): Boolean {
-            val key = "$senderNorm:$smsTimestamp"
+        private fun isDuplicate(senderNorm: String, message: String): Boolean {
+            // Key = normalized sender + hash of lowercased trimmed message body
+            val msgHash = message.trim().lowercase().hashCode()
+            val key = "$senderNorm:$msgHash"
             val now = System.currentTimeMillis()
             
-            synchronized(lastProcessedCommands) {
+            synchronized(dedupeLock) {
                 val lastTime = lastProcessedCommands[key] ?: 0L
-                if (lastTime != 0L && now - lastTime < DEDUPE_WINDOW_MS) {
-                    Log.w("CommandParser", "Dedup: blocking duplicate for key=$key")
+                if (now - lastTime < DEDUPE_WINDOW_MS) {
+                    Log.w("CommandParser", "Dedup: blocking '$key' — already executed ${now - lastTime}ms ago (window=${DEDUPE_WINDOW_MS}ms)")
                     return true
                 }
+                // Record execution time inside the lock (atomic check-then-set)
                 lastProcessedCommands[key] = now
                 
+                // Periodic cleanup of old entries
                 if (lastProcessedCommands.size > 100) {
-                    lastProcessedCommands.entries.removeIf { now - it.value > 60_000L }
+                    lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
                 }
             }
             return false
         }
     }
 
-    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1, smsTimestamp: Long = System.currentTimeMillis()): CommandStatus {
+    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1, smsTimestamp: Long = 0L): CommandStatus {
         val senderNorm = normalizeNumber(sender)
-        // Use SMS timestamp as the dedup key. Same physical SMS → same timestamp → only first path wins.
-        if (isDuplicate(senderNorm, smsTimestamp)) {
-            Log.w(TAG, "Dedup: same SMS already handled (sender=$senderNorm ts=$smsTimestamp), skipping")
+        // Block if same sender + same message was executed within the last 15 seconds.
+        // This covers all detection paths regardless of their internal timestamp source.
+        if (isDuplicate(senderNorm, message)) {
+            Log.w(TAG, "Dedup: blocked duplicate — senderNorm=$senderNorm message='${message.trim()}' within ${DEDUPE_WINDOW_MS / 1000}s window")
             return CommandStatus.IGNORED
         }
 

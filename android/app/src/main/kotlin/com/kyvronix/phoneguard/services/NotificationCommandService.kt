@@ -34,7 +34,7 @@ class NotificationCommandService : NotificationListenerService() {
 
         // Prevent double-processing of the same notification update
         private val lastProcessedNotifications = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
-        private const val NOTIFICATION_DEDUPE_MS = 5000L
+        private const val NOTIFICATION_DEDUPE_MS = 30_000L  // 30s matches CommandParser + SmsSender window
     }
 
     override fun onListenerConnected() {

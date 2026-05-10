@@ -8,9 +8,10 @@ import android.util.Log
 
 class SmsSender {
     companion object {
-        // Last line of defense: prevents sending identical SMS within a 5s window
+        // Final gate: prevents sending identical message to the same number within 30s
+        // even if all upstream deduplication fails.
         private val lastSentMessages = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
-        private const val SEND_DEDUPE_MS = 5000L
+        private const val SEND_DEDUPE_MS = 30_000L
 
         /**
          * Send an SMS using a specific SIM identified by [subscriptionId].
@@ -90,8 +91,9 @@ class SmsSender {
 
                     try {
                         // Register receiver with Android 14+ security flags
+                        // MUST be RECEIVER_EXPORTED because the OS (SmsManager) sends the broadcast back to us
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            appContext.registerReceiver(receiver, android.content.IntentFilter(uniqueAction), Context.RECEIVER_NOT_EXPORTED)
+                            appContext.registerReceiver(receiver, android.content.IntentFilter(uniqueAction), Context.RECEIVER_EXPORTED)
                         } else {
                             appContext.registerReceiver(receiver, android.content.IntentFilter(uniqueAction))
                         }
