@@ -22,7 +22,7 @@ subprojects {
 subprojects {
     configurations.all {
         resolutionStrategy {
-            force("com.android.billingclient:billing:6.2.1")
+            force("com.android.billingclient:billing:7.0.0")
         }
     }
 }
