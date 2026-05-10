@@ -8,11 +8,31 @@ import android.util.Log
 
 class SmsSender {
     companion object {
+        // Last line of defense: prevents sending identical SMS within a 5s window
+        private val lastSentMessages = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
+        private const val SEND_DEDUPE_MS = 5000L
+
         /**
          * Send an SMS using a specific SIM identified by [subscriptionId].
          * If [subscriptionId] is -1 or invalid, attempts to find an active SIM automatically.
          */
         fun sendSmsWithSim(context: Context, phoneNumber: String, message: String, subscriptionId: Int) {
+            val now = System.currentTimeMillis()
+            val dedupeKey = "$phoneNumber|$message"
+            
+            synchronized(lastSentMessages) {
+                val lastTime = lastSentMessages[dedupeKey] ?: 0L
+                if (now - lastTime < SEND_DEDUPE_MS) {
+                    Log.w("SmsSender", "Blocking duplicate outgoing SMS to $phoneNumber within ${SEND_DEDUPE_MS}ms")
+                    return
+                }
+                lastSentMessages[dedupeKey] = now
+                
+                if (lastSentMessages.size > 50) {
+                    lastSentMessages.entries.removeIf { now - it.value > SEND_DEDUPE_MS }
+                }
+            }
+
             val appContext = context.applicationContext
             // Run in a background thread to allow blocking waits for result status
             Thread {

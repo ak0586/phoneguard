@@ -9,7 +9,7 @@ import com.kyvronix.phoneguard.location.LocationManager
 import com.kyvronix.phoneguard.security.DeviceAdminReceiver
 import com.kyvronix.phoneguard.services.TrackingService
 import com.kyvronix.phoneguard.services.AlarmService
-import com.kyvronix.phoneguard.services.RecoveryService
+
 import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,31 +33,40 @@ class CommandParser(private val context: Context) {
     companion object {
         private const val TAG = "CommandParser"
         
-        // Deduplication window to prevent multiple triggers for the same message
-        private const val DEDUPE_WINDOW_MS = 10000L // 10 seconds
-        private val lastProcessedCommands = Collections.synchronizedMap(mutableMapOf<String, Long>())
+        // Timestamp-based deduplication: same physical SMS always has the same timestamp.
+        // All detection paths (SmsReceiver, ContentObserver, Notification) carrying the
+        // same message will produce the same key → only the first one executes.
+        private const val DEDUPE_WINDOW_MS = 3000L // 3s tolerance for slight clock differences
+        private val lastProcessedCommands = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
         
-        private fun isDuplicate(sender: String, action: String?): Boolean {
-            val key = "$sender:$action"
+        private fun isDuplicate(senderNorm: String, smsTimestamp: Long): Boolean {
+            val key = "$senderNorm:$smsTimestamp"
             val now = System.currentTimeMillis()
             
             synchronized(lastProcessedCommands) {
                 val lastTime = lastProcessedCommands[key] ?: 0L
-                if (now - lastTime < DEDUPE_WINDOW_MS) {
-                    Log.w("CommandParser", "Dedup: blocking duplicate command key=$key within ${DEDUPE_WINDOW_MS}ms")
+                if (lastTime != 0L && now - lastTime < DEDUPE_WINDOW_MS) {
+                    Log.w("CommandParser", "Dedup: blocking duplicate for key=$key")
                     return true
                 }
                 lastProcessedCommands[key] = now
                 
                 if (lastProcessedCommands.size > 100) {
-                    lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
+                    lastProcessedCommands.entries.removeIf { now - it.value > 60_000L }
                 }
             }
             return false
         }
     }
 
-    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1): CommandStatus {
+    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1, smsTimestamp: Long = System.currentTimeMillis()): CommandStatus {
+        val senderNorm = normalizeNumber(sender)
+        // Use SMS timestamp as the dedup key. Same physical SMS → same timestamp → only first path wins.
+        if (isDuplicate(senderNorm, smsTimestamp)) {
+            Log.w(TAG, "Dedup: same SMS already handled (sender=$senderNorm ts=$smsTimestamp), skipping")
+            return CommandStatus.IGNORED
+        }
+
         val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val appSettingsJson = sharedPrefs.getString("flutter.app_settings", null)
         if (appSettingsJson == null) {
@@ -66,7 +75,6 @@ class CommandParser(private val context: Context) {
         }
 
         Log.d(TAG, "PHONEGUARD_DEBUG ─── NEW SMS ─── from='$sender' subId=$subscriptionId body='$message'")
-        val senderNorm = normalizeNumber(sender)
 
         try {
             val settings = JSONObject(appSettingsJson)
@@ -128,13 +136,11 @@ class CommandParser(private val context: Context) {
                 return CommandStatus.EXPIRED
             }
             Log.d(TAG, "PHONEGUARD_DEBUG [3] ✅ Protection active")
-
-            // 3. SERVICE START PHASE
-            try {
-                startForegroundServiceCompat(Intent(context, RecoveryService::class.java))
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start RecoveryService", e)
-            }
+            // NOTE: RecoveryService is NOT started here intentionally.
+            // Starting it during command execution was the root cause of duplicate triggers:
+            // the service registers a ContentObserver that immediately fires for the SMS
+            // currently being processed, creating a second concurrent parseAndExecute call.
+            // RecoveryService is started once at boot (BootReceiver) and app startup only.
 
             // 4. ACTION PARSING PHASE (Specific to SMS)
             if (!isRemoteCommand) {
@@ -161,12 +167,6 @@ class CommandParser(private val context: Context) {
 
             Log.d(TAG, "Resolved action='$action' sendLocation=$sendLocation startAlarm=$startAlarm enableTracking=$enableTracking lockDevice=$lockDevice stopAlarmOnTrigger=$stopAlarmOnTrigger")
 
-            // 6. DEDUPLICATION CHECK
-            // Use normalized sender to ensure different formats (+91 vs local) don't trigger twice
-            if (isDuplicate(senderNorm, action)) {
-                Log.w(TAG, "Skipping duplicate command: senderNorm=$senderNorm action=$action (within 10s)")
-                return CommandStatus.IGNORED
-            }
 
             try {
                 when (action) {

@@ -31,6 +31,10 @@ class NotificationCommandService : NotificationListenerService() {
             "com.facebook.orca",                  // Messenger
             "org.thoughtcrime.securesms"          // Signal
         )
+
+        // Prevent double-processing of the same notification update
+        private val lastProcessedNotifications = java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
+        private const val NOTIFICATION_DEDUPE_MS = 5000L
     }
 
     override fun onListenerConnected() {
@@ -66,6 +70,22 @@ class NotificationCommandService : NotificationListenerService() {
         
         if (text.isEmpty()) return
         
+        // Internal deduplication: Package + Title + Text
+        val dedupeKey = "$packageName|$title|$text"
+        val now = System.currentTimeMillis()
+        synchronized(lastProcessedNotifications) {
+            val lastTime = lastProcessedNotifications[dedupeKey] ?: 0L
+            if (now - lastTime < NOTIFICATION_DEDUPE_MS) {
+                return // Skip duplicate notification update
+            }
+            lastProcessedNotifications[dedupeKey] = now
+            
+            // Cleanup
+            if (lastProcessedNotifications.size > 50) {
+                lastProcessedNotifications.entries.removeIf { now - it.value > NOTIFICATION_DEDUPE_MS }
+            }
+        }
+
         Log.d(TAG, "PHONEGUARD_DEBUG 🔔 New notification from $packageName: $title - $text")
 
         scope.launch {
@@ -99,10 +119,20 @@ class NotificationCommandService : NotificationListenerService() {
 
         for (number in possibleNumbers) {
             Log.d(TAG, "Testing command against number: $number")
+            
+            // Look up the actual SMS timestamp from the database.
+            // The ContentObserver in RecoveryService uses the 'date' column as the dedup key.
+            // If this notification is for a traditional SMS, we must use the SAME timestamp,
+            // otherwise both detection paths produce different keys and both execute.
+            // For RCS/WhatsApp (not in SMS DB), findSmsTimestamp returns null → falls back to postTime.
+            val smsTimestamp = findSmsTimestamp(text) ?: sbn.postTime
+            Log.d(TAG, "Using smsTimestamp=$smsTimestamp (postTime=${sbn.postTime}) for dedup")
+            
             val result = parser.parseAndExecute(
                 sender = number,
                 message = text,
-                subscriptionId = -1
+                subscriptionId = -1,
+                smsTimestamp = smsTimestamp
             )
             
             Log.d(TAG, "CommandParser result for $number: ${result.name}")
@@ -118,6 +148,34 @@ class NotificationCommandService : NotificationListenerService() {
             // Dismiss the notification instantly to hide the command
             cancelNotification(sbn.key)
             Log.d(TAG, "Notification dismissed after successful command execution")
+        }
+    }
+
+    /**
+     * Looks up the actual 'date' timestamp stored in the SMS database for a message
+     * with the given body. This allows NotificationCommandService to share the same
+     * dedup key as RecoveryService's ContentObserver (which also reads the 'date' column).
+     * Returns null if the message is not in the SMS DB (i.e., it is RCS or OTT like WhatsApp).
+     */
+    private fun findSmsTimestamp(messageBody: String): Long? {
+        return try {
+            val trimmedBody = messageBody.trim()
+            // Only look for SMS received in the last 60 seconds to avoid matching
+            // old messages with the same body text (e.g., old "Miss you phone" from inbox).
+            val cutoffMs = System.currentTimeMillis() - 60_000L
+            val cursor = contentResolver.query(
+                android.net.Uri.parse("content://sms/inbox"),
+                arrayOf("date"),
+                "body = ? AND date > ?",
+                arrayOf(trimmedBody, cutoffMs.toString()),
+                "date DESC LIMIT 1"
+            ) ?: return null
+            cursor.use {
+                if (it.moveToFirst()) it.getLong(0) else null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "findSmsTimestamp failed: ${e.message}")
+            null
         }
     }
 

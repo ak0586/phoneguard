@@ -70,11 +70,11 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
             }
         }
         contentResolver.registerContentObserver(
-            Uri.parse("content://sms"),
+            Uri.parse("content://sms/inbox"), // inbox ONLY — prevents firing on outgoing sent replies
             true,
             smsObserver!!
         )
-        Log.d(TAG, "SMS ContentObserver registered — messaging app bypass active")
+        Log.d(TAG, "SMS ContentObserver registered on inbox — messaging app bypass active")
     }
 
     private fun checkForNewSms() {
@@ -134,7 +134,8 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                             CommandParser(this@RecoveryService).parseAndExecute(
                                 sender = from,
                                 message = body,
-                                subscriptionId = -1
+                                subscriptionId = -1,
+                                smsTimestamp = date  // Same timestamp stored in SMS DB → dedup key matches SmsReceiver
                             )
                         }
                     }

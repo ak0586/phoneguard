@@ -27,7 +27,6 @@ class SmsReceiver : BroadcastReceiver() {
                         if (sender != null) {
                             // Pre-mark this message as "seen" using a hash of sender+body+timestamp
                             // so the RecoveryService ContentObserver skips it immediately.
-                            // This closes the race window between the two detection paths.
                             val prefs = context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
                             val smsHash = "${sender.hashCode()}_${messageBody.hashCode()}_${smsMessage.timestampMillis}"
                             prefs.edit().putString("phoneguard.last_sms_hash", smsHash).commit()
@@ -35,7 +34,8 @@ class SmsReceiver : BroadcastReceiver() {
                             val result = CommandParser(context).parseAndExecute(
                                 sender = sender,
                                 message = messageBody,
-                                subscriptionId = subscriptionId
+                                subscriptionId = subscriptionId,
+                                smsTimestamp = smsMessage.timestampMillis
                             )
                             Log.d("SmsReceiver", "Command execution result: $result")
                         }
