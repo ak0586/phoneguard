@@ -35,19 +35,23 @@ class CommandParser(private val context: Context) {
         
         // Deduplication window to prevent multiple triggers for the same message
         private const val DEDUPE_WINDOW_MS = 10000L // 10 seconds
-        private val lastProcessedCommands = mutableMapOf<String, Long>()
+        private val lastProcessedCommands = Collections.synchronizedMap(mutableMapOf<String, Long>())
         
         private fun isDuplicate(sender: String, action: String?): Boolean {
             val key = "$sender:$action"
             val now = System.currentTimeMillis()
-            val lastTime = lastProcessedCommands[key] ?: 0L
-            if (now - lastTime < DEDUPE_WINDOW_MS) {
-                Log.w("CommandParser", "Dedup: blocking duplicate command key=$key within ${DEDUPE_WINDOW_MS}ms")
-                return true
-            }
-            lastProcessedCommands[key] = now
-            if (lastProcessedCommands.size > 100) {
-                lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
+            
+            synchronized(lastProcessedCommands) {
+                val lastTime = lastProcessedCommands[key] ?: 0L
+                if (now - lastTime < DEDUPE_WINDOW_MS) {
+                    Log.w("CommandParser", "Dedup: blocking duplicate command key=$key within ${DEDUPE_WINDOW_MS}ms")
+                    return true
+                }
+                lastProcessedCommands[key] = now
+                
+                if (lastProcessedCommands.size > 100) {
+                    lastProcessedCommands.entries.removeIf { now - it.value > DEDUPE_WINDOW_MS }
+                }
             }
             return false
         }
@@ -275,10 +279,14 @@ class CommandParser(private val context: Context) {
     }
 
     private fun startForegroundServiceCompat(intent: Intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Foreground service start DENIED by system: ${e.message}")
         }
     }
 

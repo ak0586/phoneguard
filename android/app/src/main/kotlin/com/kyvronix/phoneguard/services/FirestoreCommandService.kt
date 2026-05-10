@@ -30,10 +30,27 @@ class FirestoreCommandService : Service() {
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
             .build()
         
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            startForeground(4, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(4, notification)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val type = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                } else {
+                    0
+                }
+                if (type != 0) {
+                    startForeground(4, notification, type)
+                } else {
+                    startForeground(4, notification)
+                }
+            } else {
+                startForeground(4, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start FirestoreCommandService in foreground: ${e.message}")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                stopSelf()
+                return
+            }
         }
     }
 

@@ -16,7 +16,7 @@ import '../../domain/models/trusted_number.dart';
 import '../../core/utils/phone_utils.dart';
 import '../../data/datasources/native_service.dart';
 
-class AuthProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   final AuthService _authService;
   
   User? _user;
@@ -34,12 +34,18 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider(this._authService) {
     _init();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   User? get user => _user;
   UserProfile? get profile => _profile;
   bool get isAuthenticated => _user != null;
-  bool get isEmailVerified => _user?.emailVerified ?? false;
+  bool get isEmailVerified {
+    if (_user == null) return false;
+    // Google/Social users are typically pre-verified
+    if (_user!.providerData.any((p) => p.providerId != 'password')) return true;
+    return _user!.emailVerified;
+  }
   bool get isInitializing => _isInitializing;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -509,8 +515,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && isAuthenticated && !isEmailVerified) {
+      debugPrint('Auth: App resumed, reloading user to check verification status...');
+      reloadUser();
+    }
+  }
+
+  @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _profileSubscription?.cancel();
     super.dispose();
   }

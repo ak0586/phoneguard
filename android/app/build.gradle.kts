@@ -69,9 +69,10 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.lifecycle:lifecycle-service:2.6.2")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.android.gms:play-services-location:21.1.0")
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     implementation("com.google.guava:guava:31.1-android")
 }

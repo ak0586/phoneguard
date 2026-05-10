@@ -1,4 +1,5 @@
 package com.kyvronix.phoneguard.services
+import java.util.concurrent.atomic.AtomicLong
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -26,6 +27,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.net.NetworkInterface
 import java.util.Collections
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.Data
 
 class RecoveryService : Service(), CoroutineScope by MainScope() {
     companion object {
@@ -33,7 +37,7 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
         private const val CHANNEL_ID = "RecoveryServiceChannel"
         
         // Static tracker to avoid double-processing even if service is recreated
-        private var lastProcessedSmsId: Long = -1L
+        private val lastProcessedSmsId = AtomicLong(-1L)
     }
 
     private var smsObserver: ContentObserver? = null
@@ -48,22 +52,33 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            } else {
-                0
-            }
-            if (type != 0) {
-                startForeground(1, notification, type)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                } else {
+                    0
+                }
+                if (type != 0) {
+                    startForeground(1, notification, type)
+                } else {
+                    startForeground(1, notification)
+                }
             } else {
                 startForeground(1, notification)
             }
-        } else {
-            startForeground(1, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start RecoveryService in foreground: ${e.message}")
+            // On Android 12+, we might be disallowed from starting foreground from background.
+            // We catch this to avoid crash, but the service will stop.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                stopSelf()
+                return
+            }
         }
 
-        syncInitialState()
+        // Offload sync to WorkManager to avoid dataSync time limits
+        scheduleInitialSync()
         registerSmsObserver()
         
         // Start Firestore listener for web dashboard commands
@@ -115,24 +130,37 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                         val date = it.getLong(it.getColumnIndexOrThrow("date"))
 
                         // Avoid double-processing if SmsReceiver already handled it (by ID)
-                        if (id == lastProcessedSmsId) return@use
+                        if (id == lastProcessedSmsId.get()) return@use
 
                         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
 
                         // Check persistent ID across restarts
                         val storedLastId = prefs.getLong("phoneguard.last_sms_id", -1L)
-                        if (id == storedLastId) return@use
+                        if (id == storedLastId) {
+                            lastProcessedSmsId.set(id)
+                            return@use
+                        }
 
-                        // Check the hash stored by SmsReceiver — closes the race window
+                        // Give SmsReceiver a small window (50ms) to mark it as processed
+                        // ContentObserver is the fallback, so we can afford to wait slightly
+                        if (id != storedLastId) {
+                            kotlinx.coroutines.delay(50)
+                        }
+
+                        // Re-check hash after small delay
                         val expectedHash = "${from.hashCode()}_${body.hashCode()}_${date}"
                         val storedHash = prefs.getString("phoneguard.last_sms_hash", null)
                         if (expectedHash == storedHash) {
                             Log.d(TAG, "ContentObserver: SMS already handled by SmsReceiver (hash match), skipping id=$id")
-                            lastProcessedSmsId = id
+                            lastProcessedSmsId.set(id)
                             return@use
                         }
 
-                        lastProcessedSmsId = id
+                        if (!lastProcessedSmsId.compareAndSet(lastProcessedSmsId.get(), id)) {
+                             // Another thread already updated it
+                             if (lastProcessedSmsId.get() == id) return@use
+                        }
+                        
                         prefs.edit().putLong("phoneguard.last_sms_id", id).commit()
 
                         Log.d(TAG, "ContentObserver: new SMS id=$id from=$from body='$body'")
@@ -152,61 +180,21 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
         }
     }
 
-    // ─── Startup Firestore Sync ───────────────────────────────────────────────
-
-    private fun syncInitialState() {
+    private fun scheduleInitialSync() {
         val sharedPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val uid = sharedPrefs.getString("flutter.flutter.user_uid", null)
-
         // Load last processed SMS ID from prefs to survive restarts
-        lastProcessedSmsId = sharedPrefs.getLong("phoneguard.last_sms_id", -1L)
+        lastProcessedSmsId.set(sharedPrefs.getLong("phoneguard.last_sms_id", -1L))
 
-        if (uid == null) {
-            Log.w(TAG, "Sync skipped: No UID found")
-            return
-        }
+        val data = Data.Builder()
+            .putString("event", "RECOVERY_STARTUP")
+            .build()
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                if (com.google.firebase.FirebaseApp.getApps(this@RecoveryService).isEmpty()) {
-                    Log.w(TAG, "Firebase not ready, syncing aborted")
-                    return@launch
-                }
+        val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setInputData(data)
+            .build()
 
-                val location = LocationManager(this@RecoveryService).getCurrentLocation()
-                val ip = getIpAddress()
-                
-                val updates = mutableMapOf<String, Any>(
-                    "lastActive" to FieldValue.serverTimestamp(),
-                    "isOnline" to true,
-                    "deviceModel" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
-                    "osVersion" to "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})"
-                )
-                
-                if (location != null) {
-                    updates["lastLatitude"] = location.latitude
-                    updates["lastLongitude"] = location.longitude
-                    updates["locationUpdatedAt"] = FieldValue.serverTimestamp()
-                }
-                
-                if (ip != null) {
-                    updates["lastIp"] = ip
-                }
-
-                FirebaseFirestore.getInstance()
-                    .collection("users")
-                    .document(uid)
-                    .update(updates)
-                    .addOnSuccessListener {
-                        Log.d(TAG, "Initial startup sync successful")
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e(TAG, "Firestore sync failed", e)
-                    }
-            } catch (e: Exception) {
-                Log.e(TAG, "Startup sync failed", e)
-            }
-        }
+        WorkManager.getInstance(applicationContext).enqueue(syncRequest)
+        Log.d(TAG, "Scheduled startup sync via WorkManager")
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

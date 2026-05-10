@@ -106,12 +106,18 @@
         </receiver>
 
         <service android:name=".services.RecoveryService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+             <property android:name="android.app.PROPERTY_SPECIAL_USE_CATEGORY"
+                android:value="recovery" />
+        </service>
             
         <service android:name=".services.FirestoreCommandService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+             <property android:name="android.app.PROPERTY_SPECIAL_USE_CATEGORY"
+                android:value="recovery" />
+        </service>
             
         <service android:name=".services.NotificationCommandService"
             android:label="PhoneGuard Notification Monitor"

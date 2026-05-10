@@ -67,11 +67,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       } else {
-        // If registration is successful, pop the registration screen so
-        // the state listener in splash or main handles routing to verification screen.
+        await _showVerificationDialog();
+        if (!mounted) return;
         Navigator.pop(context);
       }
     }
+  }
+
+  Future<void> _showVerificationDialog() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.mark_email_unread_rounded, color: Color(0xFF00E5FF)),
+            SizedBox(width: 12),
+            Text('Verify Email', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A verification link has been sent to your email.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'IMPORTANT: If you don\'t see it, please check your SPAM folder.',
+              style: TextStyle(
+                color: Color(0xFF00E5FF),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK, I UNDERSTAND',
+              style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

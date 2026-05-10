@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -11,6 +12,27 @@ class EmailVerificationScreen extends StatefulWidget {
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   bool _isResending = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Periodically check if email is verified
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _checkStatusSilent());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _checkStatusSilent() async {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.isAuthenticated && !authProvider.isEmailVerified) {
+      await authProvider.reloadUser();
+    }
+  }
 
   void _resendEmail() async {
     setState(() {
@@ -31,10 +53,52 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         SnackBar(content: Text(authProvider.errorMessage!)),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification email resent! Check your inbox.')),
-      );
+      _showVerificationDialog();
     }
+  }
+
+  void _showVerificationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.mark_email_unread_rounded, color: Color(0xFF00E5FF)),
+            SizedBox(width: 12),
+            Text('Email Resent', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We have sent another verification link to your email.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'TIP: If you still don\'t see it, please check your SPAM folder.',
+              style: TextStyle(
+                color: Color(0xFF00E5FF),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'GOT IT',
+              style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _checkStatus() async {
