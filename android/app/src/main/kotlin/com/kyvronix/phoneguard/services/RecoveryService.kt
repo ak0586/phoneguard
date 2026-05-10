@@ -38,6 +38,7 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
         
         // Static tracker to avoid double-processing even if service is recreated
         private val lastProcessedSmsId = AtomicLong(-1L)
+        private val processingLock = Any()
     }
 
     private var smsObserver: ContentObserver? = null
@@ -45,53 +46,18 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Protection Active")
-            .setContentText("Monitoring for remote recovery commands")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-        
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                } else {
-                    0
-                }
-                if (type != 0) {
-                    startForeground(1, notification, type)
-                } else {
-                    startForeground(1, notification)
-                }
-            } else {
-                startForeground(1, notification)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start RecoveryService in foreground: ${e.message}")
-            // On Android 12+, we might be disallowed from starting foreground from background.
-            // We catch this to avoid crash, but the service will stop.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                stopSelf()
-                return
-            }
-        }
-
-        // Offload sync to WorkManager to avoid dataSync time limits
-        scheduleInitialSync()
+        // Register observer but don't call startForeground here.
+        // It's more reliable in onStartCommand on many devices.
         registerSmsObserver()
-        
-        // Start Firestore listener for web dashboard commands
-        try {
-            val cmdIntent = Intent(this, FirestoreCommandService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(cmdIntent)
-            } else {
-                startService(cmdIntent)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start FirestoreCommandService", e)
+    }
+
+    private fun getSafePrefs(): android.content.SharedPreferences {
+        val safeContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            createDeviceProtectedStorageContext()
+        } else {
+            this
         }
+        return safeContext.getSharedPreferences("InternalPhoneGuardPrefs", Context.MODE_PRIVATE)
     }
 
     // ─── SMS ContentObserver (Bypass Broadcast Interception) ──────────────────
@@ -129,41 +95,40 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                         val body = it.getString(it.getColumnIndexOrThrow("body")) ?: return@use
                         val date = it.getLong(it.getColumnIndexOrThrow("date"))
 
-                        // Avoid double-processing if SmsReceiver already handled it (by ID)
-                        if (id == lastProcessedSmsId.get()) return@use
+                        // ATOMIC CLAIM PHASE: Lock, Check, and Set immediately
+                        synchronized(processingLock) {
+                            if (id <= lastProcessedSmsId.get()) return@use
+                            
+                            // Use SAFE prefs (Device Protected) for last_sms_id to work when locked
+                            val safePrefs = getSafePrefs()
+                            val storedLastId = safePrefs.getLong("phoneguard.last_sms_id", -1L)
+                            
+                            if (id <= storedLastId) {
+                                lastProcessedSmsId.set(id)
+                                return@use
+                            }
+                            
+                            // Check persistent hash (stored by SmsReceiver) for immediate deduplication
+                            val flutterPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                            val expectedHash = "${from.hashCode()}_${body.hashCode()}_${date}"
+                            val storedHash = flutterPrefs.getString("phoneguard.last_sms_hash", null)
+                            if (expectedHash == storedHash) {
+                                Log.d(TAG, "ContentObserver: Hash match detected for id=$id, skipping")
+                                lastProcessedSmsId.set(id)
+                                return@use
+                            }
 
-                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-
-                        // Check persistent ID across restarts
-                        val storedLastId = prefs.getLong("phoneguard.last_sms_id", -1L)
-                        if (id == storedLastId) {
+                            // If we reach here, this thread HAS CLAIMED the ID.
                             lastProcessedSmsId.set(id)
-                            return@use
+                            safePrefs.edit().putLong("phoneguard.last_sms_id", id).apply()
                         }
 
-                        // Give SmsReceiver a small window (50ms) to mark it as processed
-                        // ContentObserver is the fallback, so we can afford to wait slightly
-                        if (id != storedLastId) {
-                            kotlinx.coroutines.delay(50)
-                        }
+                        // Give SmsReceiver (faster path) a small window to potentially finish
+                        // If it finishes after our claim but before our parse, its own internal
+                        // CommandParser deduplication will catch the duplicate.
+                        kotlinx.coroutines.delay(50)
 
-                        // Re-check hash after small delay
-                        val expectedHash = "${from.hashCode()}_${body.hashCode()}_${date}"
-                        val storedHash = prefs.getString("phoneguard.last_sms_hash", null)
-                        if (expectedHash == storedHash) {
-                            Log.d(TAG, "ContentObserver: SMS already handled by SmsReceiver (hash match), skipping id=$id")
-                            lastProcessedSmsId.set(id)
-                            return@use
-                        }
-
-                        if (!lastProcessedSmsId.compareAndSet(lastProcessedSmsId.get(), id)) {
-                             // Another thread already updated it
-                             if (lastProcessedSmsId.get() == id) return@use
-                        }
-                        
-                        prefs.edit().putLong("phoneguard.last_sms_id", id).commit()
-
-                        Log.d(TAG, "ContentObserver: new SMS id=$id from=$from body='$body'")
+                        Log.d(TAG, "ContentObserver: processing new SMS id=$id from=$from")
 
                         launch {
                             CommandParser(this@RecoveryService).parseAndExecute(
@@ -181,9 +146,9 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
     }
 
     private fun scheduleInitialSync() {
-        val sharedPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        // Load last processed SMS ID from prefs to survive restarts
-        lastProcessedSmsId.set(sharedPrefs.getLong("phoneguard.last_sms_id", -1L))
+        val safePrefs = getSafePrefs()
+        // Load last processed SMS ID from safe prefs to survive restarts
+        lastProcessedSmsId.set(safePrefs.getLong("phoneguard.last_sms_id", -1L))
 
         val data = Data.Builder()
             .putString("event", "RECOVERY_STARTUP")
@@ -217,6 +182,50 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Protection Active")
+            .setContentText("Monitoring for remote recovery commands")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                } else {
+                    0
+                }
+                if (type != 0) {
+                    startForeground(1, notification, type)
+                } else {
+                    startForeground(1, notification)
+                }
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start RecoveryService in foreground: ${e.message}")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }
+
+        // Offload sync and firestore listeners
+        scheduleInitialSync()
+        
+        try {
+            val cmdIntent = Intent(this, FirestoreCommandService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(cmdIntent)
+            } else {
+                startService(cmdIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start FirestoreCommandService", e)
+        }
+
         return START_STICKY
     }
 

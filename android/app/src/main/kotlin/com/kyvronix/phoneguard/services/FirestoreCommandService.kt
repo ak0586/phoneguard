@@ -23,6 +23,23 @@ class FirestoreCommandService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val serviceChannel = android.app.NotificationChannel(
+                CHANNEL_ID,
+                "Firestore Command Channel",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(android.app.NotificationManager::class.java)
+            manager.createNotificationChannel(serviceChannel)
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "Service started")
+
         val notification = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Cloud Sync Active")
             .setContentText("Listening for remote commands from web dashboard")
@@ -49,25 +66,10 @@ class FirestoreCommandService : Service() {
             Log.e(TAG, "Failed to start FirestoreCommandService in foreground: ${e.message}")
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 stopSelf()
-                return
+                return START_NOT_STICKY
             }
         }
-    }
 
-    private fun createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val serviceChannel = android.app.NotificationChannel(
-                CHANNEL_ID,
-                "Firestore Command Channel",
-                android.app.NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(android.app.NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
-        }
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started")
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val uid = prefs.getString("flutter.user_uid", null)
 

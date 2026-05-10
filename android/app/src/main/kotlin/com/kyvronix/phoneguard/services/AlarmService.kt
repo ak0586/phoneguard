@@ -21,6 +21,10 @@ class AlarmService : Service() {
         super.onCreate()
         alarmController = AlarmController(this)
         createNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d("AlarmService", "onStartCommand: Starting alarm siren")
         
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Loud Alarm Active")
@@ -30,15 +34,16 @@ class AlarmService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        try {
             startForeground(3, notification)
-        } else {
-            startForeground(3, notification)
+        } catch (e: Exception) {
+            Log.e("AlarmService", "Failed to start AlarmService in foreground", e)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
-    }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("AlarmService", "onStartCommand: Starting alarm siren")
         try {
             alarmController.startAlarm()
         } catch (e: Exception) {

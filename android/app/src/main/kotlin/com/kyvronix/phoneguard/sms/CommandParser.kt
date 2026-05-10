@@ -380,7 +380,13 @@ class CommandParser(private val context: Context) {
      */
     private fun normalizeNumber(raw: String): String {
         val digits = raw.filter { it.isDigit() }
-        return digits.trimStart('0')
+        // Keep only the last 10 digits to handle country code variations (+91 vs local)
+        // This is critical for deduplication across different SMS detection methods.
+        return if (digits.length >= 10) {
+            digits.takeLast(10)
+        } else {
+            digits.trimStart('0')
+        }
     }
 
     /**
