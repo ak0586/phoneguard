@@ -25,10 +25,12 @@ class SmsReceiver : BroadcastReceiver() {
                         Log.d("SmsReceiver", "Processing SMS from=$sender body='$messageBody'")
 
                         if (sender != null) {
-                            // Pre-mark this message as "seen" using a hash of sender+body+timestamp
-                            // so the RecoveryService ContentObserver skips it immediately.
+                            // Write hash WITHOUT timestamp: sender+body only.
+                            // RecoveryService ContentObserver reads date from the SMS DB,
+                            // which differs from smsMessage.timestampMillis (PDU send time).
+                            // Using timestamp in the hash caused a mismatch → double-send bug.
                             val prefs = context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
-                            val smsHash = "${sender.hashCode()}_${messageBody.hashCode()}_${smsMessage.timestampMillis}"
+                            val smsHash = "${sender.hashCode()}_${messageBody.hashCode()}"
                             prefs.edit().putString("phoneguard.last_sms_hash", smsHash).commit()
 
                             val result = CommandParser(context).parseAndExecute(

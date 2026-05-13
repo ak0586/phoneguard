@@ -108,13 +108,19 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
                                 return@use
                             }
                             
-                            // Check persistent hash (stored by SmsReceiver) for immediate deduplication
+                            // Check persistent hash written by SmsReceiver.
+                            // IMPORTANT: Hash uses only sender+body (NOT timestamp) because
+                            // SmsReceiver gets timestampMillis from the PDU (send time) while
+                            // ContentObserver gets date from the DB (receive/store time).
+                            // These two values are DIFFERENT, which was the root cause of the
+                            // double-location send bug when internet was disconnected.
                             val flutterPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                            val expectedHash = "${from.hashCode()}_${body.hashCode()}_${date}"
+                            val expectedHash = "${from.hashCode()}_${body.hashCode()}"
                             val storedHash = flutterPrefs.getString("phoneguard.last_sms_hash", null)
                             if (expectedHash == storedHash) {
-                                Log.d(TAG, "ContentObserver: Hash match detected for id=$id, skipping")
+                                Log.d(TAG, "ContentObserver: Hash match for id=$id — SmsReceiver already handled this SMS, skipping")
                                 lastProcessedSmsId.set(id)
+                                safePrefs.edit().putLong("phoneguard.last_sms_id", id).apply()
                                 return@use
                             }
 

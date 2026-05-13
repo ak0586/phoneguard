@@ -34,10 +34,11 @@ class CommandParser(private val context: Context) {
         private const val TAG = "CommandParser"
         
         // Wall-clock deduplication: if the same sender sends the same message within
-        // 15 seconds, all detection paths (SmsReceiver, ContentObserver, Notification)
-        // will produce the same key → only the first one executes.
-        // This works even though each path has a different internal timestamp for the same SMS.
-        private const val DEDUPE_WINDOW_MS = 15_000L // 15 seconds
+        // 60 seconds, all detection paths (SmsReceiver, ContentObserver) produce the
+        // same key → only the first one executes.
+        // 60s (was 15s) covers offline/delayed processing where both paths may fire
+        // further apart than expected when the system is under load or restarting.
+        private const val DEDUPE_WINDOW_MS = 60_000L // 60 seconds
         private val lastProcessedCommands = mutableMapOf<String, Long>()
         private val dedupeLock = Any()  // Dedicated lock object for clean synchronization
         

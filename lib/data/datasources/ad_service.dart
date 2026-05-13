@@ -9,18 +9,24 @@ class AdService {
 
   bool _isInitialized = false;
 
-  // Test Ad Unit IDs (replace with real ones in production)
+  // ── Production Ad Unit IDs (PhoneGuard) ──────────────────────
+  // App ID: ca-app-pub-7846790707867237~5281854677 (set in AndroidManifest.xml)
+
+  // Banner — defined but not currently used in the app UI
   String get bannerAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/6300978111'
-      : 'ca-app-pub-3940256099942544/2934735716';
+      ? 'ca-app-pub-7846790707867237/8185018486' // reuse native unit if needed
+      : 'ca-app-pub-3940256099942544/2934735716'; // iOS test (no iOS build)
 
+  // Native Advanced — used across Dashboard, Settings, FAQ, Activity Logs,
+  // Trusted Numbers, Command Guide screens
   String get nativeAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/2247696110'
-      : 'ca-app-pub-3940256099942544/3986624511';
+      ? 'ca-app-pub-7846790707867237/8185018486'
+      : 'ca-app-pub-3940256099942544/3986624511'; // iOS test (no iOS build)
 
+  // Rewarded — used in ProtectionStatusCard for +4h protection extension
   String get rewardedAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/5224354917'
-      : 'ca-app-pub-3940256099942544/1712485313';
+      ? 'ca-app-pub-7846790707867237/3758688310'
+      : 'ca-app-pub-3940256099942544/1712485313'; // iOS test (no iOS build)
 
   Future<void> init() async {
     if (_isInitialized) return;

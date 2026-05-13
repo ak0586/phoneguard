@@ -143,6 +143,12 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       NativeService().startFirestoreCommandService();
       NativeService().startRecoveryService(); // Ensures ContentObserver monitors ALL SMS
+
+      // Save FCM token so the web dashboard can push commands to this device
+      _authService.saveFcmToken(authUser.uid)
+          .catchError((e) => debugPrint('FCM token save error: $e'));
+      // Also listen for token refreshes (tokens can rotate every ~1 month)
+      _authService.listenForFcmTokenRefresh(authUser.uid);
     } catch (e) {
       debugPrint('Background sync setup error: $e');
     }

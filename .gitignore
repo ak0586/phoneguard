@@ -31,10 +31,12 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+# Exception: keep debug symbols for crash symbolication (private repo only)
+!/build/debug-info/
 /coverage/
 
-# Symbolication related
-app.*.symbols
+# app.*.symbols — kept for crash symbolication (exception above overrides this)
+# app.*.symbols
 
 # Obfuscation related
 app.*.map.json

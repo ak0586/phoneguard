@@ -9,14 +9,18 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.FieldValue
 import com.kyvronix.phoneguard.sms.CommandParser
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class FirestoreCommandService : Service() {
     private val CHANNEL_ID = "FirestoreCmdChannel"
     private val TAG = "FirestoreCmdService"
     private var listener: com.google.firebase.firestore.ListenerRegistration? = null
+    // Lifecycle-aware scope: cancelled in onDestroy() to prevent zombie coroutines
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -102,7 +106,7 @@ class FirestoreCommandService : Service() {
                     if (action != null) {
                         Log.d(TAG, "Received pending command: $action")
                         
-                        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        serviceScope.launch {
                             try {
                                 // Execute command (suspendable)
                                 val result = CommandParser(applicationContext).parseAndExecute("WEB_DASHBOARD", "REMOTE_ACTION $action")
@@ -149,6 +153,8 @@ class FirestoreCommandService : Service() {
         super.onDestroy()
         listener?.remove()
         listener = null
-        Log.d(TAG, "Service destroyed")
+        // Cancel all coroutines to prevent memory leaks and zombie threads
+        serviceScope.cancel()
+        Log.d(TAG, "Service destroyed and coroutine scope cancelled")
     }
 }

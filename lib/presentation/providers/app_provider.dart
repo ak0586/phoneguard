@@ -17,7 +17,7 @@ enum AppState { idle, loading, error }
 
 /// Central provider that manages all app state:
 /// settings, trusted numbers, activity logs, and recovery status
-class AppProvider extends ChangeNotifier {
+class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   final AppRepository _repository;
   final NativeService _nativeService;
   final AuthService _authService;
@@ -41,6 +41,7 @@ class AppProvider extends ChangeNotifier {
   bool _isPermissionsCardCollapsed = false;
   bool _sessionUpsellShown = false;
   bool _disposed = false;
+  bool _isAppInForeground = true; // Lifecycle flag — pauses polling when app is backgrounded
   
   // Rating logic state
   int _sessionCount = 0;
@@ -105,6 +106,10 @@ class AppProvider extends ChangeNotifier {
   Future<void> init() async {
     _state = AppState.loading;
     notifyListeners();
+
+    // Register for app lifecycle events to pause/resume polling
+    WidgetsBinding.instance.addObserver(this);
+
     try {
       _settings = await _repository.getSettings();
       _logs = await _repository.getLogs();
@@ -128,6 +133,26 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called by Android OS when app lifecycle changes.
+  /// Pauses the polling timer when the app is in the background to save battery.
+  /// Resumes with an immediate check when the user returns to the foreground.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppInForeground = true;
+      // Immediately refresh state and restart polling when user returns
+      refreshActiveActions();
+      _startPolling();
+      debugPrint('AppProvider: App foregrounded — polling resumed (30s interval)');
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _isAppInForeground = false;
+      // Cancel the timer — no point polling when user can't see the UI
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+      debugPrint('AppProvider: App backgrounded — polling paused to save battery');
+    }
+  }
+
   /// Clears all local state when user logs out
   Future<void> reset() async {
     _state = AppState.loading;
@@ -145,9 +170,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   void _startPolling() {
+    // Only poll when the app is in the foreground
+    if (!_isAppInForeground) return;
     _pollingTimer?.cancel();
+    // Changed from 5s → 30s: reduces MethodChannel calls from 720x/hr to 120x/hr
     _pollingTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 30),
       (_) => refreshActiveActions(),
     );
   }
@@ -192,6 +220,8 @@ class AppProvider extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _pollingTimer?.cancel();
+    // Unregister lifecycle observer to prevent memory leaks
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

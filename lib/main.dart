@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,6 +7,7 @@ import 'package:lost_phone_finder/l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:ui';
 
 import 'core/theme/app_theme.dart';
@@ -38,9 +40,55 @@ import 'presentation/screens/paywall_screen.dart';
 import 'presentation/screens/main_navigation_screen.dart';
 import 'presentation/screens/app_features_screen.dart';
 
+/// Top-level background FCM message handler.
+/// Must be a top-level function (not a class method) — Flutter requirement.
+/// Called when the app is in background or terminated and an FCM message arrives.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Firebase must be initialized before any Firebase calls
+  await Firebase.initializeApp();
+
+  final type = message.data['type'];
+  final action = message.data['action'];
+
+  debugPrint('FCM background: type=$type, action=$action');
+
+  if (type != 'DASHBOARD_COMMAND' || action == null || action.isEmpty) return;
+
+  // Invoke native CommandParser via MethodChannel to execute the command
+  // This works even when Flutter UI is not running
+  try {
+    const channel = MethodChannel('com.kyvronix.phoneguard/control');
+    await channel.invokeMethod('executeDashboardCommand', {'action': action});
+    debugPrint('FCM background: command $action dispatched to native');
+  } catch (e) {
+    debugPrint('FCM background: MethodChannel call failed - $e');
+    // Non-fatal: RecoveryService Firestore listener will catch it as fallback
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Register FCM background handler (must be called before runApp)
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Handle FCM messages when app is in foreground
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final type = message.data['type'];
+    final action = message.data['action'];
+    debugPrint('FCM foreground: type=$type, action=$action');
+    // Foreground messages are handled by the FirestoreCommandService listener
+    // which is already active when the app is open
+  });
+
+  // Request FCM notification permission (required for iOS; no-op on Android 12-)
+  await FirebaseMessaging.instance.requestPermission(
+    alert: false,  // We use silent data-only messages — no visible notification needed
+    badge: false,
+    sound: false,
+  );
 
   // Pass all uncaught "fatal" errors from the framework to Crashlytics
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

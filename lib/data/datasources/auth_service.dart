@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
 
 class AuthService {
@@ -63,6 +65,34 @@ class AuthService {
         'lastActive': FieldValue.serverTimestamp(),
       }).catchError((_) {}); // Ignore if fails due to offline
     }
+    // Save FCM token after profile is confirmed to exist
+    await saveFcmToken(user.uid);
+  }
+
+  /// Save the device's FCM push token to Firestore.
+  /// Called on login and whenever the token refreshes.
+  /// The web dashboard reads this token to know where to send push commands.
+  Future<void> saveFcmToken(String uid) async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await _usersCollection.doc(uid).update({'fcmToken': token});
+        debugPrint('FCM token saved: ${token.substring(0, 20)}...');
+      }
+    } catch (e) {
+      debugPrint('Failed to save FCM token: $e');
+      // Non-fatal — app works without FCM (Firestore listener is fallback)
+    }
+  }
+
+  /// Listen for FCM token refreshes and update Firestore automatically.
+  /// Call once after login and the stream handles the rest.
+  void listenForFcmTokenRefresh(String uid) {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      _usersCollection.doc(uid).update({'fcmToken': newToken})
+          .catchError((e) => debugPrint('FCM token refresh save failed: $e'));
+      debugPrint('FCM token refreshed and saved.');
+    });
   }
 
   /// Update location and set timestamp

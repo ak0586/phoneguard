@@ -55,6 +55,26 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+
+            // R8 full-mode: shrinks + obfuscates all Kotlin/Java code.
+            // Renames classes, methods, fields to single letters (a, b, c...).
+            // Removes all unused code paths and dead methods.
+            isMinifyEnabled = true
+
+            // Strip unused Android resources (drawables, layouts, strings, etc.)
+            isShrinkResources = true
+
+            proguardFiles(
+                // Android's built-in rules (handles reflection for Android APIs)
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                // Our custom rules — keeps Firebase, SMS receivers, etc. intact
+                "proguard-rules.pro"
+            )
+        }
+        debug {
+            // Keep debug builds unobfuscated for easy development & debugging
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -71,8 +91,9 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.1")
     implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.android.gms:play-services-location:21.1.0")
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
     implementation("com.google.guava:guava:31.1-android")
 }
