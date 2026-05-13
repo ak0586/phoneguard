@@ -12,6 +12,14 @@
 .swiftpm/
 migrate_working_dir/
 
+# Crashlytics build tools (binary, no need to commit)
+.crashlytics/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
 # IntelliJ related
 *.iml
 *.ipr
