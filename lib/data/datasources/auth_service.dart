@@ -60,10 +60,21 @@ class AuthService {
       );
       await setUserProfile(profile);
     } else {
-      // Document exists, just update last active timestamp
-      await _usersCollection.doc(user.uid).update({
+      // Document exists - healing logic: 
+      // If email or name is missing in Firestore, backfill from Auth user
+      final data = doc.data() as Map<String, dynamic>;
+      final updates = <String, dynamic>{
         'lastActive': FieldValue.serverTimestamp(),
-      }).catchError((_) {}); // Ignore if fails due to offline
+      };
+
+      if ((data['email'] == null || data['email'] == '') && user.email != null) {
+        updates['email'] = user.email;
+      }
+      if ((data['name'] == null || data['name'] == '' || data['name'] == 'User') && (name != null || user.displayName != null)) {
+        updates['name'] = name ?? user.displayName;
+      }
+
+      await _usersCollection.doc(user.uid).update(updates).catchError((_) {});
     }
     // Save FCM token after profile is confirmed to exist
     await saveFcmToken(user.uid);
