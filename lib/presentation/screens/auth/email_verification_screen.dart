@@ -28,7 +28,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   void _checkStatusSilent() async {
-    final authProvider = context.read<AuthProvider>();
+    if (!mounted) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.isAuthenticated && !authProvider.isEmailVerified) {
       await authProvider.reloadUser();
     }

@@ -25,7 +25,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     final provider = Provider.of<AppProvider>(context, listen: false);
-    _keywordController = TextEditingController(text: provider.settings.triggerKeyword);
+    _keywordController = TextEditingController(
+      text: provider.settings.triggerKeyword,
+    );
   }
 
   @override
@@ -40,7 +42,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(
+          l10n.settingsTitle,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
         elevation: 0,
         centerTitle: true,
       ),
@@ -73,49 +78,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               controller: _keywordController,
                               enabled: _isEditingKeyword,
                               decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppTheme.primary),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                prefixIcon: const Icon(
+                                  Icons.vpn_key_rounded,
+                                  color: AppTheme.primary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 filled: true,
-                                fillColor: Theme.of(context).brightness == Brightness.dark 
-                                    ? Colors.white.withOpacity(0.05) 
+                                fillColor:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withOpacity(0.05)
                                     : Colors.grey.withOpacity(0.05),
                               ),
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                letterSpacing: 1.5,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton.filled(
                             onPressed: () {
                               if (_isEditingKeyword) {
-                                final newKeyword = _keywordController.text.trim();
+                                final newKeyword = _keywordController.text
+                                    .trim();
                                 if (newKeyword.isNotEmpty) {
                                   provider.setTriggerKeyword(newKeyword);
                                   FocusScope.of(context).unfocus();
-                                  
-                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: const Row(
                                         children: [
-                                          Icon(Icons.check_circle_rounded, color: Colors.white),
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Colors.white,
+                                          ),
                                           SizedBox(width: 12),
-                                          Text('Keyword saved successfully', style: TextStyle(fontWeight: FontWeight.bold)),
+                                          Text(
+                                            'Keyword saved successfully',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       behavior: SnackBarBehavior.floating,
                                       backgroundColor: Colors.green.shade800,
                                       duration: const Duration(seconds: 2),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   );
                                 }
                               }
-                              setState(() => _isEditingKeyword = !_isEditingKeyword);
+                              setState(
+                                () => _isEditingKeyword = !_isEditingKeyword,
+                              );
                             },
-                            icon: Icon(_isEditingKeyword ? Icons.check_rounded : Icons.edit_rounded),
+                            icon: Icon(
+                              _isEditingKeyword
+                                  ? Icons.check_rounded
+                                  : Icons.edit_rounded,
+                            ),
                             style: IconButton.styleFrom(
-                              backgroundColor: _isEditingKeyword ? Colors.green : AppTheme.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              backgroundColor: _isEditingKeyword
+                                  ? Colors.green
+                                  : AppTheme.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ],
@@ -135,23 +174,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (provider.trustedNumbers.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(20),
-                        child: Text('No trusted numbers added yet.', style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          'No trusted numbers added yet.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       )
                     else
-                      ...provider.trustedNumbers.take(2).map((n) => ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppTheme.primary.withOpacity(0.1),
-                              child: const Icon(Icons.person_rounded, color: AppTheme.primary, size: 20),
+                      ...provider.trustedNumbers
+                          .take(2)
+                          .map(
+                            (n) => ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: AppTheme.primary.withOpacity(
+                                  0.1,
+                                ),
+                                child: const Icon(
+                                  Icons.person_rounded,
+                                  color: AppTheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                n.label,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(n.phoneNumber),
                             ),
-                            title: Text(n.label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text(n.phoneNumber),
-                          )),
+                          ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.people_alt_rounded, color: Colors.green),
-                      title: const Text('Manage Trusted Numbers', style: TextStyle(fontWeight: FontWeight.bold)),
+                      leading: const Icon(
+                        Icons.people_alt_rounded,
+                        color: Colors.green,
+                      ),
+                      title: const Text(
+                        'Manage Trusted Numbers',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => Navigator.pushNamed(context, '/trusted-numbers'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/trusted-numbers'),
                     ),
                   ],
                 ),
@@ -169,7 +233,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Colors.blue,
                       title: 'Send GPS Location',
                       value: settings.defaultActions.sendLocation,
-                      onChanged: (v) => provider.setDefaultActions(settings.defaultActions.copyWith(sendLocation: v)),
+                      onChanged: (v) => provider.setDefaultActions(
+                        settings.defaultActions.copyWith(sendLocation: v),
+                      ),
                     ),
                     const Divider(indent: 70),
                     _buildToggleTile(
@@ -177,7 +243,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppTheme.primary,
                       title: 'Start Loud Alarm',
                       value: settings.defaultActions.startAlarm,
-                      onChanged: (v) => provider.setDefaultActions(settings.defaultActions.copyWith(startAlarm: v)),
+                      onChanged: (v) => provider.setDefaultActions(
+                        settings.defaultActions.copyWith(startAlarm: v),
+                      ),
                     ),
                     const Divider(indent: 70),
                     _buildToggleTile(
@@ -192,7 +260,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           final sms = await Permission.sms.request();
                           if (!loc.isGranted || !sms.isGranted) return;
                         }
-                        provider.setDefaultActions(settings.defaultActions.copyWith(enableTracking: v));
+                        provider.setDefaultActions(
+                          settings.defaultActions.copyWith(enableTracking: v),
+                        );
                       },
                     ),
                     const Divider(indent: 70),
@@ -206,7 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           await provider.requestDeviceAdmin();
                           if (!provider.isDeviceAdminActive) return;
                         }
-                        provider.setDefaultActions(settings.defaultActions.copyWith(lockDevice: v));
+                        provider.setDefaultActions(
+                          settings.defaultActions.copyWith(lockDevice: v),
+                        );
                       },
                     ),
                   ],
@@ -222,11 +294,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildToggleTile(
                       icon: Icons.chat_bubble_outline_rounded,
-                      color: provider.isNotificationListenerEnabled ? Colors.green : Colors.blueGrey,
+                      color: provider.isNotificationListenerEnabled
+                          ? Colors.green
+                          : Colors.blueGrey,
                       title: 'RCS / Chat Protection',
-                      subtitle: provider.isNotificationListenerEnabled ? 'Active' : 'Enable to process WhatsApp/RCS',
+                      subtitle: provider.isNotificationListenerEnabled
+                          ? 'Active'
+                          : 'Enable to process WhatsApp/RCS',
                       value: provider.isNotificationListenerEnabled,
-                      onChanged: (val) => provider.openNotificationListenerSettings(),
+                      onChanged: (val) =>
+                          provider.openNotificationListenerSettings(),
                     ),
                     const Divider(indent: 70),
                     _buildToggleTile(
@@ -240,16 +317,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           final status = await Permission.camera.request();
                           if (!status.isGranted) return;
                         }
-                        provider.updateSettings(settings.copyWith(intrusionSelfieEnabled: val));
+                        provider.updateSettings(
+                          settings.copyWith(intrusionSelfieEnabled: val),
+                        );
                       },
                     ),
+                    if (settings.intrusionSelfieEnabled) ...[
+                      const Divider(indent: 70),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.pin_outlined,
+                                color: Colors.indigo,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.intrusionThreshold,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withOpacity(0.05)
+                                    : Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: settings.intrusionThreshold,
+                                  isDense: true,
+                                  icon: const Icon(
+                                    Icons.arrow_drop_down_rounded,
+                                    color: Colors.indigo,
+                                  ),
+                                  dropdownColor:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade900
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                  items: [1, 2, 3, 4, 5]
+                                      .map(
+                                        (val) => DropdownMenuItem<int>(
+                                          value: val,
+                                          child: Text(l10n.attemptsCount(val)),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      provider.updateSettings(
+                                        settings.copyWith(
+                                          intrusionThreshold: val,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const Divider(indent: 70),
                     _buildToggleTile(
                       icon: Icons.sd_card_alert_rounded,
                       color: Colors.redAccent,
                       title: l10n.simChangeAlert,
                       value: settings.simChangeAlertEnabled,
-                      onChanged: (val) => provider.updateSettings(settings.copyWith(simChangeAlertEnabled: val)),
+                      onChanged: (val) => provider.updateSettings(
+                        settings.copyWith(simChangeAlertEnabled: val),
+                      ),
                     ),
                   ],
                 ),
@@ -264,11 +437,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     ListTile(
                       leading: Icon(
-                        Icons.admin_panel_settings_rounded, 
-                        color: provider.isDeviceAdminActive ? Colors.green : Colors.red,
+                        Icons.admin_panel_settings_rounded,
+                        color: provider.isDeviceAdminActive
+                            ? Colors.green
+                            : Colors.red,
                       ),
-                      title: Text(l10n.deviceAdminTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(provider.isDeviceAdminActive ? l10n.deviceAdminActive : l10n.deviceAdminInactive),
+                      title: Text(
+                        l10n.deviceAdminTitle,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        provider.isDeviceAdminActive
+                            ? l10n.deviceAdminActive
+                            : l10n.deviceAdminInactive,
+                      ),
                       onTap: () {
                         if (provider.isDeviceAdminActive) {
                           _confirmDeactivation(context, provider);
@@ -279,14 +461,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(indent: 70),
                     ListTile(
-                      leading: const Icon(Icons.battery_saver_rounded, color: Colors.amber),
-                      title: Text(l10n.batteryOptimizationTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      leading: const Icon(
+                        Icons.battery_saver_rounded,
+                        color: Colors.amber,
+                      ),
+                      title: Text(
+                        l10n.batteryOptimizationTitle,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       onTap: () => provider.openBatteryOptimizationSettings(),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
               if (!isPremium) ...[
                 const NativeAdWidget(templateType: TemplateType.medium),
@@ -305,9 +493,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title,
         style: const TextStyle(
-          color: Colors.grey, 
-          fontSize: 11, 
-          fontWeight: FontWeight.w900, 
+          color: Colors.grey,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
           letterSpacing: 1.2,
         ),
       ),
@@ -321,7 +509,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
       ),
       child: child,
@@ -337,8 +527,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return SwitchListTile(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(fontSize: 12)) : null,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(fontSize: 12))
+          : null,
       value: value,
       onChanged: onChanged,
       secondary: Container(
@@ -352,7 +547,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _confirmDeactivation(BuildContext context, AppProvider provider) async {
+  Future<void> _confirmDeactivation(
+    BuildContext context,
+    AppProvider provider,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -360,10 +558,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(l10n.deactivateProtection),
         content: Text(l10n.deactivateWarning),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.deactivate, style: const TextStyle(color: Colors.red)),
+            child: Text(
+              l10n.deactivate,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),

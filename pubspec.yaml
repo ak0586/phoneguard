@@ -2,7 +2,7 @@ name: lost_phone_finder
 description: "Lost Phone Recovery App - Remotely control your lost Android phone via secure SMS commands."
 publish_to: 'none'
 
-version: 1.2.4+13
+version: 1.2.5+14
 
 environment:
   sdk: ^3.10.4

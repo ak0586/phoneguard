@@ -94,6 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
@@ -123,15 +124,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           backgroundColor: Colors.white.withOpacity(0.1),
                           backgroundImage: _newImage != null
                               ? FileImage(_newImage!)
-                              : (context.watch<AuthProvider>().profile?.photoUrl != null
-                                  ? (context.read<AuthProvider>().profile!.photoUrl!.startsWith('data:image')
-                                      ? MemoryImage(base64Decode(context.read<AuthProvider>().profile!.photoUrl!.split(',').last))
-                                      : NetworkImage(context.read<AuthProvider>().profile!.photoUrl!))
-                                  : null) as ImageProvider?,
-                          child: (_newImage == null && context.watch<AuthProvider>().profile?.photoUrl == null)
+                              : (() {
+                                  final url = auth.profile?.photoUrl;
+                                  if (url == null) return null;
+                                  if (url.startsWith('data:image')) {
+                                    return MemoryImage(base64Decode(url.split(',').last));
+                                  }
+                                  return NetworkImage(url) as ImageProvider;
+                                })(),
+                          child: (_newImage == null && auth.profile?.photoUrl == null)
                               ? Text(
-                                  context.watch<AuthProvider>().user?.displayName?.isNotEmpty == true
-                                      ? context.watch<AuthProvider>().user!.displayName![0].toUpperCase()
+                                  auth.user?.displayName?.isNotEmpty == true
+                                      ? auth.user!.displayName![0].toUpperCase()
                                       : 'U',
                                   style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
                                 )

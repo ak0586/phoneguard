@@ -18,7 +18,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _countryName = "Detecting Location...";
+  String _countryName = "detecting";
 
   @override
   void initState() {
@@ -56,14 +56,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() => _countryName = country);
         }
       } else if (mounted) {
-        setState(() => _countryName = cachedCountry ?? "Location Denied");
+        setState(() => _countryName = cachedCountry ?? "denied");
       }
     } catch (e) {
       if (mounted) {
         final prefs = await SharedPreferences.getInstance();
         setState(
           () => _countryName =
-              prefs.getString('cached_country_name') ?? "Location Unavailable",
+              prefs.getString('cached_country_name') ?? "unavailable",
         );
       }
     }
@@ -128,6 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     AuthProvider auth,
     dynamic profile,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Hero(
@@ -152,11 +153,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: CircleAvatar(
               radius: 58,
               backgroundColor: AppTheme.primary,
-              backgroundImage: profile?.photoUrl != null
-                  ? (profile!.photoUrl!.startsWith('data:image')
-                      ? MemoryImage(base64Decode(profile!.photoUrl!.split(',').last))
-                      : NetworkImage(profile!.photoUrl!) as ImageProvider)
-                  : null,
+              backgroundImage: (() {
+                final url = profile?.photoUrl;
+                if (url == null) return null;
+                if (url.startsWith('data:image')) {
+                  return MemoryImage(base64Decode(url.split(',').last));
+                }
+                return NetworkImage(url) as ImageProvider;
+              })(),
               child: profile?.photoUrl == null
                   ? Text(
                       user?.displayName?.isNotEmpty == true
@@ -192,7 +196,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(width: 4),
             Text(
-              _countryName,
+              _countryName == "detecting"
+                  ? l10n.detectingLocation
+                  : (_countryName == "denied"
+                      ? l10n.locationDenied
+                      : (_countryName == "unavailable"
+                          ? l10n.locationUnavailable
+                          : _countryName)),
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: 14,
@@ -245,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isPro ? 'PRO PROTECTION' : 'FREE PROTECTION',
+                      isPro ? l10n.proProtection : l10n.freeProtection,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
@@ -255,8 +265,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Text(
                       isPro
-                          ? 'Lifetime Security Active'
-                          : 'Ad-supported Protection',
+                          ? l10n.lifetimeActive
+                          : l10n.adSupportedDesc,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
@@ -334,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ACCOUNT INFORMATION',
+          l10n.accountInfoSection,
           style: TextStyle(
             color: Colors.grey.shade500,
             fontSize: 12,
@@ -345,17 +355,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         _infoTile(
           Icons.alternate_email_rounded,
-          'Email Address',
+          l10n.emailLabel,
           user?.email ?? 'Not available',
         ),
         _infoTile(
           Icons.phone_iphone_rounded,
-          'Mobile Number',
+          l10n.mobileLabel,
           auth.mobileNumber ?? 'Not provided',
         ),
         _infoTile(
           Icons.calendar_month_rounded,
-          'Joined On',
+          l10n.joinedOnLabel,
           user?.metadata.creationTime != null
               ? DateFormat('dd MMM yyyy').format(user!.metadata.creationTime!)
               : 'N/A',

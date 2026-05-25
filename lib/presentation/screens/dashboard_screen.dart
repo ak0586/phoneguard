@@ -30,13 +30,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _appVersion = '1.0.0';
+  late AuthProvider _authProvider;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initPackageInfo();
-    context.read<AuthProvider>().addListener(_onAuthChanged);
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _authProvider.addListener(_onAuthChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final appProvider = context.read<AppProvider>();
       appProvider.checkDeviceAdminStatus();
@@ -70,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _onAuthChanged() {
     if (!mounted) return;
-    final auth = context.read<AuthProvider>();
+    final auth = _authProvider;
     final app = context.read<AppProvider>();
     if (auth.profile != null) {
       if (auth.profile!.trustedNumbers.isNotEmpty)
@@ -91,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
-    context.read<AuthProvider>().removeListener(_onAuthChanged);
+    _authProvider.removeListener(_onAuthChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -142,14 +144,24 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const SizedBox(height: 20),
                       const ActiveActionsCard(),
                       const SizedBox(height: 20),
+                      _buildShortcutsGrid(context, isDarkMode, l10n),
+                      const SizedBox(height: 24),
                       const IntrusionAlertsCard(),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
+                        child: Text(
+                          'SECURITY SETUP CHECKLIST',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
                       const DeviceAdminStatusCard(),
-                      const SizedBox(height: 24),
-                      _buildSecurityHubCard(context, isDarkMode),
-                      const SizedBox(height: 20),
-                      _buildWebDashboardCard(context, isDarkMode, l10n),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       const PermissionsCard(),
                       if (auth.profile?.isPremium != true) ...[
                         const SizedBox(height: 20),
@@ -249,119 +261,107 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildWebDashboardCard(BuildContext context, bool isDark, AppLocalizations l10n) {
-    return InkWell(
-      onTap: () => _launchURL('https://phoneguard-web-dashboard.vercel.app/'),
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [
-                    Colors.indigo.shade900.withOpacity(0.4),
-                    Colors.purple.shade900.withOpacity(0.4),
-                  ]
-                : [Colors.indigo.shade50, Colors.purple.shade50],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.indigo.withOpacity(0.3), width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
+  Widget _buildShortcutsGrid(BuildContext context, bool isDark, AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: () => Navigator.pushNamed(context, '/settings'),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              height: 120,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.2),
-                shape: BoxShape.circle,
+                color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                ),
               ),
-              child: const Icon(
-                Icons.dashboard_rounded,
-                color: Colors.indigo,
-                size: 32,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    l10n.webDashboard,
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.settings_suggest_rounded, color: Colors.blue, size: 20),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Remote control your phone from any browser',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.settingsTitle,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Control & Setup',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.open_in_new_rounded, color: Colors.indigo, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSecurityHubCard(BuildContext context, bool isDark) {
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, '/settings'),
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [
-                    Colors.blue.shade900.withOpacity(0.4),
-                    Colors.indigo.shade900.withOpacity(0.4),
-                  ]
-                : [Colors.blue.shade50, Colors.indigo.shade50],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1.5),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
+        const SizedBox(width: 16),
+        Expanded(
+          child: InkWell(
+            onTap: () => _launchURL('https://phoneguard-web-dashboard.vercel.app/'),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              height: 120,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
-                shape: BoxShape.circle,
+                color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                ),
               ),
-              child: const Icon(
-                Icons.admin_panel_settings_rounded,
-                color: Colors.blue,
-                size: 32,
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Security Control Center & Settings',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.dashboard_rounded, color: Colors.indigo, size: 20),
+                      ),
+                      const Icon(Icons.open_in_new_rounded, color: Colors.indigo, size: 14),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Setup trigger keyword, trusted numbers & default actions',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.webDashboard,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Browser Portal',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.blue),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

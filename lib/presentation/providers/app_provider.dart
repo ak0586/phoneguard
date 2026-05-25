@@ -37,8 +37,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   void Function(List<TrustedNumber>)? onTrustedNumbersChanged;
   void Function(String)? onTriggerKeywordChanged;
   bool _isNotificationListenerEnabled = false;
-  bool _isIntrusionCardCollapsed = false;
-  bool _isPermissionsCardCollapsed = false;
+  bool _isIntrusionCardCollapsed = true;
+  bool _isPermissionsCardCollapsed = true;
   bool _sessionUpsellShown = false;
   bool _disposed = false;
   bool _isAppInForeground = true; // Lifecycle flag — pauses polling when app is backgrounded

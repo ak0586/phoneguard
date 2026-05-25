@@ -765,4 +765,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get delete => 'Delete';
+
+  @override
+  String get createAccount => 'Create Account';
+
+  @override
+  String get joinAppName => 'Join PhoneGuard';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get mobileLabel => 'Mobile Number';
+
+  @override
+  String get emailLabel => 'Email Address';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm Password';
+
+  @override
+  String get verifyEmailTitle => 'Verify Email';
+
+  @override
+  String get verifyEmailSentDesc =>
+      'A verification link has been sent to your email.';
+
+  @override
+  String get verifyEmailSpamWarning =>
+      'IMPORTANT: If you don\'t see it, please check your SPAM folder.';
+
+  @override
+  String get okUnderstand => 'OK, I UNDERSTAND';
+
+  @override
+  String get registerButton => 'REGISTER';
+
+  @override
+  String get signUpGoogle => 'Sign up with Google';
+
+  @override
+  String get nameError => 'Please enter your name';
+
+  @override
+  String get mobileError => 'Please enter a mobile number';
+
+  @override
+  String get mobileFormatError => 'Include +country code (e.g. +91...)';
+
+  @override
+  String get emailError => 'Please enter an email';
+
+  @override
+  String get emailInvalidError => 'Please enter a valid email';
+
+  @override
+  String get passwordError => 'Please enter a password';
+
+  @override
+  String get passwordLengthError => 'Password must be at least 6 characters';
+
+  @override
+  String get confirmPasswordError => 'Please confirm your password';
+
+  @override
+  String get passwordMismatchError => 'Passwords do not match';
+
+  @override
+  String get accountInfoSection => 'ACCOUNT INFORMATION';
+
+  @override
+  String get joinedOnLabel => 'Joined On';
+
+  @override
+  String get detectingLocation => 'Detecting Location...';
+
+  @override
+  String get locationDenied => 'Location Denied';
+
+  @override
+  String get locationUnavailable => 'Location Unavailable';
+
+  @override
+  String get proProtection => 'PRO PROTECTION';
+
+  @override
+  String get freeProtection => 'FREE PROTECTION';
+
+  @override
+  String get lifetimeActive => 'Lifetime Security Active';
+
+  @override
+  String get adSupportedDesc => 'Ad-supported Protection';
 }

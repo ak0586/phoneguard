@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../widgets/native_ad_widget.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 /// Reference guide for all SMS commands
 class CommandGuideScreen extends StatelessWidget {
@@ -20,9 +21,11 @@ class CommandGuideScreen extends StatelessWidget {
             : provider.settings.triggerKeyword;
         final isPremium = auth.profile?.isPremium ?? false;
 
+        final l10n = AppLocalizations.of(context)!;
+
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Command Guide'),
+            title: Text(l10n.commandGuide),
             leading: const BackButton(),
           ),
           body: ListView(
@@ -261,12 +264,13 @@ class _CodeBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () {
         Clipboard.setData(ClipboardData(text: text));
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+        ).showSnackBar(SnackBar(content: Text(l10n.copiedToClipboard)));
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

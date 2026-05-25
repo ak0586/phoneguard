@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../../core/utils/phone_utils.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -75,31 +76,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _showVerificationDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.mark_email_unread_rounded, color: Color(0xFF00E5FF)),
-            SizedBox(width: 12),
-            Text('Verify Email', style: TextStyle(color: Colors.white)),
+            const Icon(Icons.mark_email_unread_rounded, color: Color(0xFF00E5FF)),
+            const SizedBox(width: 12),
+            Text(l10n.verifyEmailTitle, style: const TextStyle(color: Colors.white)),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'A verification link has been sent to your email.',
-              style: TextStyle(color: Colors.white70),
+              l10n.verifyEmailSentDesc,
+              style: const TextStyle(color: Colors.white70),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'IMPORTANT: If you don\'t see it, please check your SPAM folder.',
-              style: TextStyle(
+              l10n.verifyEmailSpamWarning,
+              style: const TextStyle(
                 color: Color(0xFF00E5FF),
                 fontWeight: FontWeight.bold,
               ),
@@ -109,9 +111,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'OK, I UNDERSTAND',
-              style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+            child: Text(
+              l10n.okUnderstand,
+              style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -131,10 +133,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: Text(l10n.createAccount),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -204,10 +207,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
-                    'Join PhoneGuard',
+                  Text(
+                    l10n.joinAppName,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -218,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _nameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Name',
+                      labelText: l10n.nameLabel,
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.person, color: Colors.grey),
                       filled: true,
@@ -229,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     validator: (value) => value == null || value.isEmpty
-                        ? 'Please enter your name'
+                        ? l10n.nameError
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -239,13 +242,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: const TextStyle(color: Colors.white),
                     validator: (value) {
                       if (value == null || value.isEmpty)
-                        return 'Please enter a mobile number';
+                        return l10n.mobileError;
                       if (!PhoneUtils.isValid(value))
-                        return 'Include +country code (e.g. +91...)';
+                        return l10n.mobileFormatError;
                       return null;
                     },
                     decoration: InputDecoration(
-                      labelText: 'Mobile Number',
+                      labelText: l10n.mobileLabel,
                       hintText: '+91 9876543210',
                       hintStyle: const TextStyle(color: Colors.white24),
                       labelStyle: const TextStyle(color: Colors.grey),
@@ -264,7 +267,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Email',
+                      labelText: l10n.emailLabel,
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.email, color: Colors.grey),
                       filled: true,
@@ -276,9 +279,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty)
-                        return 'Please enter an email';
+                        return l10n.emailError;
                       if (!value.contains('@'))
-                        return 'Please enter a valid email';
+                        return l10n.emailInvalidError;
                       return null;
                     },
                   ),
@@ -288,7 +291,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscurePassword,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: l10n.passwordLabel,
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(Icons.lock, color: Colors.grey),
                       suffixIcon: IconButton(
@@ -313,9 +316,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty)
-                        return 'Please enter a password';
+                        return l10n.passwordError;
                       if (value.length < 6)
-                        return 'Password must be at least 6 characters';
+                        return l10n.passwordLengthError;
                       return null;
                     },
                   ),
@@ -325,7 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: _obscureConfirmPassword,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Confirm Password',
+                      labelText: l10n.confirmPasswordLabel,
                       labelStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(
                         Icons.lock_outline,
@@ -353,9 +356,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty)
-                        return 'Please confirm your password';
+                        return l10n.confirmPasswordError;
                       if (value != _passwordController.text)
-                        return 'Passwords do not match';
+                        return l10n.passwordMismatchError;
                       return null;
                     },
                   ),
@@ -382,9 +385,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text(
-                                'REGISTER',
-                                style: TextStyle(
+                            : Text(
+                                l10n.registerButton,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.2,
@@ -443,9 +446,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               height: 24,
                             ),
                             const SizedBox(width: 12),
-                            const Text(
-                              'Sign up with Google',
-                              style: TextStyle(
+                            Text(
+                              l10n.signUpGoogle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,

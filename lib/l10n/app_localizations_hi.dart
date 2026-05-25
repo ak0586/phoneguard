@@ -772,4 +772,98 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get delete => 'हटाएं';
+
+  @override
+  String get createAccount => 'खाता बनाएं';
+
+  @override
+  String get joinAppName => 'PhoneGuard से जुड़ें';
+
+  @override
+  String get nameLabel => 'नाम';
+
+  @override
+  String get mobileLabel => 'मोबाइल नंबर';
+
+  @override
+  String get emailLabel => 'ईमेल पता';
+
+  @override
+  String get passwordLabel => 'पासवर्ड';
+
+  @override
+  String get confirmPasswordLabel => 'पासवर्ड की पुष्टि करें';
+
+  @override
+  String get verifyEmailTitle => 'ईमेल सत्यापित करें';
+
+  @override
+  String get verifyEmailSentDesc => 'आपके ईमेल पर एक सत्यापन लिंक भेजा गया है।';
+
+  @override
+  String get verifyEmailSpamWarning =>
+      'महत्वपूर्ण: यदि आपको यह नहीं दिखाई देता है, तो कृपया अपने स्पैम फ़ोल्डर की जांच करें।';
+
+  @override
+  String get okUnderstand => 'ठीक है, मैं समझ गया';
+
+  @override
+  String get registerButton => 'रजिस्टर करें';
+
+  @override
+  String get signUpGoogle => 'Google के साथ साइन अप करें';
+
+  @override
+  String get nameError => 'कृपया अपना नाम दर्ज करें';
+
+  @override
+  String get mobileError => 'कृपया मोबाइल नंबर दर्ज करें';
+
+  @override
+  String get mobileFormatError => 'देश का कोड शामिल करें (जैसे +91...)';
+
+  @override
+  String get emailError => 'कृपया ईमेल दर्ज करें';
+
+  @override
+  String get emailInvalidError => 'कृपया एक मान्य ईमेल दर्ज करें';
+
+  @override
+  String get passwordError => 'कृपया पासवर्ड दर्ज करें';
+
+  @override
+  String get passwordLengthError => 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए';
+
+  @override
+  String get confirmPasswordError => 'कृपया अपने पासवर्ड की पुष्टि करें';
+
+  @override
+  String get passwordMismatchError => 'पासवर्ड मेल नहीं खाते';
+
+  @override
+  String get accountInfoSection => 'खाता विवरण';
+
+  @override
+  String get joinedOnLabel => 'जुड़ने की तारीख';
+
+  @override
+  String get detectingLocation => 'स्थान का पता लगाया जा रहा है...';
+
+  @override
+  String get locationDenied => 'स्थान की अनुमति अस्वीकृत';
+
+  @override
+  String get locationUnavailable => 'स्थान अनुपलब्ध';
+
+  @override
+  String get proProtection => 'प्रो सुरक्षा';
+
+  @override
+  String get freeProtection => 'मुफ़्त सुरक्षा';
+
+  @override
+  String get lifetimeActive => 'लाइफटाइम सुरक्षा सक्रिय';
+
+  @override
+  String get adSupportedDesc => 'विज्ञापन समर्थित सुरक्षा';
 }

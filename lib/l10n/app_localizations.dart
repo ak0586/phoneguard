@@ -1501,6 +1501,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get delete;
+
+  /// No description provided for @createAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get createAccount;
+
+  /// No description provided for @joinAppName.
+  ///
+  /// In en, this message translates to:
+  /// **'Join PhoneGuard'**
+  String get joinAppName;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @mobileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile Number'**
+  String get mobileLabel;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get emailLabel;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @verifyEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Email'**
+  String get verifyEmailTitle;
+
+  /// No description provided for @verifyEmailSentDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A verification link has been sent to your email.'**
+  String get verifyEmailSentDesc;
+
+  /// No description provided for @verifyEmailSpamWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'IMPORTANT: If you don\'t see it, please check your SPAM folder.'**
+  String get verifyEmailSpamWarning;
+
+  /// No description provided for @okUnderstand.
+  ///
+  /// In en, this message translates to:
+  /// **'OK, I UNDERSTAND'**
+  String get okUnderstand;
+
+  /// No description provided for @registerButton.
+  ///
+  /// In en, this message translates to:
+  /// **'REGISTER'**
+  String get registerButton;
+
+  /// No description provided for @signUpGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up with Google'**
+  String get signUpGoogle;
+
+  /// No description provided for @nameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get nameError;
+
+  /// No description provided for @mobileError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a mobile number'**
+  String get mobileError;
+
+  /// No description provided for @mobileFormatError.
+  ///
+  /// In en, this message translates to:
+  /// **'Include +country code (e.g. +91...)'**
+  String get mobileFormatError;
+
+  /// No description provided for @emailError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an email'**
+  String get emailError;
+
+  /// No description provided for @emailInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email'**
+  String get emailInvalidError;
+
+  /// No description provided for @passwordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a password'**
+  String get passwordError;
+
+  /// No description provided for @passwordLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordLengthError;
+
+  /// No description provided for @confirmPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your password'**
+  String get confirmPasswordError;
+
+  /// No description provided for @passwordMismatchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordMismatchError;
+
+  /// No description provided for @accountInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'ACCOUNT INFORMATION'**
+  String get accountInfoSection;
+
+  /// No description provided for @joinedOnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined On'**
+  String get joinedOnLabel;
+
+  /// No description provided for @detectingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Detecting Location...'**
+  String get detectingLocation;
+
+  /// No description provided for @locationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Denied'**
+  String get locationDenied;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Unavailable'**
+  String get locationUnavailable;
+
+  /// No description provided for @proProtection.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO PROTECTION'**
+  String get proProtection;
+
+  /// No description provided for @freeProtection.
+  ///
+  /// In en, this message translates to:
+  /// **'FREE PROTECTION'**
+  String get freeProtection;
+
+  /// No description provided for @lifetimeActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime Security Active'**
+  String get lifetimeActive;
+
+  /// No description provided for @adSupportedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ad-supported Protection'**
+  String get adSupportedDesc;
 }
 
 class _AppLocalizationsDelegate

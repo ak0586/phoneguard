@@ -2,38 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:lost_phone_finder/l10n/app_localizations.dart';
 
 class DeviceAdminStatusCard extends StatelessWidget {
   const DeviceAdminStatusCard({super.key});
 
   void _confirmDeactivation(BuildContext context, AppProvider provider) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Deactivate Protection?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Column(
+        title: Text(l10n.deactivateProtection, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Warning: Disabling Device Admin will allow anyone to uninstall the app and stop remote protection.',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+              l10n.deactivateWarning,
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 12),
-            Text('Are you sure you want to proceed?'),
+            const SizedBox(height: 12),
+            Text(l10n.areYouSureProceed),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+            child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
               provider.deactivateDeviceAdmin();
               Navigator.pop(context);
             },
-            child: const Text('DEACTIVATE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(l10n.deactivate.toUpperCase(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
