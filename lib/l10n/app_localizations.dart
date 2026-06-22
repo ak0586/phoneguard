@@ -1676,17 +1676,131 @@ abstract class AppLocalizations {
   /// **'FREE PROTECTION'**
   String get freeProtection;
 
-  /// No description provided for @lifetimeActive.
-  ///
-  /// In en, this message translates to:
-  /// **'Lifetime Security Active'**
-  String get lifetimeActive;
-
   /// No description provided for @adSupportedDesc.
   ///
   /// In en, this message translates to:
   /// **'Ad-supported Protection'**
   String get adSupportedDesc;
+
+  /// No description provided for @lifetimeActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime Protection Active'**
+  String get lifetimeActive;
+
+  /// No description provided for @deviceVulnerable.
+  ///
+  /// In en, this message translates to:
+  /// **'Device is Vulnerable!'**
+  String get deviceVulnerable;
+
+  /// No description provided for @deviceVulnerableDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone is not fully protected. Enable these settings to ensure remote recovery works:'**
+  String get deviceVulnerableDesc;
+
+  /// No description provided for @adminDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Uninstall Protection (Device Admin) is disabled'**
+  String get adminDisabled;
+
+  /// No description provided for @chatDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat Protection (RCS/WhatsApp) is disabled'**
+  String get chatDisabled;
+
+  /// No description provided for @fixSecurityIssues.
+  ///
+  /// In en, this message translates to:
+  /// **'FIX SECURITY ISSUES NOW'**
+  String get fixSecurityIssues;
+
+  /// No description provided for @activateChat.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVATE CHAT PROTECTION'**
+  String get activateChat;
+
+  /// No description provided for @activateAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVATE DEVICE ADMIN'**
+  String get activateAdmin;
+
+  /// No description provided for @grantLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'GRANT LOCATION'**
+  String get grantLocation;
+
+  /// No description provided for @allowAllTime.
+  ///
+  /// In en, this message translates to:
+  /// **'ALLOW ALL THE TIME'**
+  String get allowAllTime;
+
+  /// No description provided for @addTrustedNumberBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'ADD TRUSTED NUMBER'**
+  String get addTrustedNumberBtn;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get save;
+
+  /// No description provided for @keywordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Trigger Keyword'**
+  String get keywordTitle;
+
+  /// No description provided for @keywordDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure your custom trigger keyword'**
+  String get keywordDesc;
+
+  /// No description provided for @keywordInstr.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your custom word. Commands must start with this keyword (e.g. \"mypin alarm\") to be executed.'**
+  String get keywordInstr;
+
+  /// No description provided for @chatInstr.
+  ///
+  /// In en, this message translates to:
+  /// **'Allows PhoneGuard to read incoming recovery SMS commands sent via Google RCS or WhatsApp.'**
+  String get chatInstr;
+
+  /// No description provided for @adminInstr.
+  ///
+  /// In en, this message translates to:
+  /// **'Allows you to lock or wipe your phone remotely and prevents thieves from uninstalling the app.'**
+  String get adminInstr;
+
+  /// No description provided for @locationInstr.
+  ///
+  /// In en, this message translates to:
+  /// **'Required to track and find your device on a map even when the app is closed or running in background.'**
+  String get locationInstr;
+
+  /// No description provided for @trustedInstr.
+  ///
+  /// In en, this message translates to:
+  /// **'Only messages sent from these numbers can trigger security commands (e.g. Alarm, Location).'**
+  String get trustedInstr;
+
+  /// No description provided for @keywordSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'✓ Trigger keyword saved successfully'**
+  String get keywordSaved;
 }
 
 class _AppLocalizationsDelegate

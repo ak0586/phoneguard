@@ -75,7 +75,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
     final profile = authProvider.profile;
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

@@ -40,7 +40,6 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
     final permissions = [
       Permission.sms,
       Permission.location,
-      Permission.phone,
       Permission.camera,
       Permission.contacts,
     ];
@@ -63,7 +62,6 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
 
     final permissions = [
       Permission.sms,
-      Permission.phone,
       Permission.contacts,
       Permission.notification,
     ];
@@ -226,12 +224,6 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
                       Icons.location_on_rounded,
                       l10n.locationAccessTitle,
                       l10n.locationAccessSubtitle,
-                    ),
-                    _permRow(
-                      Permission.phone,
-                      Icons.phone_android_rounded,
-                      l10n.phoneState,
-                      l10n.phoneStateDesc,
                     ),
                     _permRow(
                       Permission.camera,

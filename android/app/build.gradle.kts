@@ -12,7 +12,9 @@ plugins {
 android {
     namespace = "com.kyvronix.phoneguard"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // NDK 28+ is required for 16 KB memory page size alignment (Android 15+)
+    // Also required by the jni plugin (backward compatible with r27)
+    ndkVersion = "28.2.13676358"
 
     val keystorePropertiesFile = rootProject.file("key.properties")
     val keystoreProperties = Properties()
@@ -77,6 +79,14 @@ android {
             isShrinkResources = false
         }
     }
+
+    packaging {
+        jniLibs {
+            // Store .so files uncompressed so the OS can mmap them at 16 KB-aligned
+            // offsets — required for Android 15+ 16 KB page size support.
+            useLegacyPackaging = false
+        }
+    }
 }
 
 flutter {
@@ -86,9 +96,9 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.6.1")
+    implementation("androidx.camera:camera-lifecycle:1.6.1")
+    implementation("androidx.camera:camera-view:1.6.1")
     implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))

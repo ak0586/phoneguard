@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lost_phone_finder/presentation/providers/app_provider.dart';
 import 'package:lost_phone_finder/presentation/providers/auth_provider.dart';
 import 'package:lost_phone_finder/presentation/widgets/protection_status_card.dart';
@@ -13,7 +10,6 @@ import 'package:lost_phone_finder/presentation/widgets/device_admin_status_card.
 import 'package:lost_phone_finder/presentation/widgets/permissions_card.dart';
 import 'package:lost_phone_finder/presentation/widgets/active_actions_card.dart';
 import 'package:lost_phone_finder/presentation/widgets/native_ad_widget.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart' hide AppState;
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
 import 'package:lost_phone_finder/presentation/widgets/onboarding_popup.dart';
 import 'package:lost_phone_finder/presentation/screens/paywall_screen.dart';
@@ -28,15 +24,12 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  String _appVersion = '1.0.0';
   late AuthProvider _authProvider;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initPackageInfo();
     _authProvider = Provider.of<AuthProvider>(context, listen: false);
     _authProvider.addListener(_onAuthChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -82,14 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  Future<void> _initPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _appVersion = '${info.version}+${info.buildNumber}';
-      });
-    }
-  }
+
 
   @override
   void dispose() {
@@ -140,6 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         _buildPremiumBanner(context, isDarkMode),
                         const SizedBox(height: 20),
                       ],
+                      _buildVulnerableBanner(context, app, isDarkMode),
                       const ProtectionStatusCard(),
                       const SizedBox(height: 20),
                       const ActiveActionsCard(),
@@ -172,7 +159,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ],
             ),
-          );
+          ); 
         },
       ),
     );
@@ -372,45 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  void _showLogoutDialog(BuildContext context, AuthProvider auth) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          l10n.logout,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(l10n.logoutConfirmMsg),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              l10n.cancel.toUpperCase(),
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/auth-wrapper',
-                (route) => false,
-              );
-            },
-            child: Text(
-              l10n.logout.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showRatingDialog(BuildContext context, AppProvider app) {
     showDialog(
@@ -636,76 +585,92 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
     );
   }
-}
 
-class _DrawerCardTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-  final Widget? trailing;
+  Widget _buildVulnerableBanner(BuildContext context, AppProvider app, bool isDark) {
+    final missingAdmin = !app.isDeviceAdminActive;
+    final missingNotif = !app.isNotificationListenerEnabled;
 
-  const _DrawerCardTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    this.onTap,
-    this.trailing,
-  });
+    if (!missingAdmin && !missingNotif) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.03) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.05),
-            ),
-            boxShadow: isDark
-                ? []
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-          ),
-          child: Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade900.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.red.shade900.withOpacity(0.25), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 16),
+              Icon(Icons.warning_amber_rounded, color: Colors.red.shade400, size: 22),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  label,
+                  l10n.deviceVulnerable,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
                   ),
                 ),
               ),
-              if (trailing != null) trailing!,
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.deviceVulnerableDesc,
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (missingAdmin)
+            _vulnerableItem(l10n.adminDisabled),
+          if (missingNotif)
+            _vulnerableItem(l10n.chatDisabled),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/setup-guide');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade800,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(l10n.fixSecurityIssues, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _vulnerableItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.circle, size: 6, color: Colors.red),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+

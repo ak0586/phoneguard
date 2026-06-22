@@ -85,7 +85,8 @@ void main() async {
 
   // Request FCM notification permission (required for iOS; no-op on Android 12-)
   await FirebaseMessaging.instance.requestPermission(
-    alert: false,  // We use silent data-only messages — no visible notification needed
+    alert:
+        false, // We use silent data-only messages — no visible notification needed
     badge: false,
     sound: false,
   );
@@ -117,14 +118,14 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(authService),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthProvider(authService)),
         ChangeNotifierProxyProvider<AuthProvider, AppProvider>(
-          create: (_) => AppProvider(appRepository, nativeService, authService)..init(),
+          create: (_) =>
+              AppProvider(appRepository, nativeService, authService)..init(),
           update: (_, auth, app) {
-            if (app == null) return AppProvider(appRepository, nativeService, authService);
-            
+            if (app == null)
+              return AppProvider(appRepository, nativeService, authService);
+
             // Reset if user logged out
             if (!auth.isAuthenticated && app.trustedNumbers.isNotEmpty) {
               app.reset();
@@ -147,12 +148,14 @@ void main() async {
                 }
               }
             };
-            
+
             return app;
           },
         ),
         ChangeNotifierProxyProvider<AuthProvider, SubscriptionProvider>(
-          create: (context) => SubscriptionProvider(Provider.of<AuthProvider>(context, listen: false)),
+          create: (context) => SubscriptionProvider(
+            Provider.of<AuthProvider>(context, listen: false),
+          ),
           update: (context, auth, sub) => sub ?? SubscriptionProvider(auth),
         ),
         Provider.value(value: permissionService),
@@ -176,7 +179,9 @@ class LostPhoneApp extends StatelessWidget {
           title: 'PhoneGuard: Lost Phone Finder',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: provider.settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: provider.settings.isDarkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
           themeAnimationDuration: Duration.zero,
           locale: Locale(provider.settings.languageCode),
           localizationsDelegates: const [
@@ -186,9 +191,7 @@ class LostPhoneApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [Locale('en'), Locale('hi')],
-          navigatorObservers: [
-            FirebaseAnalyticsObserver(analytics: analytics),
-          ],
+          navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
           home: const SplashScreen(),
           routes: {
             '/auth-wrapper': (context) => const AuthWrapper(),
@@ -223,9 +226,13 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        debugPrint('AuthWrapper: isInit=${auth.isInitializing}, auth=${auth.isAuthenticated}, verified=${auth.isEmailVerified}');
+        debugPrint(
+          'AuthWrapper: isInit=${auth.isInitializing}, auth=${auth.isAuthenticated}, verified=${auth.isEmailVerified}',
+        );
         if (auth.isInitializing) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (!auth.isAuthenticated) return const LoginScreen();
         if (!auth.isEmailVerified) return const EmailVerificationScreen();

@@ -856,8 +856,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get freeProtection => 'FREE PROTECTION';
 
   @override
-  String get lifetimeActive => 'Lifetime Security Active';
+  String get adSupportedDesc => 'Ad-supported Protection';
 
   @override
-  String get adSupportedDesc => 'Ad-supported Protection';
+  String get lifetimeActive => 'Lifetime Protection Active';
+
+  @override
+  String get deviceVulnerable => 'Device is Vulnerable!';
+
+  @override
+  String get deviceVulnerableDesc =>
+      'Your phone is not fully protected. Enable these settings to ensure remote recovery works:';
+
+  @override
+  String get adminDisabled => 'Uninstall Protection (Device Admin) is disabled';
+
+  @override
+  String get chatDisabled => 'Chat Protection (RCS/WhatsApp) is disabled';
+
+  @override
+  String get fixSecurityIssues => 'FIX SECURITY ISSUES NOW';
+
+  @override
+  String get activateChat => 'ACTIVATE CHAT PROTECTION';
+
+  @override
+  String get activateAdmin => 'ACTIVATE DEVICE ADMIN';
+
+  @override
+  String get grantLocation => 'GRANT LOCATION';
+
+  @override
+  String get allowAllTime => 'ALLOW ALL THE TIME';
+
+  @override
+  String get addTrustedNumberBtn => 'ADD TRUSTED NUMBER';
+
+  @override
+  String get save => 'SAVE';
+
+  @override
+  String get keywordTitle => 'Security Trigger Keyword';
+
+  @override
+  String get keywordDesc => 'Configure your custom trigger keyword';
+
+  @override
+  String get keywordInstr =>
+      'Set your custom word. Commands must start with this keyword (e.g. \"mypin alarm\") to be executed.';
+
+  @override
+  String get chatInstr =>
+      'Allows PhoneGuard to read incoming recovery SMS commands sent via Google RCS or WhatsApp.';
+
+  @override
+  String get adminInstr =>
+      'Allows you to lock or wipe your phone remotely and prevents thieves from uninstalling the app.';
+
+  @override
+  String get locationInstr =>
+      'Required to track and find your device on a map even when the app is closed or running in background.';
+
+  @override
+  String get trustedInstr =>
+      'Only messages sent from these numbers can trigger security commands (e.g. Alarm, Location).';
+
+  @override
+  String get keywordSaved => '✓ Trigger keyword saved successfully';
 }

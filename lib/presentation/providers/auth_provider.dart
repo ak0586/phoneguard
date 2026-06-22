@@ -217,9 +217,16 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     } on FirebaseAuthException catch (e) {
       if (e.code != 'ERROR_ABORTED_BY_USER') {
         _errorMessage = e.message ?? 'An error occurred during Google Sign-In.';
+      } else {
+        _errorMessage = 'Sign in cancelled.';
       }
     } catch (e) {
-      _errorMessage = e.toString();
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('sign_in_canceled') || errorStr.contains('cancelled by user') || errorStr.contains('abort')) {
+        _errorMessage = 'Sign in cancelled.';
+      } else {
+        _errorMessage = e.toString();
+      }
     }
     _setLoading(false);
   }

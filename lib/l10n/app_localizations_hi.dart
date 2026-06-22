@@ -862,8 +862,71 @@ class AppLocalizationsHi extends AppLocalizations {
   String get freeProtection => 'मुफ़्त सुरक्षा';
 
   @override
-  String get lifetimeActive => 'लाइफटाइम सुरक्षा सक्रिय';
+  String get adSupportedDesc => 'विज्ञापन समर्थित सुरक्षा';
 
   @override
-  String get adSupportedDesc => 'विज्ञापन समर्थित सुरक्षा';
+  String get lifetimeActive => 'आजीवन सुरक्षा सक्रिय है';
+
+  @override
+  String get deviceVulnerable => 'डिवाइस असुरक्षित है!';
+
+  @override
+  String get deviceVulnerableDesc =>
+      'आपका फोन पूरी तरह सुरक्षित नहीं है। रिमोट रिकवरी सुनिश्चित करने के लिए इन सेटिंग्स को सक्षम करें:';
+
+  @override
+  String get adminDisabled => 'अनइंस्टॉल सुरक्षा (डिवाइस एडमिन) अक्षम है';
+
+  @override
+  String get chatDisabled => 'चैट सुरक्षा (RCS/WhatsApp) अक्षम है';
+
+  @override
+  String get fixSecurityIssues => 'सुरक्षा समस्याओं को अभी ठीक करें';
+
+  @override
+  String get activateChat => 'चैट सुरक्षा सक्रिय करें';
+
+  @override
+  String get activateAdmin => 'डिवाइस एडमिन सक्रिय करें';
+
+  @override
+  String get grantLocation => 'लोकेशन अनुमति दें';
+
+  @override
+  String get allowAllTime => 'हमेशा अनुमति दें';
+
+  @override
+  String get addTrustedNumberBtn => 'भरोसेमंद नंबर जोड़ें';
+
+  @override
+  String get save => 'सहेजें';
+
+  @override
+  String get keywordTitle => 'सुरक्षा ट्रिगर कीवर्ड';
+
+  @override
+  String get keywordDesc => 'अपना कस्टम ट्रिगर कीवर्ड कॉन्फ़िगर करें';
+
+  @override
+  String get keywordInstr =>
+      'अपना कस्टम शब्द सेट करें। कमांड शुरू करने के लिए इस कीवर्ड का होना अनिवार्य है (जैसे \"mypin alarm\")।';
+
+  @override
+  String get chatInstr =>
+      'PhoneGuard को Google RCS या WhatsApp के माध्यम से भेजे गए रिकवरी SMS कमांड को पढ़ने की अनुमति देता है।';
+
+  @override
+  String get adminInstr =>
+      'आपको अपने फोन को दूर से लॉक या वाइप करने की अनुमति देता है और चोरों को ऐप अनइंस्टॉल करने से रोकता है।';
+
+  @override
+  String get locationInstr =>
+      'ऐप बंद होने या बैकग्राउंड में चलने पर भी आपके डिवाइस को मानचित्र पर खोजने और ट्रैक करने के लिए आवश्यक है।';
+
+  @override
+  String get trustedInstr =>
+      'केवल इन नंबरों से भेजे गए संदेश ही सुरक्षा कमांड (जैसे अलार्म, लोकेशन) को सक्रिय कर सकते हैं।';
+
+  @override
+  String get keywordSaved => '✓ ट्रिगर कीवर्ड सफलतापूर्वक सहेजा गया';
 }

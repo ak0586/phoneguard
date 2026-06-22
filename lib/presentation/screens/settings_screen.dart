@@ -20,6 +20,38 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _keywordController;
   bool _isEditingKeyword = false;
+  String? _keywordError;
+
+  /// Returns an error string, or null if the keyword is valid.
+  String? _validateKeyword(String value) {
+    final trimmed = value.trim();
+
+    // 1. Minimum length
+    if (trimmed.length < 5) return 'Keyword must be at least 5 characters.';
+
+    // 2. Reserved command words
+    const reservedWords = [
+      'alarm', 'lock', 'locate', 'location', 'track', 'stop', 'audio',
+      'wipe', 'ring', 'ping', 'help', 'unlock',
+    ];
+    if (reservedWords.contains(trimmed.toLowerCase())) {
+      return '"$trimmed" is a reserved command word. Choose something unique.';
+    }
+
+    // 3. Date patterns: dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, ISO, pure numeric
+    final datePatterns = [
+      RegExp(r'^\d{1,2}[/\-.\s]\d{1,2}[/\-.\s]\d{2,4}$'),
+      RegExp(r'^\d{6,8}$'),
+      RegExp(r'^\d{4}[/\-.\s]\d{1,2}[/\-.\s]\d{1,2}$'),
+    ];
+    for (final pattern in datePatterns) {
+      if (pattern.hasMatch(trimmed)) {
+        return 'Dates are easy to guess. Use a unique word or phrase.';
+      }
+    }
+
+    return null;
+  }
 
   @override
   void initState() {
@@ -77,6 +109,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: TextField(
                               controller: _keywordController,
                               enabled: _isEditingKeyword,
+                              onChanged: (_) {
+                                if (_keywordError != null) {
+                                  setState(() => _keywordError = null);
+                                }
+                              },
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(
                                   Icons.vpn_key_rounded,
@@ -84,6 +121,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorText: _isEditingKeyword ? _keywordError : null,
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Colors.red, width: 1.5),
                                 ),
                                 filled: true,
                                 fillColor:
@@ -101,13 +143,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(width: 8),
                           IconButton.filled(
-                            onPressed: () {
+                           onPressed: () {
                               if (_isEditingKeyword) {
-                                final newKeyword = _keywordController.text
-                                    .trim();
+                                final newKeyword = _keywordController.text.trim();
                                 if (newKeyword.isNotEmpty) {
+                                  // Validate before saving
+                                  final error = _validateKeyword(newKeyword);
+                                  if (error != null) {
+                                    setState(() => _keywordError = error);
+                                    return; // block save
+                                  }
                                   provider.setTriggerKeyword(newKeyword);
                                   FocusScope.of(context).unfocus();
+                                  setState(() => _keywordError = null);
 
                                   ScaffoldMessenger.of(
                                     context,
@@ -138,6 +186,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                   );
                                 }
+                              } else {
+                                // Entering edit mode — clear any stale error
+                                setState(() => _keywordError = null);
                               }
                               setState(
                                 () => _isEditingKeyword = !_isEditingKeyword,
