@@ -311,15 +311,15 @@ class PaywallScreen extends StatelessWidget {
         'color': Colors.blue,
       },
       {
-        'icon': Icons.sim_card_alert_rounded,
-        'label': 'SIM Swap Alerts',
-        'desc': 'Get notified immediately if your SIM card is changed.',
+        'icon': Icons.lock_clock_rounded,
+        'label': 'Uninstall Protection',
+        'desc': 'Prevent thieves from deleting PhoneGuard from your device.',
         'color': Colors.redAccent,
       },
       {
         'icon': Icons.settings_remote_rounded,
-        'label': 'Remote SMS Control',
-        'desc': 'Control your phone via SMS commands from any other device.',
+        'label': 'Remote Chat Control',
+        'desc': 'Control your phone via chat commands from any other device.',
         'color': Colors.green,
       },
       {

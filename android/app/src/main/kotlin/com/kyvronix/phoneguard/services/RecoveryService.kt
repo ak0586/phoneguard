@@ -1,5 +1,4 @@
 package com.kyvronix.phoneguard.services
-import java.util.concurrent.atomic.AtomicLong
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -7,24 +6,14 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.database.ContentObserver
-import android.net.Uri
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.content.pm.ServiceInfo
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FieldValue
-import com.kyvronix.phoneguard.location.LocationManager
-import com.kyvronix.phoneguard.sms.CommandParser
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.net.NetworkInterface
 import java.util.Collections
 import androidx.work.OneTimeWorkRequestBuilder
@@ -35,20 +24,11 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
     companion object {
         private const val TAG = "RecoveryService"
         private const val CHANNEL_ID = "RecoveryServiceChannel"
-        
-        // Static tracker to avoid double-processing even if service is recreated
-        private val lastProcessedSmsId = AtomicLong(-1L)
-        private val processingLock = Any()
     }
-
-    private var smsObserver: ContentObserver? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        // Register observer but don't call startForeground here.
-        // It's more reliable in onStartCommand on many devices.
-        registerSmsObserver()
     }
 
     private fun getSafePrefs(): android.content.SharedPreferences {
@@ -60,103 +40,7 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
         return safeContext.getSharedPreferences("InternalPhoneGuardPrefs", Context.MODE_PRIVATE)
     }
 
-    // ─── SMS ContentObserver (Bypass Broadcast Interception) ──────────────────
-
-    private fun registerSmsObserver() {
-        smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
-                super.onChange(selfChange, uri)
-                checkForNewSms()
-            }
-        }
-        contentResolver.registerContentObserver(
-            Uri.parse("content://sms/inbox"), // inbox ONLY — prevents firing on outgoing sent replies
-            true,
-            smsObserver!!
-        )
-        Log.d(TAG, "SMS ContentObserver registered on inbox — messaging app bypass active")
-    }
-
-    private fun checkForNewSms() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val cursor = contentResolver.query(
-                    Uri.parse("content://sms/inbox"),
-                    arrayOf("_id", "address", "body", "date"),
-                    null,
-                    null,
-                    "_id DESC LIMIT 1"
-                ) ?: return@launch
-
-                cursor.use {
-                    if (it.moveToFirst()) {
-                        val id   = it.getLong(it.getColumnIndexOrThrow("_id"))
-                        val from = it.getString(it.getColumnIndexOrThrow("address")) ?: return@use
-                        val body = it.getString(it.getColumnIndexOrThrow("body")) ?: return@use
-                        val date = it.getLong(it.getColumnIndexOrThrow("date"))
-
-                        // ATOMIC CLAIM PHASE: Lock, Check, and Set immediately
-                        synchronized(processingLock) {
-                            if (id <= lastProcessedSmsId.get()) return@use
-                            
-                            // Use SAFE prefs (Device Protected) for last_sms_id to work when locked
-                            val safePrefs = getSafePrefs()
-                            val storedLastId = safePrefs.getLong("phoneguard.last_sms_id", -1L)
-                            
-                            if (id <= storedLastId) {
-                                lastProcessedSmsId.set(id)
-                                return@use
-                            }
-                            
-                            // Check persistent hash written by SmsReceiver.
-                            // IMPORTANT: Hash uses only sender+body (NOT timestamp) because
-                            // SmsReceiver gets timestampMillis from the PDU (send time) while
-                            // ContentObserver gets date from the DB (receive/store time).
-                            // These two values are DIFFERENT, which was the root cause of the
-                            // double-location send bug when internet was disconnected.
-                            val flutterPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                            val expectedHash = "${from.hashCode()}_${body.hashCode()}"
-                            val storedHash = flutterPrefs.getString("phoneguard.last_sms_hash", null)
-                            if (expectedHash == storedHash) {
-                                Log.d(TAG, "ContentObserver: Hash match for id=$id — SmsReceiver already handled this SMS, skipping")
-                                lastProcessedSmsId.set(id)
-                                safePrefs.edit().putLong("phoneguard.last_sms_id", id).apply()
-                                return@use
-                            }
-
-                            // If we reach here, this thread HAS CLAIMED the ID.
-                            lastProcessedSmsId.set(id)
-                            safePrefs.edit().putLong("phoneguard.last_sms_id", id).apply()
-                        }
-
-                        // Give SmsReceiver (faster path) a small window to potentially finish
-                        // If it finishes after our claim but before our parse, its own internal
-                        // CommandParser deduplication will catch the duplicate.
-                        kotlinx.coroutines.delay(50)
-
-                        Log.d(TAG, "ContentObserver: processing new SMS id=$id from=$from")
-
-                        launch {
-                            CommandParser(this@RecoveryService).parseAndExecute(
-                                sender = from,
-                                message = body,
-                                subscriptionId = -1,
-                                smsTimestamp = date  // Same timestamp stored in SMS DB → dedup key matches SmsReceiver
-                            )
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "ContentObserver SMS check failed", e)
-            }
-        }
-    }
-
     private fun scheduleInitialSync() {
-        val safePrefs = getSafePrefs()
-        // Load last processed SMS ID from safe prefs to survive restarts
-        lastProcessedSmsId.set(safePrefs.getLong("phoneguard.last_sms_id", -1L))
-
         val data = Data.Builder()
             .putString("event", "RECOVERY_STARTUP")
             .build()
@@ -237,8 +121,6 @@ class RecoveryService : Service(), CoroutineScope by MainScope() {
     }
 
     override fun onDestroy() {
-        smsObserver?.let { contentResolver.unregisterContentObserver(it) }
-        smsObserver = null
         cancel()
         Log.d(TAG, "Service destroyed and scope cancelled")
         super.onDestroy()

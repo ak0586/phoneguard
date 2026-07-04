@@ -190,6 +190,14 @@ class NativeService {
     try {
       await _channel.invokeMethod<void>(AppConstants.methodOpenNotificationListenerSettings);
     } on PlatformException catch (e) {
+      throw Exception('Failed to open notification listener settings: ${e.message}');
+    }
+  }
+
+  Future<void> openNotificationSettings() async {
+    try {
+      await _channel.invokeMethod<void>('openNotificationSettings');
+    } on PlatformException catch (e) {
       throw Exception('Failed to open notification settings: ${e.message}');
     }
   }

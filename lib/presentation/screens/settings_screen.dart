@@ -99,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'This word triggers all security actions via SMS',
+                        'This word triggers all security actions via Chat',
                         style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                       const SizedBox(height: 12),
@@ -308,8 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (v) async {
                         if (v) {
                           final loc = await Permission.location.request();
-                          final sms = await Permission.sms.request();
-                          if (!loc.isGranted || !sms.isGranted) return;
+                          if (!loc.isGranted) return;
                         }
                         provider.setDefaultActions(
                           settings.defaultActions.copyWith(enableTracking: v),
@@ -465,16 +464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ],
-                    const Divider(indent: 70),
-                    _buildToggleTile(
-                      icon: Icons.sd_card_alert_rounded,
-                      color: Colors.redAccent,
-                      title: l10n.simChangeAlert,
-                      value: settings.simChangeAlertEnabled,
-                      onChanged: (val) => provider.updateSettings(
-                        settings.copyWith(simChangeAlertEnabled: val),
-                      ),
-                    ),
+
                   ],
                 ),
               ),

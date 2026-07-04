@@ -98,7 +98,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isIntrusionCardCollapsed => _isIntrusionCardCollapsed;
   bool get isPermissionsCardCollapsed => _isPermissionsCardCollapsed;
   bool get sessionUpsellShown => _sessionUpsellShown;
-  bool get isProtectionActive => trustedNumbers.isNotEmpty;
+  bool get isProtectionActive => trustedNumbers.isNotEmpty && isNotificationListenerEnabled;
   DefaultActions get defaultActions => _settings.defaultActions;
 
   // ─── Initialization ──────────────────────────────────────────────────────
@@ -609,8 +609,15 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _nativeService.openNotificationListenerSettings();
     } catch (e) {
-      _errorMessage = e.toString();
-      notifyListeners();
+      debugPrint("Error opening notification listener settings: $e");
+    }
+  }
+
+  Future<void> openNotificationSettings() async {
+    try {
+      await _nativeService.openNotificationSettings();
+    } catch (e) {
+      debugPrint("Error opening notification settings: $e");
     }
   }
 

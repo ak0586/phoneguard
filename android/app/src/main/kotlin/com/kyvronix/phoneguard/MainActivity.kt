@@ -91,7 +91,7 @@ class MainActivity: FlutterActivity() {
                         val to = call.argument<String>("to")
                         val message = call.argument<String>("message")
                         if (to != null && message != null) {
-                            com.kyvronix.phoneguard.sms.SmsSender.sendSms(this, to, message)
+                            // SMS removed
                             result.success(true)
                         } else {
                             result.error("INVALID_ARGS", "Missing 'to' or 'message'", null)
@@ -155,6 +155,20 @@ class MainActivity: FlutterActivity() {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                         result.success(true)
+                    }
+                    "openNotificationSettings" -> {
+                        val intent = Intent("android.settings.NOTIFICATION_SETTINGS")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try {
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            // Fallback if the device doesn't support the generic notification settings intent
+                            val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
+                            fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(fallbackIntent)
+                            result.success(true)
+                        }
                     }
                     else -> result.notImplemented()
                 }

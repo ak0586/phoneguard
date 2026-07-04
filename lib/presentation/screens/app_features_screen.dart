@@ -19,18 +19,18 @@ class AppFeaturesScreen extends StatelessWidget {
         'tag': 'FREE',
       },
       {
-        'icon': Icons.sim_card_rounded,
-        'title': 'SIM Change Detection',
+        'icon': Icons.lock_clock_rounded,
+        'title': 'Uninstall Protection',
         'desc':
-            'Instantly notifies your trusted numbers if your SIM card is swapped by an intruder.',
+            'Advanced device administrator privileges prevent unauthorized users from removing the app.',
         'color': Colors.orange,
         'tag': 'FREE',
       },
       {
         'icon': Icons.location_on_rounded,
-        'title': 'Remote SMS Control',
+        'title': 'Remote Chat Control',
         'desc':
-            'Fetch location, trigger siren, or lock your phone by sending secret SMS commands.',
+            'Fetch location, trigger siren, or lock your phone by sending secret chat commands.',
         'color': Colors.blue,
         'tag': 'FREE',
       },

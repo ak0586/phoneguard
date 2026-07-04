@@ -21,9 +21,9 @@ class NotificationCommandService : NotificationListenerService() {
     companion object {
         private const val TAG = "NotificationService"
         
-        // List of common messaging apps to monitor for RCS/Chat
         private val TARGET_PACKAGES = setOf(
-            "com.google.android.apps.messaging", // Google Messages (RCS)
+            "com.google.android.apps.messaging", // Google Messages (RCS & SMS)
+            "com.samsung.android.messaging",     // Samsung Messages (SMS)
             "com.whatsapp",                      // WhatsApp
             "com.whatsapp.w4b",                  // WhatsApp Business
             "org.telegram.messenger",             // Telegram
@@ -132,7 +132,27 @@ class NotificationCommandService : NotificationListenerService() {
                 sender = number,
                 message = text,
                 subscriptionId = -1,
-                smsTimestamp = smsTimestamp
+                smsTimestamp = smsTimestamp,
+                replyAction = { replyText ->
+                    val action = findReplyAction(sbn.notification)
+                    if (action != null) {
+                        val remoteInputs = action.remoteInputs
+                        if (remoteInputs != null && remoteInputs.isNotEmpty()) {
+                            val intent = Intent()
+                            val bundle = Bundle()
+                            bundle.putCharSequence(remoteInputs[0].resultKey, replyText)
+                            android.app.RemoteInput.addResultsToIntent(remoteInputs, intent, bundle)
+                            try {
+                                action.actionIntent.send(this@NotificationCommandService, 0, intent)
+                                Log.d(TAG, "Successfully sent auto-reply: $replyText")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to send auto-reply", e)
+                            }
+                        }
+                    } else {
+                        Log.w(TAG, "No reply action found in notification")
+                    }
+                }
             )
             
             Log.d(TAG, "CommandParser result for $number: ${result.name}")
@@ -301,5 +321,16 @@ class NotificationCommandService : NotificationListenerService() {
             Log.e(TAG, "Failed to get numbers for contactId: $contactId", e)
         }
         return numbers
+    }
+
+    private fun findReplyAction(notification: Notification): Notification.Action? {
+        val actions = notification.actions ?: return null
+        for (action in actions) {
+            val remoteInputs = action.remoteInputs
+            if (remoteInputs != null && remoteInputs.isNotEmpty()) {
+                return action
+            }
+        }
+        return null
     }
 }

@@ -60,7 +60,7 @@ class CommandGuideScreen extends StatelessWidget {
               ],
               const SizedBox(height: 24),
               const Text(
-                'EXAMPLE SMS MESSAGES',
+                'EXAMPLE CHAT MESSAGES',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 11,
@@ -96,10 +96,10 @@ class CommandGuideScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Icon(Icons.sms_rounded, color: Colors.white, size: 28),
+          Icon(Icons.chat_rounded, color: Colors.white, size: 28),
           SizedBox(height: 12),
           Text(
-            'SMS Recovery Commands',
+            'Chat Recovery Commands',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -202,7 +202,7 @@ class CommandGuideScreen extends StatelessWidget {
     _Example(
       title: 'Get location only',
       sms: '$keyword location',
-      actions: ['Sends Google Maps link via SMS'],
+      actions: ['Sends Google Maps link via Chat'],
     ),
     _Example(
       title: 'Multiple commands',

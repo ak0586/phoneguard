@@ -38,7 +38,6 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
 
   Future<void> _checkPermissions() async {
     final permissions = [
-      Permission.sms,
       Permission.location,
       Permission.camera,
       Permission.contacts,
@@ -61,7 +60,6 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
     final l10n = AppLocalizations.of(context)!;
 
     final permissions = [
-      Permission.sms,
       Permission.contacts,
       Permission.notification,
     ];
@@ -212,13 +210,7 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
                 secondChild: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
-                    _permRow(
-                      Permission.sms,
-                      Icons.sms_rounded,
-                      l10n.smsAccess,
-                      l10n.smsAccessDesc,
-                    ),
+
                     _permRow(
                       Permission.location,
                       Icons.location_on_rounded,

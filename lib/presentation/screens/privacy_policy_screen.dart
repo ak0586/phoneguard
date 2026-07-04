@@ -132,12 +132,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '• यह डेटा केवल आपको आपके Google अकाउंट के माध्यम से दिखाई देता है।',
         ),
         const _PolicySectionData(
-          title: 'SMS एक्सेस',
-          icon: Icons.sms_rounded,
+          title: 'मैसेज/चैट एक्सेस',
+          icon: Icons.chat_rounded,
           color: Color(0xFF2196F3),
-          content: 'PhoneGuard आपके विश्वसनीय नंबरों से भेजे गए रिकवरी कमांड का पता लगाने के लिए आने वाले SMS संदेशों को सुनता है।\n\n'
-              '• SMS केवल आपके डिवाइस पर स्थानीय रूप से प्रोसेस किए जाते हैं।\n'
-              '• हम आपके व्यक्तिगत SMS कभी नहीं पढ़ते हैं।\n'
+          content: 'PhoneGuard आपके विश्वसनीय नंबरों से भेजे गए रिकवरी कमांड का पता लगाने के लिए आने वाले नोटिफिकेशन को सुनता है।\n\n'
+              '• मैसेज केवल आपके डिवाइस पर स्थानीय रूप से प्रोसेस किए जाते हैं।\n'
+              '• हम आपके व्यक्तिगत मैसेज कभी नहीं पढ़ते हैं।\n'
               '• केवल आपके विश्वसनीय नंबरों से भेजे गए ट्रिगर कमांड ही प्रोसेस किए जाते हैं।',
         ),
         const _PolicySectionData(
@@ -184,17 +184,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
           icon: Icons.cloud_done_rounded,
           color: Color(0xFFFFCA28),
           content: 'To enable remote recovery from the web, certain data is stored securely on Google Firebase.\n\n'
-              '• Location Data: Current coordinates are uploaded only when requested via dashboard or SMS.\n'
+              '• Location Data: Current coordinates are uploaded only when requested via dashboard or via chat command.\n'
               '• Media & Profile: Intrusion photos and your selected profile image are stored in your private cloud storage for security and personalization.\n'
               '• Device Metadata: Model and OS version are stored to identify your protected devices.\n'
               '• This data is encrypted and accessible only by you.',
         ),
         _PolicySectionData(
-          title: 'SMS & Background Processing',
-          icon: Icons.sms_rounded,
+          title: 'Chat & Background Processing',
+          icon: Icons.chat_rounded,
           color: Color(0xFF2196F3),
-          content: 'PhoneGuard listens for recovery commands sent from your trusted numbers.\n\n'
-              '• SMS messages are processed locally on your device.\n'
+          content: 'PhoneGuard requires background processing to detect recovery commands sent from your trusted numbers.\n\n'
+              '• Chat messages are processed locally on your device.\n'
               '• We NEVER read your personal conversations.\n'
               '• Background services are used to ensure recovery commands work even when the app is closed.',
         ),

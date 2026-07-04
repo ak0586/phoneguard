@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.telephony.TelephonyManager
-import com.kyvronix.phoneguard.sms.SmsSender
+
 
 class SimChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -41,7 +41,7 @@ class SimChangeReceiver : BroadcastReceiver() {
             val trustedNumbers = matches.map { it.groupValues[1] }.toList()
 
             for (number in trustedNumbers) {
-                SmsSender.sendSms(context, number, "ALERT: SIM card changed. New number is $currentNumber")
+                // SMS removed
             }
             com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SIM_CHANGE")
         }

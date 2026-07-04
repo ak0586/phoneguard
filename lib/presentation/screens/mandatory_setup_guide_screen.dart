@@ -116,7 +116,6 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
     final provider = Provider.of<AppProvider>(context, listen: false);
 
     final permissions = [
-      Permission.sms,
       Permission.location,
       Permission.camera,
       Permission.contacts,
@@ -210,7 +209,6 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
     final l10n = AppLocalizations.of(context)!;
 
     final permissions = [
-      Permission.sms,
       Permission.contacts,
       Permission.notification,
     ];
@@ -360,15 +358,62 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
             instruction: l10n.chatInstr,
             color: Colors.green,
             isActive: provider.isNotificationListenerEnabled,
-            actionButton: ElevatedButton.icon(
-              onPressed: () => provider.openNotificationListenerSettings(),
-              icon: const Icon(Icons.settings_suggest_rounded, size: 16),
-              label: Text(l10n.activateChat),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            customWidget: Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 4),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.localeName == 'hi'
+                            ? 'महत्वपूर्ण: फोन लॉक होने पर भी ऑटो-रिप्लाई काम करे, इसके लिए Android सेटिंग्स में "लॉक स्क्रीन से रिप्लाई करें" (Reply from lock screen) चालू होना चाहिए।'
+                            : 'IMPORTANT: To allow the app to Auto-Reply even when the phone is locked, ensure "Reply from lock screen" is enabled in your Android Notification Settings.',
+                        style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w600, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
+            actionButton: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => provider.openNotificationListenerSettings(),
+                    icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+                    label: Text(l10n.activateChat),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => provider.openNotificationSettings(),
+                    icon: const Icon(Icons.phonelink_lock_rounded, size: 16),
+                    label: Text(l10n.localeName == 'hi' ? 'लॉक स्क्रीन सेटिंग खोलें' : 'Open Lock Screen Settings'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           _buildRequirementItem(
@@ -399,18 +444,13 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
             description: _permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted)
                 ? l10n.allPermsGranted
                 : l10n.permsRequired,
-            instruction: "Grant all required permissions to enable recovery commands (SMS, Location, Camera, Contacts).",
+            instruction: "Grant all required permissions to enable recovery commands (Chat, Location, Camera, Contacts).",
             color: Colors.purple,
             isActive: _permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted),
             customWidget: Column(
               children: [
                 const SizedBox(height: 8),
-                _permRow(
-                  Permission.sms,
-                  Icons.sms_rounded,
-                  l10n.smsAccess,
-                  l10n.smsAccessDesc,
-                ),
+
                 _permRow(
                   Permission.location,
                   Icons.location_on_rounded,

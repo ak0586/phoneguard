@@ -66,7 +66,7 @@ class CommandParser(private val context: Context) {
         }
     }
 
-    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1, smsTimestamp: Long = 0L): CommandStatus {
+    suspend fun parseAndExecute(sender: String, message: String, subscriptionId: Int = -1, smsTimestamp: Long = 0L, replyAction: ((String) -> Unit)? = null): CommandStatus {
         val senderNorm = normalizeNumber(sender)
         // Block if same sender + same message was executed within the last 15 seconds.
         // This covers all detection paths regardless of their internal timestamp source.
@@ -138,9 +138,7 @@ class CommandParser(private val context: Context) {
             if (!isProtectionActive()) {
                 val expiredMsg = "⚠️ PhoneGuard Protection Expired. Please watch an ad or buy a subscription in the app to re-enable remote commands"
                 Log.w(TAG, "PHONEGUARD_DEBUG [3] ❌ Protection EXPIRED — notifying sender")
-                if (!isRemoteCommand) {
-                    SmsSender.sendSmsWithSim(context, sender, expiredMsg, subscriptionId)
-                }
+                
                 return CommandStatus.EXPIRED
             }
             Log.d(TAG, "PHONEGUARD_DEBUG [3] ✅ Protection active")
@@ -182,33 +180,29 @@ class CommandParser(private val context: Context) {
                             val result = LocationManager(context).getCurrentLocation()
                             if (result != null) {
                                 val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
-                                if (!isRemoteCommand) {
-                                    SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
-                                }
+                                replyAction?.invoke("$label: ${result.mapsUrl}")
                                 logActivity(sender, action, "Sent location link (approx=${result.isApproximate})", true)
                                 com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                             } else {
-                                if (!isRemoteCommand) {
-                                    SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
-                                }
+                                replyAction?.invoke("⚠️ Could not fetch location. Ensure GPS is enabled on the device.")
                                 logActivity(sender, action, "Location failed", false)
                             }
                         }
                         "alarm" -> {
                             startForegroundServiceCompat(Intent(context, AlarmService::class.java))
-                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🔔 Alarm started", subscriptionId)
+                            
                             logActivity(sender, action, "Alarm started", true)
                             com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
                         "stop" -> {
                             context.stopService(Intent(context, AlarmService::class.java))
                             context.stopService(Intent(context, TrackingService::class.java))
-                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "⏹️ Alarm & Tracking stopped", subscriptionId)
+                            
                             logActivity(sender, action, "Stopped successfully", true)
                         }
                         "lock" -> {
                             lockDeviceNow()
-                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🔒 Device locked", subscriptionId)
+                            
                             logActivity(sender, action, "Locked", true)
                             com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
@@ -218,7 +212,7 @@ class CommandParser(private val context: Context) {
                                 putExtra("subscriptionId", subscriptionId)
                             }
                             startForegroundServiceCompat(trackingIntent)
-                            if (!isRemoteCommand) SmsSender.sendSmsWithSim(context, sender, "🛰️ Position tracking started", subscriptionId)
+                            
                             logActivity(sender, action, "Tracking started", true)
                             com.kyvronix.phoneguard.utils.StateSyncManager.syncState(context, "SMS_COMMAND_$action")
                         }
@@ -241,11 +235,11 @@ class CommandParser(private val context: Context) {
                                 Log.d(TAG, "  Location result: ${if (result != null) "${result.mapsUrl} approx=${result.isApproximate}" else "null"}")
                                 if (result != null) {
                                     val label = if (result.isApproximate) "📍Approx. Location (GPS off)" else "📍 Location"
-                                    SmsSender.sendSmsWithSim(context, sender, "$label: ${result.mapsUrl}", subscriptionId)
-                                    Log.d(TAG, "  Location SMS sent (approximate=${result.isApproximate})")
+                                    replyAction?.invoke("$label: ${result.mapsUrl}")
+                                    Log.d(TAG, "  Location auto-reply sent (approximate=${result.isApproximate})")
                                     locationSent = true
                                 } else {
-                                    SmsSender.sendSmsWithSim(context, sender, "📍 Location unavailable — GPS & Network both off", subscriptionId)
+                                    replyAction?.invoke("⚠️ Could not fetch location automatically. Ensure GPS is enabled on the device.")
                                     Log.w(TAG, "  Location was null — all tiers exhausted")
                                     locationSent = true // still sent a message, don't double-send confirmation
                                 }
@@ -269,7 +263,7 @@ class CommandParser(private val context: Context) {
                             // Only send "✅ Recovery command executed" if no location message was sent
                             // (avoid flooding with 2 messages when sendLocation=true)
                             if (!locationSent) {
-                                SmsSender.sendSmsWithSim(context, sender, "✅ Recovery command executed", subscriptionId)
+                                
                             }
                             logActivity(sender, "default", "Executed actions (locationSent=$locationSent)", true)
                             Log.d(TAG, "Default actions complete")
