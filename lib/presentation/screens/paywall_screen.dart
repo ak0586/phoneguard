@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import '../providers/auth_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -470,16 +469,16 @@ Widget _buildPricingCards(
   }
 
   // Find products
-  ProductDetails? monthly;
-  ProductDetails? yearly;
-  ProductDetails? lifetime;
+  Map<String, dynamic>? monthly;
+  Map<String, dynamic>? yearly;
+  Map<String, dynamic>? lifetime;
 
   for (var p in provider.products) {
-    if (p.id.contains('monthly'))
+    if (p['id'].contains('monthly'))
       monthly = p;
-    else if (p.id.contains('yearly'))
+    else if (p['id'].contains('yearly'))
       yearly = p;
-    else if (p.id.contains('lifetime'))
+    else if (p['id'].contains('lifetime'))
       lifetime = p;
   }
 
@@ -493,10 +492,10 @@ Widget _buildPricingCards(
         context: context,
         product: lifetime,
         label: 'LIFETIME ACCESS',
-        price: lifetime.price,
+        price: lifetime['price'],
         description: 'One-time payment. Best Value.',
         isFeatured: true,
-        onBuy: () => provider.buySubscription(lifetime!),
+        onBuy: () => provider.buySubscription(lifetime!['id']),
         l10n: l10n,
       ),
       const SizedBox(height: 16),
@@ -509,10 +508,10 @@ Widget _buildPricingCards(
                 context: context,
                 product: yearly,
                 label: 'YEARLY',
-                price: yearly.price,
+                price: yearly['price'],
                 description: 'Full protection',
                 isFeatured: false,
-                onBuy: () => provider.buySubscription(yearly!),
+                onBuy: () => provider.buySubscription(yearly!['id']),
                 l10n: l10n,
               ),
             ),
@@ -523,10 +522,10 @@ Widget _buildPricingCards(
                 context: context,
                 product: monthly,
                 label: 'MONTHLY',
-                price: monthly.price,
+                price: monthly['price'],
                 description: 'Flexible',
                 isFeatured: false,
-                onBuy: () => provider.buySubscription(monthly!),
+                onBuy: () => provider.buySubscription(monthly!['id']),
                 l10n: l10n,
               ),
             ),
@@ -538,7 +537,7 @@ Widget _buildPricingCards(
 
 Widget _planCard({
   required BuildContext context,
-  required ProductDetails product,
+  required Map<String, dynamic> product,
   required String label,
   required String price,
   required String description,
