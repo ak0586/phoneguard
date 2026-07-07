@@ -156,6 +156,36 @@ class MainActivity: FlutterActivity() {
                         startActivity(intent)
                         result.success(true)
                     }
+                    "isGoogleMessagesDefault" -> {
+                        val defaultSmsApp = android.provider.Telephony.Sms.getDefaultSmsPackage(this)
+                        result.success(defaultSmsApp == "com.google.android.apps.messaging")
+                    }
+                    "requestGoogleMessagesDefault" -> {
+                        try {
+                            packageManager.getPackageInfo("com.google.android.apps.messaging", 0)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                val roleManager = getSystemService(android.app.role.RoleManager::class.java)
+                                if (roleManager!!.isRoleAvailable(android.app.role.RoleManager.ROLE_SMS)) {
+                                    if (!roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_SMS)) {
+                                        val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_SMS)
+                                        startActivityForResult(intent, 1003)
+                                    }
+                                }
+                            } else {
+                                val intent = Intent(android.provider.Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                                intent.putExtra(android.provider.Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, "com.google.android.apps.messaging")
+                                startActivity(intent)
+                            }
+                            result.success(true)
+                        } catch (e: PackageManager.NameNotFoundException) {
+                            try {
+                                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.apps.messaging")))
+                            } catch (anfe: android.content.ActivityNotFoundException) {
+                                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.messaging")))
+                            }
+                            result.success(false)
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             } catch (e: Exception) {

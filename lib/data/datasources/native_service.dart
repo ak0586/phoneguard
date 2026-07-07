@@ -98,6 +98,23 @@ class NativeService {
     }
   }
 
+  Future<bool> isGoogleMessagesDefault() async {
+    try {
+      final result = await _channel.invokeMethod<bool>('isGoogleMessagesDefault');
+      return result ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  Future<void> requestGoogleMessagesDefault() async {
+    try {
+      await _channel.invokeMethod<void>('requestGoogleMessagesDefault');
+    } on PlatformException catch (e) {
+      throw Exception('Failed to request Google Messages default: ${e.message}');
+    }
+  }
+
   Future<bool> isAlarmActive() async {
     try {
       final result = await _channel.invokeMethod<bool>('isAlarmActive');

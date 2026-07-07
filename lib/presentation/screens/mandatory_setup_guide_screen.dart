@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import '../../data/datasources/native_service.dart';
 
 class MandatorySetupGuideScreen extends StatelessWidget {
   const MandatorySetupGuideScreen({super.key});
@@ -87,6 +88,7 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
   final TextEditingController _keywordController = TextEditingController();
   Map<Permission, PermissionStatus> _permissionStatuses = {};
   bool _requestingPermissions = false;
+  bool _isGoogleMessagesDefault = false;
 
   @override
   void initState() {
@@ -128,10 +130,12 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
     }
 
     await provider.refreshActiveActions();
+    final isGoogleMessagesDefault = await NativeService().isGoogleMessagesDefault();
 
     if (mounted) {
       setState(() {
         _permissionStatuses = newStatuses;
+        _isGoogleMessagesDefault = isGoogleMessagesDefault;
         _keywordController.text = provider.settings.triggerKeyword;
         _keywordError = null; // clear error on refresh
       });
@@ -259,6 +263,18 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
           l10n.locationDisclosureDesc + "\n\nPlease select \"Allow all the time\" in the next screen.",
         );
         if (proceed) await Permission.locationAlways.request();
+      }
+    }
+
+    // 5. Request Google Messages Default
+    final isGoogleMessagesDefault = await NativeService().isGoogleMessagesDefault();
+    if (!isGoogleMessagesDefault) {
+      final proceed = await _showDisclosure(
+        "Google Messages Required",
+        "For RCS Chat features to work, Google Messages must be your default SMS app. If you don't have it installed, you will be redirected to the Play Store.",
+      );
+      if (proceed) {
+        await NativeService().requestGoogleMessagesDefault();
       }
     }
 
@@ -401,7 +417,7 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
                 : l10n.permsRequired,
             instruction: "Grant all required permissions to enable recovery commands (SMS, Location, Camera, Contacts).",
             color: Colors.purple,
-            isActive: _permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted),
+            isActive: _permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted) && _isGoogleMessagesDefault,
             customWidget: Column(
               children: [
                 const SizedBox(height: 8),
@@ -432,7 +448,7 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
               ],
             ),
             actionButton: ElevatedButton.icon(
-              onPressed: (_requestingPermissions || (_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted)))
+              onPressed: (_requestingPermissions || (_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted) && _isGoogleMessagesDefault))
                   ? null
                   : _requestAllPermissions,
               icon: _requestingPermissions
@@ -442,7 +458,7 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : Icon(
-                      (_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted))
+                      (_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted) && _isGoogleMessagesDefault)
                           ? Icons.verified_rounded
                           : Icons.lock_open_rounded,
                       size: 18,
@@ -450,7 +466,7 @@ class _SetupGuideContentState extends State<SetupGuideContent> with WidgetsBindi
               label: Text(
                 _requestingPermissions
                     ? l10n.checking
-                    : ((_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted))
+                    : ((_permissionStatuses.values.isNotEmpty && _permissionStatuses.values.every((s) => s.isGranted) && _isGoogleMessagesDefault)
                         ? l10n.allPermsGranted
                         : l10n.checkGrantPerms),
               ),
