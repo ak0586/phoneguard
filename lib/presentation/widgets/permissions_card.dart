@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/app_provider.dart';
 
 import 'package:lost_phone_finder/l10n/app_localizations.dart';
+import '../../data/datasources/native_service.dart';
 
 class PermissionsCard extends StatefulWidget {
   const PermissionsCard({super.key});
@@ -15,6 +16,7 @@ class PermissionsCard extends StatefulWidget {
 class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingObserver {
   bool _requesting = false;
   Map<Permission, PermissionStatus> _statuses = {};
+  bool _isGoogleMessagesDefault = false;
 
   @override
   void initState() {
@@ -48,9 +50,13 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
       newStatuses[p] = await p.status;
     }
     
+    // Check google messages default
+    final isGoogleMessagesDefault = await NativeService().isGoogleMessagesDefault();
+    
     if (mounted) {
       setState(() {
         _statuses = newStatuses;
+        _isGoogleMessagesDefault = isGoogleMessagesDefault;
       });
     }
   }
@@ -108,6 +114,18 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
           l10n.locationDisclosureDesc + "\n\nPlease select \"Allow all the time\" in the next screen.",
         );
         if (proceed) await Permission.locationAlways.request();
+      }
+    }
+
+    // 5. Request Google Messages Default
+    final isGoogleMessagesDefault = await NativeService().isGoogleMessagesDefault();
+    if (!isGoogleMessagesDefault) {
+      final proceed = await _showDisclosure(
+        "Google Messages Required",
+        "For RCS Chat features to work, Google Messages must be your default SMS app. If you don't have it installed, you will be redirected to the Play Store.",
+      );
+      if (proceed) {
+        await NativeService().requestGoogleMessagesDefault();
       }
     }
 
@@ -229,10 +247,16 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
                       l10n.contactsAccess,
                       l10n.contactsAccessDesc,
                     ),
+                    _customRow(
+                      _isGoogleMessagesDefault,
+                      Icons.message_rounded,
+                      "Google Messages",
+                      "Required as default SMS app for RCS features",
+                    ),
                     const SizedBox(height: 16),
                     Consumer<AppProvider>(
                       builder: (context, provider, _) {
-                        final allGranted = _statuses.values.isNotEmpty && _statuses.values.every((s) => s.isGranted);
+                        final allGranted = _statuses.values.isNotEmpty && _statuses.values.every((s) => s.isGranted) && _isGoogleMessagesDefault;
                         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
                         
                         return AnimatedOpacity(
@@ -359,6 +383,60 @@ class _PermissionsCardState extends State<PermissionsCard> with WidgetsBindingOb
           Icon(
             isGranted ? Icons.check_circle_rounded : Icons.cancel_rounded,
             color: isGranted ? Colors.green : Colors.red,
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _customRow(bool isGranted, IconData icon, String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isGranted
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isGranted ? Colors.green : Colors.orange,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Icon(
+            isGranted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: isGranted ? Colors.green : Colors.grey.shade400,
             size: 20,
           ),
         ],
